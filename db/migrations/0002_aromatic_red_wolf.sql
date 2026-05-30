@@ -1,0 +1,1 @@
+ALTER TABLE `cronograma` DROP COLUMN `rol_servicio`;

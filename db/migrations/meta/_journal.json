@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1780055820630,
+      "tag": "0000_big_jubilee",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1780061020854,
+      "tag": "0001_majestic_morg",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1780064307177,
+      "tag": "0002_aromatic_red_wolf",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,386 @@
+{
+  "version": "5",
+  "dialect": "mysql",
+  "id": "7c96a95f-80b6-4f5c-95ca-80bf727dd8c6",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "canciones": {
+      "name": "canciones",
+      "columns": {
+        "id_cancion": {
+          "name": "id_cancion",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "artista": {
+          "name": "artista",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bpm": {
+          "name": "bpm",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "metrica": {
+          "name": "metrica",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "estado_aprobacion": {
+          "name": "estado_aprobacion",
+          "type": "enum('APROBADA','PENDIENTE','RECHAZADA')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'PENDIENTE'"
+        },
+        "motivo_rechazo": {
+          "name": "motivo_rechazo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "letra": {
+          "name": "letra",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "charts": {
+          "name": "charts",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "canciones_id_cancion": {
+          "name": "canciones_id_cancion",
+          "columns": [
+            "id_cancion"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "cronograma": {
+      "name": "cronograma",
+      "columns": {
+        "id_turno": {
+          "name": "id_turno",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "id_usuario": {
+          "name": "id_usuario",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fecha_servicio": {
+          "name": "fecha_servicio",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "estado_turno": {
+          "name": "estado_turno",
+          "type": "enum('PENDIENTE','COMPLETADO','AUSENTE')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'PENDIENTE'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "cronograma_id_usuario_usuarios_id_usuario_fk": {
+          "name": "cronograma_id_usuario_usuarios_id_usuario_fk",
+          "tableFrom": "cronograma",
+          "tableTo": "usuarios",
+          "columnsFrom": [
+            "id_usuario"
+          ],
+          "columnsTo": [
+            "id_usuario"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "cronograma_id_turno": {
+          "name": "cronograma_id_turno",
+          "columns": [
+            "id_turno"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "lista_canciones": {
+      "name": "lista_canciones",
+      "columns": {
+        "id_lista_cancion": {
+          "name": "id_lista_cancion",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "id_playlist": {
+          "name": "id_playlist",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "id_cancion": {
+          "name": "id_cancion",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "orden": {
+          "name": "orden",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nota": {
+          "name": "nota",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "uq_playlist_orden": {
+          "name": "uq_playlist_orden",
+          "columns": [
+            "id_playlist",
+            "orden"
+          ],
+          "isUnique": true
+        },
+        "idx_playlist": {
+          "name": "idx_playlist",
+          "columns": [
+            "id_playlist"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "lista_canciones_id_playlist_playlists_id_playlist_fk": {
+          "name": "lista_canciones_id_playlist_playlists_id_playlist_fk",
+          "tableFrom": "lista_canciones",
+          "tableTo": "playlists",
+          "columnsFrom": [
+            "id_playlist"
+          ],
+          "columnsTo": [
+            "id_playlist"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "lista_canciones_id_cancion_canciones_id_cancion_fk": {
+          "name": "lista_canciones_id_cancion_canciones_id_cancion_fk",
+          "tableFrom": "lista_canciones",
+          "tableTo": "canciones",
+          "columnsFrom": [
+            "id_cancion"
+          ],
+          "columnsTo": [
+            "id_cancion"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "lista_canciones_id_lista_cancion": {
+          "name": "lista_canciones_id_lista_cancion",
+          "columns": [
+            "id_lista_cancion"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "playlists": {
+      "name": "playlists",
+      "columns": {
+        "id_playlist": {
+          "name": "id_playlist",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "id_usuario": {
+          "name": "id_usuario",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "enum('PRESET','EVENTO')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "estado": {
+          "name": "estado",
+          "type": "enum('PREPARACION','ENSAYO','DEFINITIVA','MAZO')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "fecha_programada": {
+          "name": "fecha_programada",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "playlists_id_usuario_usuarios_id_usuario_fk": {
+          "name": "playlists_id_usuario_usuarios_id_usuario_fk",
+          "tableFrom": "playlists",
+          "tableTo": "usuarios",
+          "columnsFrom": [
+            "id_usuario"
+          ],
+          "columnsTo": [
+            "id_usuario"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "playlists_id_playlist": {
+          "name": "playlists_id_playlist",
+          "columns": [
+            "id_playlist"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "usuarios": {
+      "name": "usuarios",
+      "columns": {
+        "id_usuario": {
+          "name": "id_usuario",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "rol": {
+          "name": "rol",
+          "type": "enum('ADMINISTRADOR','LIDER','MINISTRO')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "usuarios_id_usuario": {
+          "name": "usuarios_id_usuario",
+          "columns": [
+            "id_usuario"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "usuarios_email_unique": {
+          "name": "usuarios_email_unique",
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    }
+  },
+  "views": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "tables": {},
+    "indexes": {}
+  }
+}

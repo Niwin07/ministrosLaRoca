@@ -1,0 +1,1 @@
+ALTER TABLE `cronograma` ADD `rol_servicio` enum('VOZ','TECLADO','BATERIA','SONIDO');
