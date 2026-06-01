@@ -40,7 +40,7 @@ export default async function TurnosPage() {
 
       {!hayDatos ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <p className="text-sm text-zinc-500">La cola de turnos está vacía.</p>
+          <p className="text-sm text-content-muted">La cola de turnos está vacía.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-6">
@@ -48,7 +48,7 @@ export default async function TurnosPage() {
           {/* En Servicio */}
           {turnoActivo && (
             <section className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+              <p className="text-xs font-medium uppercase tracking-wider text-content-muted">
                 En Servicio
               </p>
               <div className="flex items-center gap-4 rounded-2xl border border-lime-400/30 bg-lime-400/10 px-5 py-4">
@@ -70,25 +70,25 @@ export default async function TurnosPage() {
           {/* Cola */}
           {cola.length > 0 && (
             <section className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+              <p className="text-xs font-medium uppercase tracking-wider text-content-muted">
                 Cola de Espera
               </p>
               <div className="flex flex-col gap-2">
                 {cola.map((t, idx) => (
                   <div
                     key={t.id_turno}
-                    className="flex items-center gap-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/60 px-4 py-4"
+                    className="flex items-center gap-4 rounded-2xl border border-glass-base bg-glass-subtle px-4 py-4"
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-bold text-zinc-400">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-glass-elevated text-xs font-bold text-content-secondary">
                       {idx + 1}
                     </span>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-white">
                         {t.nombre_usuario}
                       </p>
-                      <p className="mt-0.5 text-xs text-zinc-500">En espera</p>
+                      <p className="mt-0.5 text-xs text-content-muted">En espera</p>
                     </div>
-                    <Clock size={15} className="shrink-0 text-zinc-700" />
+                    <Clock size={15} className="shrink-0 text-content-muted" />
                   </div>
                 ))}
               </div>

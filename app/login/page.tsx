@@ -44,7 +44,7 @@ export default function LoginPage({
             placeholder="Email"
             required
             autoComplete="email"
-            className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full rounded-xl bg-glass-base px-4 py-3 text-sm text-content-primary placeholder-content-muted outline-none focus:ring-2 focus:ring-purple-500"
           />
           <input
             name="password"
@@ -52,7 +52,7 @@ export default function LoginPage({
             placeholder="Contraseña"
             required
             autoComplete="current-password"
-            className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full rounded-xl bg-glass-base px-4 py-3 text-sm text-content-primary placeholder-content-muted outline-none focus:ring-2 focus:ring-purple-500"
           />
           <button
             type="submit"

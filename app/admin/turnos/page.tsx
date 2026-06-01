@@ -56,7 +56,7 @@ export default async function AdminTurnosPage({
       {/* ── Cabecera ─────────────────────────────────────────────────── */}
       <Link
         href="/turnos"
-        className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-white"
+        className="inline-flex items-center gap-1.5 text-sm text-content-muted transition-colors hover:text-content-primary"
       >
         <ArrowLeft size={15} />
         Ver Cola
@@ -66,7 +66,7 @@ export default async function AdminTurnosPage({
         <h1 className="text-2xl font-bold tracking-tight text-white">
           Gestión de Cola
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-content-muted">
           Administrá la rotación de ministros en servicio.
         </p>
       </div>
@@ -79,15 +79,15 @@ export default async function AdminTurnosPage({
       )}
 
       {/* ── Formulario: agregar a la cola ────────────────────────────── */}
-      <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/60 p-5">
-        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-zinc-500">
+      <div className="rounded-2xl border border-glass-base bg-glass-subtle p-5">
+        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-content-muted">
           Agregar a la cola
         </p>
         <form action={agregarACola} className="flex gap-3">
           <select
             name="id_usuario"
             required
-            className="flex-1 rounded-xl border border-zinc-700 bg-zinc-950/60 px-4 py-3 text-sm text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 [&>option]:bg-zinc-900"
+            className="flex-1 rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 [&>option]:bg-glass-base"
           >
             <option value="">— Seleccionar ministro —</option>
             {listaUsuarios.map((u) => (
@@ -107,7 +107,7 @@ export default async function AdminTurnosPage({
 
       {/* ── En Servicio Ahora ─────────────────────────────────────────── */}
       <section className="space-y-3">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+        <h2 className="text-xs font-medium uppercase tracking-wider text-content-muted">
           En Servicio Ahora
         </h2>
         {turnoActivo ? (
@@ -125,7 +125,7 @@ export default async function AdminTurnosPage({
             </div>
           </div>
         ) : (
-          <p className="rounded-2xl border border-zinc-800/60 bg-zinc-900/60 px-5 py-4 text-sm text-zinc-600">
+          <p className="rounded-2xl border border-glass-base bg-glass-subtle px-5 py-4 text-sm text-content-muted">
             Nadie está activo en este momento.
           </p>
         )}
@@ -133,11 +133,11 @@ export default async function AdminTurnosPage({
 
       {/* ── Cola de espera ────────────────────────────────────────────── */}
       <section className="space-y-3">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+        <h2 className="text-xs font-medium uppercase tracking-wider text-content-muted">
           Cola de Espera
         </h2>
         {cola.length === 0 ? (
-          <p className="rounded-2xl border border-zinc-800/60 bg-zinc-900/60 px-5 py-4 text-sm text-zinc-600">
+          <p className="rounded-2xl border border-glass-base bg-glass-subtle px-5 py-4 text-sm text-content-muted">
             La cola está vacía.
           </p>
         ) : (
@@ -145,9 +145,9 @@ export default async function AdminTurnosPage({
             {cola.map((t, idx) => (
               <div
                 key={t.id_turno}
-                className="flex items-center gap-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/60 px-4 py-4"
+                className="flex items-center gap-4 rounded-2xl border border-glass-base bg-glass-subtle px-4 py-4"
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-bold text-zinc-400">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-glass-elevated text-xs font-bold text-content-secondary">
                   {idx + 1}
                 </span>
                 <p className="flex-1 text-sm font-semibold text-white">

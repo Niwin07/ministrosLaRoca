@@ -15,7 +15,7 @@ const FEEDBACK: Record<string, string> = {
 const ROL_STYLE: Record<string, string> = {
   ADMINISTRADOR: "bg-purple-500/20 text-purple-400",
   LIDER:         "bg-blue-500/20 text-blue-400",
-  MINISTRO:      "bg-zinc-800 text-zinc-400",
+  MINISTRO:      "bg-glass-elevated text-content-secondary",
 };
 
 export default async function AdminUsuariosPage({
@@ -45,7 +45,7 @@ export default async function AdminUsuariosPage({
       {/* ── Cabecera ─────────────────────────────────────────────────── */}
       <Link
         href="/"
-        className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-white"
+        className="inline-flex items-center gap-1.5 text-sm text-content-muted transition-colors hover:text-content-primary"
       >
         <ArrowLeft size={15} />
         Inicio
@@ -55,7 +55,7 @@ export default async function AdminUsuariosPage({
         <h1 className="text-2xl font-bold tracking-tight text-white">
           Gestión de Usuarios
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-content-muted">
           Creá y administrá las cuentas del equipo.
         </p>
       </div>
@@ -68,8 +68,8 @@ export default async function AdminUsuariosPage({
       )}
 
       {/* ── Formulario: crear usuario ────────────────────────────────── */}
-      <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/60 p-5">
-        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-zinc-500">
+      <div className="rounded-2xl border border-glass-base bg-glass-subtle p-5">
+        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-content-muted">
           Nuevo usuario
         </p>
         <form action={crearUsuario} className="flex flex-col gap-4">
@@ -77,7 +77,7 @@ export default async function AdminUsuariosPage({
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="nombre"
-              className="text-xs font-medium uppercase tracking-wider text-zinc-500"
+              className="text-xs font-medium uppercase tracking-wider text-content-muted"
             >
               Nombre
             </label>
@@ -87,14 +87,14 @@ export default async function AdminUsuariosPage({
               type="text"
               required
               placeholder="Ej: Juan Pérez"
-              className="rounded-xl border border-zinc-700 bg-zinc-950/60 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
+              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder:text-content-muted outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="email"
-              className="text-xs font-medium uppercase tracking-wider text-zinc-500"
+              className="text-xs font-medium uppercase tracking-wider text-content-muted"
             >
               Email
             </label>
@@ -104,14 +104,14 @@ export default async function AdminUsuariosPage({
               type="email"
               required
               placeholder="juan@iglesia.com"
-              className="rounded-xl border border-zinc-700 bg-zinc-950/60 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
+              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder:text-content-muted outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="password"
-              className="text-xs font-medium uppercase tracking-wider text-zinc-500"
+              className="text-xs font-medium uppercase tracking-wider text-content-muted"
             >
               Contraseña
             </label>
@@ -122,14 +122,14 @@ export default async function AdminUsuariosPage({
               required
               minLength={6}
               placeholder="Mínimo 6 caracteres"
-              className="rounded-xl border border-zinc-700 bg-zinc-950/60 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
+              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder:text-content-muted outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="rol"
-              className="text-xs font-medium uppercase tracking-wider text-zinc-500"
+              className="text-xs font-medium uppercase tracking-wider text-content-muted"
             >
               Rol
             </label>
@@ -137,7 +137,7 @@ export default async function AdminUsuariosPage({
               id="rol"
               name="rol"
               required
-              className="rounded-xl border border-zinc-700 bg-zinc-950/60 px-4 py-3 text-sm text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 [&>option]:bg-zinc-900"
+              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 [&>option]:bg-glass-base"
             >
               <option value="">— Seleccionar rol —</option>
               <option value="ADMINISTRADOR">Administrador</option>
@@ -158,12 +158,12 @@ export default async function AdminUsuariosPage({
 
       {/* ── Lista de usuarios ─────────────────────────────────────────── */}
       <section className="space-y-3">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+        <h2 className="text-xs font-medium uppercase tracking-wider text-content-muted">
           Usuarios registrados ({listaUsuarios.length})
         </h2>
 
         {listaUsuarios.length === 0 ? (
-          <p className="rounded-2xl border border-zinc-800/60 bg-zinc-900/60 px-5 py-4 text-sm text-zinc-600">
+          <p className="rounded-2xl border border-glass-base bg-glass-subtle px-5 py-4 text-sm text-content-muted">
             No hay usuarios registrados.
           </p>
         ) : (
@@ -171,10 +171,10 @@ export default async function AdminUsuariosPage({
             {listaUsuarios.map((u) => (
               <div
                 key={u.id_usuario}
-                className="flex items-center gap-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/60 px-4 py-4"
+                className="flex items-center gap-4 rounded-2xl border border-glass-base bg-glass-subtle px-4 py-4"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-800">
-                  <span className="text-xs font-bold text-zinc-400">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-glass-elevated">
+                  <span className="text-xs font-bold text-content-secondary">
                     {u.nombre.charAt(0).toUpperCase()}
                   </span>
                 </div>
@@ -182,7 +182,7 @@ export default async function AdminUsuariosPage({
                   <p className="truncate text-sm font-semibold text-white">
                     {u.nombre}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-zinc-500">
+                  <p className="mt-0.5 truncate text-xs text-content-muted">
                     {u.email}
                   </p>
                 </div>
@@ -194,7 +194,7 @@ export default async function AdminUsuariosPage({
                 <Link
                   href={`/admin/usuarios/${u.id_usuario}`}
                   aria-label={`Editar ${u.nombre}`}
-                  className="shrink-0 rounded-full p-2 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+                  className="shrink-0 rounded-full p-2 text-content-muted transition-colors hover:bg-glass-elevated hover:text-content-primary"
                 >
                   <Pencil size={15} />
                 </Link>

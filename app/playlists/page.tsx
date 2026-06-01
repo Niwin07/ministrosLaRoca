@@ -1,54 +1,26 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { and, desc, eq, or } from "drizzle-orm";
-import {
-  Music2,
-  ChevronRight,
-  Plus,
-  ListMusic,
-  FlaskConical,
-  Archive,
-} from "lucide-react";
+import { ChevronRight, Plus, ListMusic, FlaskConical, Archive, Copy } from "lucide-react";
+import { ESTADO_LABEL } from "@/lib/estados";
 import { db } from "@/db";
 import { playlists, usuarios } from "@/db/schema";
 import { auth } from "@/auth";
 import { crearPlaylist, instanciarPreset } from "@/app/actions/playlists";
-import { promoverDefinitivasAMazo } from "@/lib/playlist-utils";
 
-// ── Estilos compartidos ───────────────────────────────────────────────────────
-
-const ESTADO_BADGE: Record<string, string> = {
-  PREPARACION: "bg-lime-400/10 text-lime-400",
-  ENSAYO:      "bg-yellow-400/10 text-yellow-400",
-  DEFINITIVA:  "bg-blue-500/10 text-blue-400",
-  MAZO:        "bg-zinc-800 text-zinc-500",
+const ESTADO_DOT: Record<string, string> = {
+  PREPARACION: "bg-lime-400",
+  ENSAYO:      "bg-yellow-400",
+  DEFINITIVA:  "bg-blue-400",
+  MAZO:        "bg-glass-highlight",
 };
 
-// ── Subcomponentes ────────────────────────────────────────────────────────────
-
-function SectionHeader({
-  icon,
-  titulo,
-  descripcion,
-  acento,
-}: {
-  icon: React.ReactNode;
-  titulo: string;
-  descripcion: string;
-  acento: string;
-}) {
-  return (
-    <div className={`flex items-start gap-3 rounded-2xl border p-4 ${acento}`}>
-      <div className="mt-0.5 shrink-0">{icon}</div>
-      <div>
-        <p className="text-sm font-semibold text-white">{titulo}</p>
-        <p className="mt-0.5 text-xs text-zinc-500">{descripcion}</p>
-      </div>
-    </div>
-  );
-}
-
-// ── Página ────────────────────────────────────────────────────────────────────
+const ESTADO_TEXT: Record<string, string> = {
+  PREPARACION: "text-lime-400",
+  ENSAYO:      "text-yellow-400",
+  DEFINITIVA:  "text-blue-400",
+  MAZO:        "text-content-secondary",
+};
 
 export default async function PlaylistsPage() {
   const session = await auth();
@@ -56,21 +28,13 @@ export default async function PlaylistsPage() {
 
   const { id_usuario } = session.user;
 
-  // JIT: promover DEFINITIVA → MAZO si superan las 24 h (todas las playlists)
-  await promoverDefinitivasAMazo();
-
-  // ── Queries en paralelo ───────────────────────────────────────────────────
-
   const [misListas, ensayos, mazosArchivo] = await Promise.all([
-
-    // 1. Mis listas (propias, todos los tipos y estados)
     db
       .select()
       .from(playlists)
       .where(eq(playlists.id_usuario, id_usuario))
       .orderBy(desc(playlists.id_playlist)),
 
-    // 2. Ensayos de la semana — cualquier usuario, ENSAYO o DEFINITIVA
     db
       .select({
         id_playlist:    playlists.id_playlist,
@@ -88,7 +52,6 @@ export default async function PlaylistsPage() {
       )
       .orderBy(desc(playlists.actualizadoEn)),
 
-    // 3. Archivo de mazos — cualquier usuario, solo MAZO
     db
       .select({
         id_playlist:    playlists.id_playlist,
@@ -97,13 +60,9 @@ export default async function PlaylistsPage() {
       })
       .from(playlists)
       .innerJoin(usuarios, eq(playlists.id_usuario, usuarios.id_usuario))
-      .where(
-        and(eq(playlists.tipo, "EVENTO"), eq(playlists.estado, "MAZO"))
-      )
+      .where(and(eq(playlists.tipo, "EVENTO"), eq(playlists.estado, "MAZO")))
       .orderBy(desc(playlists.id_playlist)),
   ]);
-
-  // ── Server Actions ────────────────────────────────────────────────────────
 
   async function handleInstanciarPreset(formData: FormData) {
     "use server";
@@ -111,82 +70,118 @@ export default async function PlaylistsPage() {
     await instanciarPreset(id_preset);
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
-    <div className="flex flex-col gap-8 px-4 pt-8 pb-4">
+    <div className="flex flex-col gap-8 px-4 pt-8 pb-6">
 
-      {/* ══ SECCIÓN 1: MIS LISTAS ══════════════════════════════════════════ */}
-      <section className="flex flex-col gap-4">
+      {/* Encabezado de página */}
+      <div>
+        <h1 className="text-2xl font-bold text-white">Listas</h1>
+        <p className="mt-1 text-sm text-content-muted">
+          Organizá las canciones de cada servicio.
+        </p>
+      </div>
 
-        <SectionHeader
-          icon={<ListMusic size={18} className="text-purple-400" />}
-          titulo="Mis Listas"
-          descripcion="Tus presets y eventos propios."
-          acento="border-purple-800/30 bg-purple-950/20"
-        />
+      {/* ══ ENSAYOS DE LA SEMANA ═══════════════════════════════════ */}
+      <section className="flex flex-col gap-3">
 
-        {/* Formulario: crear nueva lista */}
-        <div className="rounded-2xl border border-purple-800/30 bg-gradient-to-br from-purple-950/60 via-zinc-900 to-zinc-900 p-5 shadow-lg shadow-purple-900/20">
-          <p className="mb-3 text-xs font-medium uppercase tracking-wider text-purple-400">
-            Nueva Lista
+        <div>
+          <div className="flex items-center gap-2">
+            <FlaskConical size={13} className="text-yellow-400/70" />
+            <h2 className="text-xs font-bold uppercase tracking-widest text-yellow-400/80">
+              Ensayos de la Semana
+            </h2>
+          </div>
+          <p className="mt-0.5 text-[11px] text-content-muted pl-5">
+            Listas que el equipo está practicando ahora.
           </p>
-          <form action={crearPlaylist} className="flex gap-2">
-            <input
-              name="nombre"
-              type="text"
-              placeholder="Nombre de la lista…"
-              required
-              className="min-w-0 flex-1 rounded-xl border border-zinc-700/60 bg-zinc-900/80 px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none transition-colors focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
-            />
-            <button
-              type="submit"
-              className="flex shrink-0 items-center gap-1.5 rounded-xl bg-purple-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-purple-500 active:bg-purple-700"
-            >
-              <Plus size={16} strokeWidth={2.5} />
-              Crear
-            </button>
-          </form>
         </div>
 
-        {/* Listado */}
-        {misListas.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-10 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900">
-              <ListMusic size={24} className="text-zinc-700" />
-            </div>
-            <p className="text-sm text-zinc-500">No tenés listas todavía.</p>
-          </div>
+        {ensayos.length === 0 ? (
+          <p className="rounded-2xl border border-glass-base bg-glass-subtle px-5 py-6 text-sm text-content-secondary">
+            Sin listas en ensayo esta semana.
+          </p>
         ) : (
           <div className="flex flex-col gap-2">
+            {ensayos.map((lista) => (
+              <Link
+                key={lista.id_playlist}
+                href={`/playlists/${lista.id_playlist}`}
+                className="flex items-center gap-4 rounded-2xl border border-glass-highlight bg-glass-base px-5 py-5 backdrop-blur-sm transition-all duration-300 ease-out hover:border-glass-highlight hover:bg-glass-elevated active:scale-[0.98]"
+              >
+                <span
+                  className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                    lista.estado ? (ESTADO_DOT[lista.estado] ?? "bg-glass-highlight") : "bg-glass-highlight"
+                  }`}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-base font-semibold text-white">{lista.nombre}</p>
+                  <p className="mt-0.5 truncate text-xs text-content-secondary">{lista.nombre_usuario}</p>
+                </div>
+                {lista.estado && (
+                  <span
+                    className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                      lista.estado === "DEFINITIVA"
+                        ? "border-blue-400/30 bg-blue-400/10 text-blue-400"
+                        : "border-yellow-400/30 bg-yellow-400/10 text-yellow-400"
+                    }`}
+                  >
+                    {ESTADO_LABEL[lista.estado!] ?? lista.estado}
+                  </span>
+                )}
+                <ChevronRight size={15} className="shrink-0 text-content-muted" />
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ══ MIS LISTAS ══════════════════════════════════════════════ */}
+      <section className="flex flex-col gap-2">
+
+        <div>
+          <div className="flex items-center gap-2">
+            <ListMusic size={12} className="text-content-muted" />
+            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-content-muted">
+              Mis Listas
+            </h2>
+          </div>
+          <p className="mt-0.5 text-[11px] text-content-muted pl-4">
+            Las listas que creaste vos.
+          </p>
+        </div>
+
+        {misListas.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-8 text-center">
+            <ListMusic size={24} className="text-glass-highlight" />
+            <p className="text-sm text-content-secondary">No tenés listas todavía.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
             {misListas.map((lista) => (
               <div
                 key={lista.id_playlist}
-                className="flex items-center gap-3 rounded-2xl border border-zinc-800/60 bg-zinc-900/60 px-4 py-4 backdrop-blur-sm transition-colors hover:border-zinc-700/60 hover:bg-zinc-800/60"
+                className="flex items-center gap-3 rounded-xl border border-transparent bg-glass-subtle px-3.5 py-3 transition-all duration-200 hover:bg-glass-base active:scale-[0.98]"
               >
                 <Link
                   href={`/playlists/${lista.id_playlist}`}
-                  className="flex min-w-0 flex-1 items-center gap-4"
+                  className="flex min-w-0 flex-1 items-center gap-3"
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-purple-500/20 bg-purple-500/10">
-                    <Music2 size={20} className="text-purple-400" />
-                  </div>
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                      lista.estado ? (ESTADO_DOT[lista.estado] ?? "bg-glass-highlight") : "bg-glass-highlight"
+                    }`}
+                  />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-white">
-                      {lista.nombre}
-                    </p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <span className="rounded-full bg-purple-500/10 px-2 py-0.5 text-[10px] font-medium text-purple-400">
-                        {lista.tipo}
-                      </span>
+                    <p className="truncate text-sm font-medium text-content-primary">{lista.nombre}</p>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-content-secondary">
+                      <span>{lista.tipo === "EVENTO" ? "Evento" : lista.tipo === "PRESET" ? "Plantilla" : lista.tipo}</span>
                       {lista.estado && (
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                            ESTADO_BADGE[lista.estado] ?? "bg-zinc-800 text-zinc-500"
-                          }`}
-                        >
-                          {lista.estado}
-                        </span>
+                        <>
+                          <span>·</span>
+                          <span className={ESTADO_TEXT[lista.estado] ?? "text-content-secondary"}>
+                            {ESTADO_LABEL[lista.estado] ?? lista.estado}
+                          </span>
+                        </>
                       )}
                     </div>
                   </div>
@@ -198,13 +193,14 @@ export default async function PlaylistsPage() {
                       <input type="hidden" name="id_preset" value={lista.id_playlist} />
                       <button
                         type="submit"
-                        className="rounded-lg border border-lime-500/30 bg-lime-500/10 px-2.5 py-1.5 text-[10px] font-semibold text-lime-400 transition-colors hover:bg-lime-500/20 hover:text-lime-300"
+                        title="Usar como lista de evento"
+                        className="rounded-lg border border-glass-elevated bg-glass-subtle px-2.5 py-1 text-[10px] font-medium text-content-secondary transition-all duration-200 hover:border-glass-highlight hover:text-content-primary"
                       >
-                        Usar como Lista
+                        Usar
                       </button>
                     </form>
                   )}
-                  <ChevronRight size={16} className="text-zinc-600" />
+                  <ChevronRight size={13} className="text-content-muted" />
                 </div>
               </div>
             ))}
@@ -212,96 +208,79 @@ export default async function PlaylistsPage() {
         )}
       </section>
 
-      {/* ══ SECCIÓN 2: ENSAYOS DE LA SEMANA ═══════════════════════════════ */}
-      <section className="flex flex-col gap-4">
+      {/* ══ SERVICIOS ANTERIORES ════════════════════════════════════ */}
+      <section className="flex flex-col gap-2">
 
-        <SectionHeader
-          icon={<FlaskConical size={18} className="text-yellow-400" />}
-          titulo="Ensayos de la Semana"
-          descripcion="Listas en preparación de cualquier ministro. Solo lectura."
-          acento="border-yellow-500/20 bg-yellow-500/5"
-        />
+        <div>
+          <div className="flex items-center gap-2">
+            <Archive size={12} className="text-content-muted" />
+            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-content-muted">
+              Servicios Anteriores
+            </h2>
+          </div>
+          <p className="mt-0.5 text-[11px] text-content-muted pl-4">
+            Servicios finalizados. Podés clonarlos como base.
+          </p>
+        </div>
 
-        {ensayos.length === 0 ? (
-          <p className="rounded-2xl border border-zinc-800/40 bg-zinc-900/40 px-5 py-5 text-sm text-zinc-600">
-            No hay listas en ensayo esta semana.
+        {mazosArchivo.length === 0 ? (
+          <p className="rounded-2xl border border-glass-base bg-glass-subtle px-5 py-5 text-sm text-content-secondary">
+            Sin mazos archivados.
           </p>
         ) : (
-          <div className="flex flex-col gap-2">
-            {ensayos.map((lista) => (
+          <div className="flex flex-col gap-1">
+            {mazosArchivo.map((lista) => (
               <Link
                 key={lista.id_playlist}
                 href={`/playlists/${lista.id_playlist}`}
-                className="flex items-center gap-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/60 px-4 py-4 transition-colors hover:border-zinc-700/60 hover:bg-zinc-800/60"
+                className="flex items-center gap-3 rounded-xl border border-transparent bg-glass-subtle px-3.5 py-3 transition-all duration-200 hover:bg-glass-base active:scale-[0.98]"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-yellow-500/20 bg-yellow-500/10">
-                  <Music2 size={18} className="text-yellow-400" />
-                </div>
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-glass-highlight" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-white">
-                    {lista.nombre}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-zinc-500">
-                    {lista.nombre_usuario}
-                  </p>
+                  <p className="truncate text-sm font-medium text-content-primary">{lista.nombre}</p>
+                  <p className="mt-0.5 truncate text-[11px] text-content-secondary">{lista.nombre_usuario}</p>
                 </div>
-                {lista.estado && (
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium ${
-                      ESTADO_BADGE[lista.estado] ?? "bg-zinc-800 text-zinc-500"
-                    }`}
-                  >
-                    {lista.estado}
-                  </span>
-                )}
-                <ChevronRight size={15} className="shrink-0 text-zinc-600" />
+                {/* Affordance: el usuario sabe que puede clonar antes de entrar */}
+                <span className="flex shrink-0 items-center gap-1 rounded-full border border-glass-elevated bg-glass-subtle px-2 py-0.5 text-[10px] text-content-secondary">
+                  <Copy size={9} />
+                  Clonable
+                </span>
+                <ChevronRight size={13} className="shrink-0 text-content-muted" />
               </Link>
             ))}
           </div>
         )}
       </section>
 
-      {/* ══ SECCIÓN 3: ARCHIVO DE MAZOS ═══════════════════════════════════ */}
-      <section className="flex flex-col gap-4">
+      {/* ══ CREAR NUEVA LISTA — AL FONDO, COLAPSABLE ════════════════ */}
+      <section>
+        <details className="group">
+          <summary className="flex cursor-pointer select-none list-none items-center [&::-webkit-details-marker]:hidden">
+            <div className="flex items-center gap-2 rounded-xl border border-dashed border-glass-elevated px-4 py-2.5 transition-all duration-200 hover:border-glass-highlight group-open:border-purple-500/30">
+              <Plus size={13} strokeWidth={2.5} className="text-content-secondary group-open:text-purple-400" />
+              <span className="text-sm font-medium text-content-secondary group-open:text-purple-300">
+                Nueva lista
+              </span>
+            </div>
+          </summary>
 
-        <SectionHeader
-          icon={<Archive size={18} className="text-zinc-400" />}
-          titulo="Archivo de Mazos"
-          descripcion="Listas definitivas. Entrá, revisá y cloná para reutilizar."
-          acento="border-zinc-700/30 bg-zinc-800/20"
-        />
-
-        {mazosArchivo.length === 0 ? (
-          <p className="rounded-2xl border border-zinc-800/40 bg-zinc-900/40 px-5 py-5 text-sm text-zinc-600">
-            Todavía no hay mazos archivados.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {mazosArchivo.map((lista) => (
-              <Link
-                key={lista.id_playlist}
-                href={`/playlists/${lista.id_playlist}`}
-                className="flex items-center gap-4 rounded-2xl border border-zinc-800/60 bg-zinc-900/60 px-4 py-4 transition-colors hover:border-zinc-700/60 hover:bg-zinc-800/60"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-700/30 bg-zinc-800/60">
-                  <Music2 size={18} className="text-zinc-500" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-white">
-                    {lista.nombre}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-zinc-500">
-                    {lista.nombre_usuario}
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-full bg-zinc-800 px-2.5 py-1 text-[10px] font-medium text-zinc-500">
-                  MAZO
-                </span>
-                <ChevronRight size={15} className="shrink-0 text-zinc-600" />
-              </Link>
-            ))}
-          </div>
-        )}
+          <form action={crearPlaylist} className="mt-3 flex gap-2">
+            <input
+              name="nombre"
+              type="text"
+              placeholder="Nombre de la lista…"
+              required
+              className="min-w-0 flex-1 rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-white placeholder-content-muted outline-none backdrop-blur-sm transition-all duration-300 focus:border-purple-500/50 focus:bg-glass-elevated focus:ring-2 focus:ring-purple-500/20"
+            />
+            <button
+              type="submit"
+              className="flex shrink-0 items-center gap-1.5 rounded-xl bg-purple-600/80 px-4 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-300 ease-out hover:bg-purple-500/80 active:scale-95"
+            >
+              <Plus size={15} strokeWidth={2.5} />
+              Crear
+            </button>
+          </form>
+        </details>
       </section>
 
     </div>

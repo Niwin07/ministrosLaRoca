@@ -4,6 +4,7 @@ import { canciones } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { ChevronDown } from "lucide-react";
 
 export default async function CancionesPage() {
   const session = await auth();
@@ -12,7 +13,8 @@ export default async function CancionesPage() {
   const aprobadas = await db
     .select()
     .from(canciones)
-    .where(eq(canciones.estado_aprobacion, "APROBADA"));
+    .where(eq(canciones.estado_aprobacion, "APROBADA"))
+    .orderBy(canciones.nombre);
 
   async function sugerirCancion(formData: FormData) {
     "use server";
@@ -24,50 +26,68 @@ export default async function CancionesPage() {
   }
 
   return (
-    <main className="px-4 pt-8 pb-6 space-y-10">
+    <main className="flex flex-col gap-8 px-4 pt-8 pb-6">
 
-      {/* ── Catálogo Público ─────────────────────────────────────────── */}
-      <section className="space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight text-white">
-          Catálogo
-        </h1>
+      {/* ── Catálogo ──────────────────────────────────────────────────── */}
+      <section className="flex flex-col gap-4">
+        <div>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-white">Catálogo</h1>
+            <span className="text-xs text-content-secondary">{aprobadas.length} canciones</span>
+          </div>
+          <p className="mt-1 text-sm text-content-muted">
+            Canciones aprobadas para agregar a tus listas.
+          </p>
+        </div>
+
         {aprobadas.length === 0 ? (
-          <p className="text-sm text-zinc-500">No hay canciones aprobadas aún.</p>
+          <p className="text-sm text-content-secondary">Sin canciones aprobadas aún.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="flex flex-col gap-1.5">
             {aprobadas.map((c) => (
               <li
                 key={c.id_cancion}
-                className="flex items-center gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/60 px-4 py-3"
+                className="flex items-center gap-3 rounded-xl border border-glass-base bg-glass-subtle px-4 py-3"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-white">
-                    {c.nombre}
-                  </p>
-                  <p className="text-xs text-zinc-500">{c.artista}</p>
+                  <p className="truncate text-sm font-medium text-content-primary">{c.nombre}</p>
+                  <p className="mt-0.5 text-xs text-content-secondary">{c.artista}</p>
                 </div>
+                {(c.bpm || c.metrica) && (
+                  <div className="flex shrink-0 items-center gap-2 text-[10px] text-content-muted">
+                    {c.metrica && <span>{c.metrica}</span>}
+                    {c.bpm && <span>{c.bpm} BPM</span>}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      {/* ── Sugerir Canción ───────────────────────────────────────────── */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-white">Sugerir Canción</h2>
-        <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/60 p-5">
+      {/* ── Sugerir (colapsable) ──────────────────────────────────────── */}
+      <details className="group overflow-hidden rounded-2xl border border-glass-base bg-glass-subtle">
+        <summary className="flex cursor-pointer select-none list-none items-center justify-between px-5 py-4 [&::-webkit-details-marker]:hidden">
+          <h2 className="text-sm font-semibold text-content-primary">Sugerir Canción</h2>
+          <ChevronDown
+            size={15}
+            className="text-content-secondary transition-transform duration-200 group-open:rotate-180"
+          />
+        </summary>
+
+        <div className="border-t border-glass-base px-5 pb-5 pt-4">
           <form action={sugerirCancion} className="flex flex-col gap-3">
             <input
               name="nombre"
               placeholder="Nombre de la canción"
               required
-              className="rounded-xl border border-zinc-700 bg-zinc-950/60 px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
+              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder-content-muted outline-none focus:border-purple-500/60 focus:ring-2 focus:ring-purple-500/20"
             />
             <input
               name="artista"
               placeholder="Artista"
               required
-              className="rounded-xl border border-zinc-700 bg-zinc-950/60 px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
+              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder-content-muted outline-none focus:border-purple-500/60 focus:ring-2 focus:ring-purple-500/20"
             />
             <button
               type="submit"
@@ -77,7 +97,7 @@ export default async function CancionesPage() {
             </button>
           </form>
         </div>
-      </section>
+      </details>
 
     </main>
   );

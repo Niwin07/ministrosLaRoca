@@ -1,19 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
-import {
-  ArrowLeft,
-  Trash2,
-  Music2,
-  PlusCircle,
-  ChevronUp,
-  ChevronDown,
-  Copy,
-} from "lucide-react";
+import { ArrowLeft, Music2, PlusCircle, Copy, Tv2, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/db";
 import { canciones, lista_canciones, playlists } from "@/db/schema";
 import { ChartViewer } from "@/components/ChartViewer";
+import { LyricViewer } from "@/components/LyricViewer";
+import { SongActions } from "@/components/SongActions";
 import { auth } from "@/auth";
 import {
   agregarCancionALista,
@@ -22,7 +16,7 @@ import {
   reordenarLista,
 } from "@/app/actions/listas";
 import { clonarMazo, avanzarEstadoPlaylist } from "@/app/actions/playlists";
-import { promoverDefinitivasAMazo } from "@/lib/playlist-utils";
+import { ESTADO_LABEL, ESTADO_DESC, ESTADO_NEXT_HINT } from "@/lib/estados";
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
@@ -41,6 +35,7 @@ async function getPlaylistConCanciones(id: number) {
       nombre_cancion:   canciones.nombre,
       artista:          canciones.artista,
       charts:           canciones.charts,
+      letra:            canciones.letra,
     })
     .from(playlists)
     .leftJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
@@ -51,11 +46,7 @@ async function getPlaylistConCanciones(id: number) {
 
 async function getCatalogoAprobado() {
   return db
-    .select({
-      id_cancion: canciones.id_cancion,
-      nombre:     canciones.nombre,
-      artista:    canciones.artista,
-    })
+    .select({ id_cancion: canciones.id_cancion, nombre: canciones.nombre, artista: canciones.artista })
     .from(canciones)
     .where(eq(canciones.estado_aprobacion, "APROBADA"))
     .orderBy(canciones.nombre);
@@ -65,11 +56,7 @@ async function getCatalogoAprobado() {
 
 type ReordenItem = { id_lista_cancion: number; orden: number };
 
-function buildSwapPayload(
-  items: ReordenItem[],
-  fromIdx: number,
-  toIdx: number
-): ReordenItem[] {
+function buildSwapPayload(items: ReordenItem[], fromIdx: number, toIdx: number): ReordenItem[] {
   return items.map((item, i) => {
     if (i === fromIdx) return { id_lista_cancion: item.id_lista_cancion, orden: items[toIdx].orden };
     if (i === toIdx)   return { id_lista_cancion: item.id_lista_cancion, orden: items[fromIdx].orden };
@@ -83,26 +70,17 @@ const ESTADO_BADGE: Record<string, string> = {
   PREPARACION: "bg-lime-400/10 text-lime-400 border-lime-400/20",
   ENSAYO:      "bg-yellow-400/10 text-yellow-400 border-yellow-400/20",
   DEFINITIVA:  "bg-blue-400/10 text-blue-400 border-blue-400/20",
-  MAZO:        "bg-zinc-700 text-zinc-400 border-zinc-600",
+  MAZO:        "bg-glass-elevated text-content-muted border-glass-highlight",
 };
-
-const TIPO_BADGE = "bg-purple-500/10 text-purple-300 border-purple-500/20";
 
 // ── Página ────────────────────────────────────────────────────────────────────
 
-export default async function PlaylistDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function PlaylistDetailPage({ params }: { params: { id: string } }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const id = Number(params.id);
   if (isNaN(id)) notFound();
-
-  // JIT: promover DEFINITIVA → MAZO si esta lista supera las 24 h
-  await promoverDefinitivasAMazo(id);
 
   const [rows, catalogo] = await Promise.all([
     getPlaylistConCanciones(id),
@@ -119,17 +97,14 @@ export default async function PlaylistDetailPage({
     estado:      rows[0].estado,
   };
 
-  // Acceso: creador, LIDER o ADMINISTRADOR pueden editar; el resto ve solo lectura
   const { rol, id_usuario } = session.user;
   const puedeEditar =
     id_usuario === cabecera.id_usuario ||
     rol === "ADMINISTRADOR" ||
     rol === "LIDER";
 
-  // El clonado solo aplica a listas en estado EVENTO/MAZO
   const esMazo = cabecera.tipo === "EVENTO" && cabecera.estado === "MAZO";
 
-  // Stepper de estados — solo para EVENTO
   const ESTADOS_EVENTO = ["PREPARACION", "ENSAYO", "DEFINITIVA", "MAZO"] as const;
   const estadoActualIdx = ESTADOS_EVENTO.indexOf(
     (cabecera.estado ?? "") as (typeof ESTADOS_EVENTO)[number]
@@ -145,19 +120,18 @@ export default async function PlaylistDetailPage({
       nombre:           row.nombre_cancion!,
       artista:          row.artista!,
       charts:           row.charts,
+      letra:            row.letra,
     }));
 
-  const nextOrden =
-    items.length > 0 ? Math.max(...items.map((i) => i.orden)) + 1 : 1;
+  const nextOrden = items.length > 0 ? Math.max(...items.map((i) => i.orden)) + 1 : 1;
 
-  // Payloads de swap precalculados: evita pasar lógica al cliente
   const reordenBase: ReordenItem[] = items.map((i) => ({
     id_lista_cancion: i.id_lista_cancion,
     orden:            i.orden,
   }));
 
   const swapPayloads = items.map((_, idx) => ({
-    arriba: idx > 0             ? buildSwapPayload(reordenBase, idx, idx - 1) : null,
+    arriba: idx > 0               ? buildSwapPayload(reordenBase, idx, idx - 1) : null,
     abajo:  idx < items.length - 1 ? buildSwapPayload(reordenBase, idx, idx + 1) : null,
   }));
 
@@ -189,7 +163,7 @@ export default async function PlaylistDetailPage({
 
   async function handleReordenar(formData: FormData) {
     "use server";
-    const raw            = formData.get("reordenamientos") as string;
+    const raw             = formData.get("reordenamientos") as string;
     const reordenamientos = JSON.parse(raw) as ReordenItem[];
     await reordenarLista(id, reordenamientos);
     revalidatePath(`/playlists/${id}`);
@@ -210,266 +184,208 @@ export default async function PlaylistDetailPage({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col gap-6 px-4 pt-8 pb-6">
+    <div className="flex flex-col gap-4 px-4 pt-6 pb-8">
 
-      {/* ── Back link ─────────────────────────────────────────────────── */}
+      {/* ── Back ──────────────────────────────────────────────────────── */}
       <Link
         href="/playlists"
-        className="flex w-fit items-center gap-1.5 text-sm text-zinc-500 hover:text-white"
+        className="flex w-fit items-center gap-1.5 text-xs text-content-secondary transition-colors hover:text-content-primary"
       >
-        <ArrowLeft size={15} />
+        <ArrowLeft size={13} />
         Mis Listas
       </Link>
 
-      {/* ── Cabecera ──────────────────────────────────────────────────── */}
-      <div className="rounded-2xl bg-zinc-900 px-5 py-5">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${TIPO_BADGE}`}>
-            {cabecera.tipo}
+      {/* ── Header ────────────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-glass-base bg-glass-subtle px-5 py-5">
+
+        <div className="mb-1 flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-medium uppercase tracking-widest text-content-secondary">
+            {cabecera.tipo === "EVENTO" ? "Lista de evento" : cabecera.tipo === "PRESET" ? "Plantilla" : cabecera.tipo}
           </span>
           {cabecera.estado && (
-            <span
-              className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-                ESTADO_BADGE[cabecera.estado] ?? "bg-zinc-800 text-zinc-400 border-zinc-600"
-              }`}
-            >
-              {cabecera.estado}
+            <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${ESTADO_BADGE[cabecera.estado] ?? "bg-glass-elevated text-content-muted border-glass-highlight"}`}>
+              {ESTADO_LABEL[cabecera.estado] ?? cabecera.estado}
             </span>
           )}
         </div>
 
         <h1 className="text-xl font-bold text-white">{cabecera.nombre}</h1>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-0.5 text-xs text-content-secondary">
           {items.length} {items.length === 1 ? "canción" : "canciones"}
+          {cabecera.estado && (
+            <span className="ml-1.5 text-content-muted">
+              · {ESTADO_DESC[cabecera.estado]}
+            </span>
+          )}
         </p>
 
-        {/* Botón Clonar — solo visible para EVENTO/MAZO */}
-        {esMazo && (
-          <form action={handleClonar} className="mt-4">
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-600/20 px-4 py-2 text-xs font-semibold text-purple-300 transition-colors hover:bg-purple-600/30 hover:text-purple-200 active:bg-purple-600/40"
+        <div className="mt-4 flex flex-wrap gap-2">
+          {items.length > 0 && (
+            <Link
+              href={`/escenario/mazo/${cabecera.id_playlist}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-lime-400/30 bg-lime-400/10 px-3.5 py-2 text-xs font-semibold text-lime-400 transition-colors hover:bg-lime-400/20"
             >
-              <Copy size={13} />
-              Clonar este Mazo
-            </button>
-          </form>
-        )}
+              <Tv2 size={12} />
+              Escenario
+            </Link>
+          )}
+          {esMazo && puedeEditar && (
+            <form action={handleClonar}>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-1.5 rounded-full border border-glass-elevated bg-glass-base px-3.5 py-2 text-xs font-medium text-content-secondary transition-colors hover:border-glass-highlight hover:text-content-primary"
+              >
+                <Copy size={12} />
+                Clonar
+              </button>
+            </form>
+          )}
+        </div>
 
-        {/* Stepper de estados — solo EVENTO + puedeEditar */}
+        {/* Stepper — solo EVENTO + puede editar */}
         {cabecera.tipo === "EVENTO" && puedeEditar && (
-          <div className="mt-4 border-t border-zinc-800 pt-4">
-            <p className="mb-2.5 text-[10px] font-medium uppercase tracking-widest text-zinc-600">
-              Estado de ejecución
+          <div className="mt-4 border-t border-glass-base pt-4">
+            <p className="mb-2.5 text-[10px] font-medium uppercase tracking-widest text-content-muted">
+              Etapa del servicio
             </p>
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               {ESTADOS_EVENTO.map((estado, idx) => {
                 const esCurrent = idx === estadoActualIdx;
                 const esPasado  = idx < estadoActualIdx;
-
                 if (esCurrent) {
                   return (
-                    <span
-                      key={estado}
-                      className="rounded-full bg-lime-400 px-3 py-1 text-[10px] font-bold text-black"
-                    >
-                      {estado}
+                    <span key={estado} className="rounded-full bg-lime-400 px-3 py-1 text-[10px] font-bold text-black">
+                      {ESTADO_LABEL[estado] ?? estado}
                     </span>
                   );
                 }
-
                 if (esPasado) {
                   return (
-                    <span
-                      key={estado}
-                      className="rounded-full bg-zinc-800 px-3 py-1 text-[10px] text-zinc-600"
-                    >
-                      {estado}
+                    <span key={estado} className="rounded-full bg-glass-elevated px-3 py-1 text-[10px] text-content-muted line-through">
+                      {ESTADO_LABEL[estado] ?? estado}
                     </span>
                   );
                 }
-
-                // Estado futuro — clickable
                 return (
                   <form key={estado} action={handleAvanzarEstado}>
                     <input type="hidden" name="nuevoEstado" value={estado} />
                     <button
                       type="submit"
-                      className="rounded-full border border-zinc-700 px-3 py-1 text-[10px] text-zinc-400 transition-colors hover:border-purple-500/50 hover:text-purple-400 active:bg-purple-500/10"
+                      className="rounded-full border border-glass-elevated px-3 py-1 text-[10px] text-content-muted transition-colors hover:border-glass-highlight hover:text-content-primary"
                     >
-                      {estado}
+                      {ESTADO_LABEL[estado] ?? estado} →
                     </button>
                   </form>
                 );
               })}
             </div>
+            {/* Hint contextual según etapa actual */}
+            {cabecera.estado && ESTADO_NEXT_HINT[cabecera.estado] && (
+              <p className="mt-3 text-[11px] leading-relaxed text-content-muted">
+                {ESTADO_NEXT_HINT[cabecera.estado]}
+              </p>
+            )}
           </div>
         )}
       </div>
 
-      {/* ── Banner solo lectura ───────────────────────────────────────── */}
+      {/* ── Solo lectura ──────────────────────────────────────────────── */}
       {!puedeEditar && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-400">
-          Vista de solo lectura — no sos el creador de esta lista.
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-400">
+          Solo lectura — no sos el creador de esta lista.
         </div>
       )}
 
       {/* ── Lista de canciones ────────────────────────────────────────── */}
       {items.length === 0 ? (
-        <div className="rounded-2xl bg-zinc-900 px-5 py-10 text-center">
-          <Music2 size={32} className="mx-auto mb-3 text-zinc-700" />
-          <p className="text-sm text-zinc-500">Esta lista no tiene canciones todavía.</p>
+        <div className="rounded-2xl border border-glass-base bg-glass-subtle px-5 py-14 text-center">
+          <Music2 size={28} className="mx-auto mb-3 text-content-muted" />
+          <p className="text-sm text-content-secondary">La lista está vacía.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
           {items.map((item, idx) => {
             const { arriba, abajo } = swapPayloads[idx];
-
             return (
-              <div
-                key={item.id_lista_cancion}
-                className="overflow-hidden rounded-2xl bg-zinc-900"
-              >
-                {/* ── Header canción ─────────────────────────────────── */}
-                <div className="flex items-start gap-3 px-5 pt-5 pb-3">
+              <div key={item.id_lista_cancion} className="overflow-hidden rounded-2xl border border-glass-base bg-glass-subtle">
 
-                  {/* Controles de orden — solo en modo edición */}
-                  {puedeEditar && (
-                    <div className="mt-0.5 flex shrink-0 flex-col gap-0.5">
-                      {arriba ? (
-                        <form action={handleReordenar}>
-                          <input type="hidden" name="reordenamientos" value={JSON.stringify(arriba)} />
-                          <button
-                            type="submit"
-                            aria-label="Mover arriba"
-                            className="flex items-center justify-center rounded p-0.5 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
-                          >
-                            <ChevronUp size={15} />
-                          </button>
-                        </form>
-                      ) : (
-                        <span className="p-0.5 text-zinc-800">
-                          <ChevronUp size={15} />
-                        </span>
-                      )}
-                      {abajo ? (
-                        <form action={handleReordenar}>
-                          <input type="hidden" name="reordenamientos" value={JSON.stringify(abajo)} />
-                          <button
-                            type="submit"
-                            aria-label="Mover abajo"
-                            className="flex items-center justify-center rounded p-0.5 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
-                          >
-                            <ChevronDown size={15} />
-                          </button>
-                        </form>
-                      ) : (
-                        <span className="p-0.5 text-zinc-800">
-                          <ChevronDown size={15} />
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Número de orden */}
-                  <span className="mt-0.5 shrink-0 text-xs font-bold text-zinc-600">
+                {/* Fila principal */}
+                <div className="flex items-center gap-3 px-4 py-4">
+                  <span className="w-5 shrink-0 text-right text-[11px] font-bold tabular-nums text-content-muted">
                     {String(item.orden).padStart(2, "0")}
                   </span>
-
-                  {/* Nombre + artista */}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold leading-tight text-white">
-                      {item.nombre}
-                    </p>
-                    <p className="mt-0.5 text-xs text-zinc-500">{item.artista}</p>
+                    <p className="truncate text-sm font-semibold text-white">{item.nombre}</p>
+                    <p className="mt-0.5 truncate text-xs text-content-secondary">{item.artista}</p>
                   </div>
-
-                  {/* Botón quitar */}
+                  {item.nota && (
+                    <span className="shrink-0 text-sm font-bold text-lime-400">{item.nota}</span>
+                  )}
                   {puedeEditar && (
-                    <form action={handleEliminar} className="shrink-0">
-                      <input type="hidden" name="id_lista_cancion" value={item.id_lista_cancion} />
-                      <button
-                        type="submit"
-                        className="flex items-center gap-1 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20"
-                      >
-                        <Trash2 size={13} />
-                        Quitar
-                      </button>
-                    </form>
+                    <SongActions
+                      item={{ id_lista_cancion: item.id_lista_cancion, orden: item.orden, nota: item.nota }}
+                      swapArriba={arriba}
+                      swapAbajo={abajo}
+                      onReordenar={handleReordenar}
+                      onEliminar={handleEliminar}
+                      onActualizarNota={handleActualizarNota}
+                    />
                   )}
                 </div>
 
-                {/* ── Nota / Tonalidad ────────────────────────────────── */}
-                <div className="px-5 pb-4">
-                  {puedeEditar ? (
-                    <form action={handleActualizarNota} className="flex items-center gap-2">
-                      <input type="hidden" name="id_lista_cancion" value={item.id_lista_cancion} />
-                      <span className="shrink-0 text-xs text-zinc-500">Tono:</span>
-                      <input
-                        name="nota"
-                        type="text"
-                        defaultValue={item.nota ?? ""}
-                        placeholder="Ej: Am, G, C#"
-                        className="w-24 rounded-lg bg-zinc-800 px-3 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:ring-1 focus:ring-purple-500"
-                      />
-                      <button
-                        type="submit"
-                        className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-700"
-                      >
-                        Guardar
-                      </button>
-                    </form>
-                  ) : item.nota ? (
-                    <p className="text-xs text-zinc-500">
-                      Tono:{" "}
-                      <span className="font-semibold text-zinc-300">{item.nota}</span>
-                    </p>
-                  ) : null}
-                </div>
-
-                {/* ── ChartViewer ─────────────────────────────────────── */}
-                {item.charts ? (
-                  <div className="border-t border-zinc-800 px-5 py-4">
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
-                      Charts
-                    </p>
-                    <ChartViewer charts={item.charts} />
-                  </div>
-                ) : (
-                  <div className="border-t border-zinc-800 px-5 py-3">
-                    <p className="text-xs text-zinc-600">Sin charts cargados.</p>
-                  </div>
+                {/* Charts colapsable */}
+                {item.charts && (
+                  <details className="group border-t border-glass-base">
+                    <summary className="flex cursor-pointer select-none list-none items-center justify-between px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-content-muted transition-colors hover:text-content-secondary [&::-webkit-details-marker]:hidden">
+                      <span>Acordes / Charts</span>
+                      <ChevronDown size={12} className="transition-transform duration-200 group-open:rotate-180" />
+                    </summary>
+                    <div className="px-4 pb-5 pt-1">
+                      <ChartViewer charts={item.charts} />
+                    </div>
+                  </details>
                 )}
+
+                {/* Letra colapsable */}
+                {item.letra && (
+                  <details className="group border-t border-glass-base">
+                    <summary className="flex cursor-pointer select-none list-none items-center justify-between px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-content-muted transition-colors hover:text-content-secondary [&::-webkit-details-marker]:hidden">
+                      <span>Letra</span>
+                      <ChevronDown size={12} className="transition-transform duration-200 group-open:rotate-180" />
+                    </summary>
+                    <div className="px-4 pb-5 pt-2">
+                      <LyricViewer letra={item.letra} />
+                    </div>
+                  </details>
+                )}
+
               </div>
             );
           })}
         </div>
       )}
 
-      {/* ── Agregar desde catálogo (solo si puede editar) ─────────────── */}
+      {/* ── Agregar canción ───────────────────────────────────────────── */}
       {puedeEditar && (
-        <div className="rounded-2xl bg-zinc-900 px-5 py-5">
+        <div className="rounded-2xl border border-glass-base bg-glass-subtle px-5 py-5">
           <div className="mb-4 flex items-center gap-2">
-            <PlusCircle size={16} className="text-purple-400" />
-            <h2 className="text-sm font-semibold text-white">Agregar canción</h2>
+            <PlusCircle size={14} className="text-content-secondary" />
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-content-muted">
+              Agregar canción
+            </h2>
           </div>
 
           {catalogo.length === 0 ? (
-            <p className="text-xs text-zinc-500">
-              No hay canciones aprobadas en el catálogo todavía.
-            </p>
+            <p className="text-xs text-content-muted">Sin canciones aprobadas en el catálogo.</p>
           ) : (
             <form action={handleAgregar} className="flex flex-col gap-3">
-
               <select
                 name="id_cancion"
                 required
                 defaultValue=""
-                className="w-full rounded-xl bg-zinc-800 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-purple-500 [&>option]:bg-zinc-800"
+                className="w-full rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary outline-none focus:ring-2 focus:ring-purple-500 [&>option]:bg-glass-base"
               >
-                <option value="" disabled>
-                  Elegí una canción del catálogo…
-                </option>
+                <option value="" disabled>Elegí una canción…</option>
                 {catalogo.map((c) => (
                   <option key={c.id_cancion} value={c.id_cancion}>
                     {c.nombre} — {c.artista}
@@ -477,39 +393,28 @@ export default async function PlaylistDetailPage({
                 ))}
               </select>
 
-              <div className="flex gap-3">
-                <div className="flex flex-1 flex-col gap-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
-                    Tono
-                  </label>
-                  <input
-                    name="nota"
-                    type="text"
-                    placeholder="Ej: Am, G, C#"
-                    className="w-full rounded-xl bg-zinc-800 px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div className="flex w-24 flex-col gap-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
-                    Orden
-                  </label>
-                  <input
-                    name="orden"
-                    type="number"
-                    min={1}
-                    defaultValue={nextOrden}
-                    required
-                    className="w-full rounded-xl bg-zinc-800 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
+              <div className="flex gap-2">
+                <input
+                  name="nota"
+                  type="text"
+                  placeholder="Tono (Am, G…)"
+                  className="flex-1 rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder-content-muted outline-none focus:ring-2 focus:ring-purple-500"
+                />
+                <input
+                  name="orden"
+                  type="number"
+                  min={1}
+                  defaultValue={nextOrden}
+                  required
+                  className="w-20 rounded-xl border border-glass-elevated bg-glass-base px-3 py-3 text-center text-sm text-content-primary outline-none focus:ring-2 focus:ring-purple-500"
+                />
               </div>
 
               <button
                 type="submit"
-                className="mt-1 w-full rounded-xl bg-purple-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-purple-500 active:bg-purple-700"
+                className="w-full rounded-xl bg-purple-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-purple-500 active:bg-purple-700"
               >
-                Agregar a la lista
+                Agregar
               </button>
             </form>
           )}

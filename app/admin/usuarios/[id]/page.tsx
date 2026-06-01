@@ -38,7 +38,7 @@ export default async function EditarUsuarioPage({
       {/* ── Cabecera ─────────────────────────────────────────────────── */}
       <Link
         href="/admin/usuarios"
-        className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-white"
+        className="inline-flex items-center gap-1.5 text-sm text-content-muted transition-colors hover:text-content-primary"
       >
         <ArrowLeft size={15} />
         Usuarios
@@ -48,14 +48,14 @@ export default async function EditarUsuarioPage({
         <h1 className="text-2xl font-bold tracking-tight text-white">
           Editar Usuario
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-content-muted">
           Modificá los datos de{" "}
           <span className="text-white">{usuario.nombre}</span>.
         </p>
       </div>
 
       {/* ── Formulario ───────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/60 p-5">
+      <div className="rounded-2xl border border-glass-base bg-glass-subtle p-5">
         <form action={actualizarUsuario} className="flex flex-col gap-4">
 
           <input type="hidden" name="id_usuario" value={usuario.id_usuario} />
@@ -63,7 +63,7 @@ export default async function EditarUsuarioPage({
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="nombre"
-              className="text-xs font-medium uppercase tracking-wider text-zinc-500"
+              className="text-xs font-medium uppercase tracking-wider text-content-muted"
             >
               Nombre
             </label>
@@ -73,14 +73,14 @@ export default async function EditarUsuarioPage({
               type="text"
               required
               defaultValue={usuario.nombre}
-              className="rounded-xl border border-zinc-700 bg-zinc-950/60 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
+              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder:text-content-muted outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="email"
-              className="text-xs font-medium uppercase tracking-wider text-zinc-500"
+              className="text-xs font-medium uppercase tracking-wider text-content-muted"
             >
               Email
             </label>
@@ -90,14 +90,14 @@ export default async function EditarUsuarioPage({
               type="email"
               required
               defaultValue={usuario.email}
-              className="rounded-xl border border-zinc-700 bg-zinc-950/60 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
+              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder:text-content-muted outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="password"
-              className="text-xs font-medium uppercase tracking-wider text-zinc-500"
+              className="text-xs font-medium uppercase tracking-wider text-content-muted"
             >
               Contraseña
             </label>
@@ -107,14 +107,14 @@ export default async function EditarUsuarioPage({
               type="password"
               minLength={6}
               placeholder="Dejar en blanco para mantener actual"
-              className="rounded-xl border border-zinc-700 bg-zinc-950/60 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
+              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder:text-content-muted outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="rol"
-              className="text-xs font-medium uppercase tracking-wider text-zinc-500"
+              className="text-xs font-medium uppercase tracking-wider text-content-muted"
             >
               Rol
             </label>
@@ -123,7 +123,7 @@ export default async function EditarUsuarioPage({
               name="rol"
               required
               defaultValue={usuario.rol}
-              className="rounded-xl border border-zinc-700 bg-zinc-950/60 px-4 py-3 text-sm text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 [&>option]:bg-zinc-900"
+              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 [&>option]:bg-glass-base"
             >
               <option value="ADMINISTRADOR">Administrador</option>
               <option value="LIDER">Líder</option>
@@ -140,7 +140,7 @@ export default async function EditarUsuarioPage({
             </button>
             <Link
               href="/admin/usuarios"
-              className="rounded-full border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+              className="rounded-full border border-glass-elevated px-5 py-2.5 text-sm font-medium text-content-secondary transition-colors hover:border-glass-highlight hover:text-content-primary"
             >
               Cancelar
             </Link>
