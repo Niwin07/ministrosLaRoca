@@ -27,20 +27,20 @@ export default async function TurnosPage() {
     .from(cronograma)
     .innerJoin(usuarios, eq(cronograma.id_usuario, usuarios.id_usuario))
     .where(eq(cronograma.estado_turno, "EN_ESPERA"))
-    .orderBy(asc(cronograma.id_turno));
+    .orderBy(asc(cronograma.orden));
 
   const hayDatos = !!turnoActivo || cola.length > 0;
 
   return (
     <main className="px-4 pt-8 pb-6 space-y-6">
 
-      <h1 className="text-2xl font-bold tracking-tight text-white">
+      <h1 className="text-2xl font-bold tracking-tight text-hi">
         Turnos
       </h1>
 
       {!hayDatos ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <p className="text-sm text-content-muted">La cola de turnos está vacía.</p>
+          <p className="text-sm text-lo">La cola de turnos está vacía.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-6">
@@ -48,18 +48,18 @@ export default async function TurnosPage() {
           {/* En Servicio */}
           {turnoActivo && (
             <section className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-content-muted">
+              <p className="text-xs font-medium uppercase tracking-wider text-lo">
                 En Servicio
               </p>
-              <div className="flex items-center gap-4 rounded-2xl border border-lime-400/30 bg-lime-400/10 px-5 py-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-lime-400/20 ring-2 ring-lime-400/40">
-                  <Mic2 size={18} className="text-lime-400" />
+              <div className="flex items-center gap-4 rounded-2xl border border-violet-500/30 bg-violet-500/[0.08] px-5 py-4 shadow-card dark:shadow-none">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-600">
+                  <Mic2 size={18} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-widest text-lime-400/70">
+                  <p className="text-[10px] font-medium uppercase tracking-widest text-violet-600">
                     Activo
                   </p>
-                  <p className="text-base font-bold text-white">
+                  <p className="text-base font-bold text-hi">
                     {turnoActivo.nombre_usuario}
                   </p>
                 </div>
@@ -70,25 +70,25 @@ export default async function TurnosPage() {
           {/* Cola */}
           {cola.length > 0 && (
             <section className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-content-muted">
+              <p className="text-xs font-medium uppercase tracking-wider text-lo">
                 Cola de Espera
               </p>
               <div className="flex flex-col gap-2">
                 {cola.map((t, idx) => (
                   <div
                     key={t.id_turno}
-                    className="flex items-center gap-4 rounded-2xl border border-glass-base bg-glass-subtle px-4 py-4"
+                    className="flex items-center gap-4 rounded-2xl border border-line bg-card px-4 py-4 shadow-card dark:shadow-none"
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-glass-elevated text-xs font-bold text-content-secondary">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-input text-xs font-bold text-mid">
                       {idx + 1}
                     </span>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-white">
+                      <p className="text-sm font-semibold text-hi">
                         {t.nombre_usuario}
                       </p>
-                      <p className="mt-0.5 text-xs text-content-muted">En espera</p>
+                      <p className="mt-0.5 text-xs text-lo">En espera</p>
                     </div>
-                    <Clock size={15} className="shrink-0 text-content-muted" />
+                    <Clock size={15} className="shrink-0 text-gone" />
                   </div>
                 ))}
               </div>

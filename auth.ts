@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { usuarios } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import type { Rol } from "@/lib/mock-user";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -41,13 +42,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     jwt({ token, user }) {
       if (user) {
         // user solo existe en el primer login; hydratamos el token para siempre
-        token.rol        = (user as { rol: string }).rol;
-        token.id_usuario = (user as { id_usuario: number }).id_usuario;
+        token.rol        = user.rol;
+        token.id_usuario = user.id_usuario;
       }
       return token;
     },
     session({ session, token }) {
-      session.user.rol        = token.rol        as string;
+      session.user.rol        = token.rol        as Rol;
       session.user.id_usuario = token.id_usuario as number;
       return session;
     },

@@ -10,8 +10,8 @@ interface HeroCardProps {
 }
 
 const PASOS = [
-  { num: "1", label: "Creá una lista",    sub: "en la sección Listas",    href: "/playlists" },
-  { num: "2", label: "Agregá canciones",  sub: "del catálogo aprobado",   href: "/canciones"  },
+  { num: "1", label: "Creá una lista",    sub: "en la sección Listas",       href: "/playlists" },
+  { num: "2", label: "Agregá canciones",  sub: "del catálogo aprobado",      href: "/canciones"  },
   { num: "3", label: "Abrí en escenario", sub: "cuando arranque el servicio", href: "/playlists" },
 ] as const;
 
@@ -20,31 +20,26 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="relative overflow-hidden rounded-3xl border border-glass-elevated bg-glass-elevated p-6 shadow-2xl shadow-black/30 backdrop-blur-2xl"
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      className="relative overflow-hidden rounded-3xl border border-line bg-card p-6 shadow-card dark:shadow-none"
     >
-      {tieneListaActiva && (
-        <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-lime-400/10 blur-3xl" />
-      )}
-      <div className="pointer-events-none absolute -bottom-12 -left-10 h-40 w-40 rounded-full bg-purple-500/10 blur-2xl" />
-
       {/* ── Eyebrow ──────────────────────────────────────────────── */}
       <div className="relative mb-5 flex items-center gap-2">
         <span className="relative flex h-2 w-2">
           {tieneListaActiva && (
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-400 opacity-60" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-50" />
           )}
           <span
             className={`relative inline-flex h-2 w-2 rounded-full ${
-              tieneListaActiva ? "bg-lime-400" : "bg-glass-highlight"
+              tieneListaActiva ? "bg-violet-500" : "bg-gone"
             }`}
           />
         </span>
         <span
-          className={`text-[10px] font-bold uppercase tracking-[0.15em] ${
-            tieneListaActiva ? "text-lime-400/90" : "text-content-muted"
+          className={`text-[10px] font-semibold uppercase tracking-[0.15em] ${
+            tieneListaActiva ? "text-violet-600" : "text-lo"
           }`}
         >
           {tieneListaActiva ? "Evento activo" : `Hola, ${primerNombre}`}
@@ -55,10 +50,10 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
         /* ── Estado activo: título + CTA ──────────────────────── */
         <>
           <div className="relative mb-7">
-            <h1 className="text-[1.85rem] font-bold leading-tight tracking-tight text-white">
+            <h1 className="text-[1.85rem] font-bold leading-tight tracking-tight text-hi">
               {listaActiva!.nombre}
             </h1>
-            <p className="mt-2 text-sm text-content-secondary">
+            <p className="mt-2 text-sm text-mid">
               {Number(listaActiva!.total)}&nbsp;
               {Number(listaActiva!.total) === 1 ? "canción" : "canciones"}
             </p>
@@ -66,12 +61,12 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
 
           <Link href={`/escenario/mazo/${listaActiva!.id_playlist}`} className="block">
             <motion.div
-              whileTap={{ scale: 0.96 }}
+              whileTap={{ scale: 0.97 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-lime-400 to-lime-300 py-4 shadow-lg shadow-lime-400/25 transition-shadow duration-300 hover:shadow-lime-400/40"
+              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-violet-600 py-4 transition-colors duration-200 hover:bg-violet-500 active:bg-violet-700"
             >
-              <Tv2 size={20} className="text-black" strokeWidth={2.5} />
-              <span className="text-[15px] font-bold tracking-wide text-black">
+              <Tv2 size={20} className="text-white" strokeWidth={2} />
+              <span className="text-[15px] font-semibold tracking-wide text-white">
                 Abrir Modo Escenario
               </span>
             </motion.div>
@@ -81,26 +76,26 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
         /* ── Estado vacío: guía de 3 pasos ───────────────────── */
         <>
           <div className="relative mb-6">
-            <h1 className="text-xl font-bold text-white">
+            <h1 className="text-xl font-bold text-hi">
               ¿Por dónde empezás?
             </h1>
-            <p className="mt-1 text-sm text-content-muted">
+            <p className="mt-1 text-sm text-lo">
               Seguí estos pasos para preparar tu servicio.
             </p>
           </div>
 
-          <div className="relative mb-6 flex flex-col gap-3">
+          <div className="relative mb-6 flex flex-col gap-2">
             {PASOS.map((paso) => (
               <Link key={paso.num} href={paso.href}>
-                <div className="flex items-center gap-3 rounded-2xl border border-glass-base bg-glass-subtle px-4 py-3 transition-all duration-200 hover:bg-glass-base active:scale-[0.98]">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-xs font-bold text-purple-300">
+                <div className="flex items-center gap-3 rounded-2xl border border-line bg-input px-4 py-3 transition-all duration-200 hover:bg-mark/50 active:scale-[0.98]">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-600/20 text-xs font-semibold text-violet-600">
                     {paso.num}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-content-primary">{paso.label}</p>
-                    <p className="text-[11px] text-content-muted">{paso.sub}</p>
+                    <p className="text-sm font-medium text-hi">{paso.label}</p>
+                    <p className="text-[11px] text-lo">{paso.sub}</p>
                   </div>
-                  <ArrowRight size={13} className="shrink-0 text-content-muted" />
+                  <ArrowRight size={13} className="shrink-0 text-gone" />
                 </div>
               </Link>
             ))}
@@ -109,14 +104,14 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
           <div className="flex items-center gap-3">
             <Link
               href="/playlists"
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-glass-elevated bg-glass-base py-3 text-sm font-semibold text-content-secondary transition-all duration-200 hover:bg-glass-elevated"
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-line bg-input py-3 text-sm font-medium text-mid transition-all duration-200 hover:bg-mark active:scale-[0.98]"
             >
               <ListMusic size={15} />
               Mis listas
             </Link>
             <Link
               href="/canciones"
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-glass-elevated bg-glass-base py-3 text-sm font-semibold text-content-secondary transition-all duration-200 hover:bg-glass-elevated"
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-line bg-input py-3 text-sm font-medium text-mid transition-all duration-200 hover:bg-mark active:scale-[0.98]"
             >
               <BookOpen size={15} />
               Catálogo

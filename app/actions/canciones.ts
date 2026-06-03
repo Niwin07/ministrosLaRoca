@@ -4,6 +4,8 @@ import { db } from "@/db";
 import { canciones } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -39,6 +41,47 @@ export async function sugerirCancion(
     .$returningId();
 
   return { id_cancion: inserted.id_cancion };
+}
+
+/**
+ * Edita una canción del catálogo (cualquier estado). Solo ADMINISTRADOR o LÍDER.
+ * Normaliza los saltos de línea (\r\n → \n) de letra y charts.
+ */
+export async function actualizarCancion(formData: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user) throw new Error("No autenticado.");
+  if (session.user.rol !== "ADMINISTRADOR" && session.user.rol !== "LIDER") {
+    throw new Error("Sin permisos para editar canciones.");
+  }
+
+  const id_cancion = Number(formData.get("id_cancion"));
+  const nombre     = (formData.get("nombre")  as string | null)?.trim();
+  const artista    = (formData.get("artista") as string | null)?.trim();
+  if (!id_cancion || !nombre || !artista) {
+    throw new Error("Nombre y artista son obligatorios.");
+  }
+
+  const norm = (raw: FormDataEntryValue | null) =>
+    typeof raw === "string" && raw.trim() ? raw.replace(/\r\n/g, "\n").trim() : null;
+
+  const bpmRaw = formData.get("bpm");
+  const bpm = typeof bpmRaw === "string" && bpmRaw.trim() ? Number(bpmRaw) : NaN;
+
+  await db
+    .update(canciones)
+    .set({
+      nombre,
+      artista,
+      bpm:     Number.isFinite(bpm) ? bpm : null,
+      metrica: (formData.get("metrica") as string | null)?.trim() || null,
+      letra:   norm(formData.get("letra")),
+      charts:  norm(formData.get("charts")),
+    })
+    .where(eq(canciones.id_cancion, id_cancion));
+
+  revalidatePath("/canciones");
+  revalidatePath(`/admin/canciones/${id_cancion}`);
+  redirect("/canciones?editada=1");
 }
 
 /**

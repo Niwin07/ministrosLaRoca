@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { lista_canciones, playlists } from "@/db/schema";
+import { cronograma, lista_canciones, playlists } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 
@@ -63,6 +63,28 @@ export async function avanzarEstadoPlaylist(
     rol === "LIDER";
 
   if (!puedeEditar) throw new Error("Sin permisos para modificar esta playlist.");
+
+  // Una lista solo puede PUBLICARSE (ENSAYO o DEFINITIVA = el set de la semana)
+  // si su dueño es quien dirige esta semana (turno ACTIVO en el cronograma).
+  // Evita que se acumule más de una lista "activa" de distintos ministros.
+  // Volver hacia atrás (PREPARACION) o archivar (MAZO) no está restringido, así
+  // el ministro siempre puede corregir una lista que publicó por error.
+  if (nuevoEstado === "ENSAYO" || nuevoEstado === "DEFINITIVA") {
+    const [directorActivo] = await db
+      .select({ id_usuario: cronograma.id_usuario })
+      .from(cronograma)
+      .where(eq(cronograma.estado_turno, "ACTIVO"))
+      .limit(1);
+
+    if (!directorActivo) {
+      throw new Error("No hay un director de turno activo esta semana.");
+    }
+    if (directorActivo.id_usuario !== playlist.id_usuario) {
+      throw new Error(
+        "Solo el director con el turno activo puede poner su lista en ensayo."
+      );
+    }
+  }
 
   await db
     .update(playlists)

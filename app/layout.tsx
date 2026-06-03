@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { Settings, LogOut } from "lucide-react";
 import { NavWrapper } from "@/components/NavWrapper";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { auth, signOut } from "@/auth";
 import "./globals.css";
 
@@ -24,7 +26,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#0f172a",
+  themeColor: "#09090b",
 };
 
 export const metadata: Metadata = {
@@ -41,6 +43,7 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await auth();
+  const tema = (cookies().get("tema")?.value ?? "oscuro") as "claro" | "oscuro";
 
   async function logoutAction() {
     "use server";
@@ -48,35 +51,28 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="es">
-      <body className={`${geistSans.variable} ${geistMono.variable} text-white antialiased`}>
+    <html lang="es" className={tema === "oscuro" ? "dark" : ""}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
 
-        {/* ── Fondo mesh gradient — fijo, detrás de todo ──────────────── */}
-        <div className="fixed inset-0 -z-10 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900" />
-          <div className="absolute -top-32 left-1/4 h-[500px] w-[500px] rounded-full bg-purple-900/30 blur-[120px]" />
-          <div className="absolute bottom-1/4 -right-20 h-[400px] w-[400px] rounded-full bg-indigo-800/25 blur-[100px]" />
-          <div className="absolute top-2/3 left-0 h-[300px] w-[300px] rounded-full bg-violet-900/20 blur-[80px]" />
-        </div>
-
-        {/* ── Header glassmorphism ─────────────────────────────────────── */}
+        {/* ── Header ───────────────────────────────────────────────────── */}
         {session?.user && (
-          <header className="sticky top-0 z-50 flex items-center justify-between border-b border-glass-elevated bg-glass-subtle px-5 py-2 backdrop-blur-xl">
+          <header className="sticky top-0 z-50 mx-auto flex w-full max-w-md items-center justify-between border-b border-line/60 bg-base/95 px-5 py-3.5 backdrop-blur-xl">
 
             {/* Avatar */}
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-lime-400/15 ring-1 ring-lime-400/25">
-              <span className="text-[11px] font-bold text-lime-400">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600">
+              <span className="text-[11px] font-semibold text-white">
                 {session.user.name?.charAt(0).toUpperCase()}
               </span>
             </div>
 
             {/* Acciones */}
             <div className="flex items-center gap-1">
+              <ThemeToggle tema={tema} />
               {session.user.rol === "ADMINISTRADOR" && (
                 <Link
                   href="/admin/usuarios"
                   aria-label="Gestión de usuarios"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-content-muted transition-colors duration-200 hover:text-content-primary"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
                 >
                   <Settings size={15} />
                 </Link>
@@ -85,7 +81,7 @@ export default async function RootLayout({
                 <button
                   type="submit"
                   aria-label="Cerrar sesión"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-content-muted transition-colors duration-200 hover:text-content-primary"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
                 >
                   <LogOut size={15} />
                 </button>

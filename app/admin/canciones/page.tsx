@@ -6,6 +6,7 @@ import { canciones } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { resolverSugerencia } from "@/app/actions/canciones";
+import { CargarCancion } from "@/components/CargarCancion";
 
 export default async function AdminCancionesPage() {
   const session = await auth();
@@ -23,75 +24,69 @@ export default async function AdminCancionesPage() {
 
       <Link
         href="/canciones"
-        className="inline-flex items-center gap-1.5 text-xs text-content-muted transition-colors hover:text-content-primary"
+        className="inline-flex items-center gap-1.5 text-xs text-lo transition-colors hover:text-hi"
       >
         <ArrowLeft size={13} />
         Catálogo
       </Link>
 
       <div>
-        <h1 className="text-xl font-bold text-white">Moderación</h1>
-        <p className="mt-0.5 text-xs text-content-muted">
+        <h1 className="text-xl font-bold text-hi">Moderación</h1>
+        <p className="mt-0.5 text-xs text-lo">
           {pendientes.length}{" "}
           {pendientes.length === 1 ? "canción pendiente" : "canciones pendientes"}
         </p>
       </div>
 
       {pendientes.length === 0 ? (
-        <p className="rounded-2xl border border-glass-base bg-glass-subtle px-5 py-10 text-center text-sm text-content-muted">
+        <p className="rounded-2xl border border-line bg-card px-5 py-10 text-center text-sm text-lo">
           Sin canciones pendientes de revisión.
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
           {pendientes.map((c) => (
-            <li key={c.id_cancion} className="overflow-hidden rounded-2xl border border-glass-base bg-glass-subtle">
+            <li key={c.id_cancion} className="overflow-hidden rounded-2xl border border-line border-l-2 border-l-amber-500/60 bg-card">
               <details className="group">
 
-                <summary className="flex cursor-pointer select-none list-none items-center justify-between px-5 py-4 [&::-webkit-details-marker]:hidden">
-                  <div>
-                    <p className="text-sm font-semibold text-white">{c.nombre}</p>
-                    <p className="mt-0.5 text-xs text-content-muted">{c.artista}</p>
+                <summary className="flex cursor-pointer select-none list-none items-center gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-hi">{c.nombre}</p>
+                    <p className="mt-0.5 truncate text-xs text-lo">{c.artista}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {c.metrica && (
+                      <span className="rounded-md bg-input px-1.5 py-0.5 text-[10px] font-medium text-mid">{c.metrica}</span>
+                    )}
+                    {c.bpm && (
+                      <span className="rounded-md bg-input px-1.5 py-0.5 text-[10px] font-medium text-mid">{c.bpm} BPM</span>
+                    )}
+                    {(c.letra || c.charts) && (
+                      <span className="rounded-md border border-violet-500/30 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-600">
+                        con datos
+                      </span>
+                    )}
                   </div>
                   <ChevronDown
                     size={14}
-                    className="shrink-0 text-content-muted transition-transform duration-200 group-open:rotate-180"
+                    className="shrink-0 text-lo transition-transform duration-200 group-open:rotate-180"
                   />
                 </summary>
 
-                <div className="border-t border-glass-base px-5 py-5 space-y-4">
+                <div className="space-y-4 border-t border-line px-5 py-5">
 
                   {/* Aprobar */}
                   <form action={resolverSugerencia} className="space-y-3">
                     <input type="hidden" name="id_cancion" value={c.id_cancion} />
                     <input type="hidden" name="decision"   value="APROBADA" />
 
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-semibold uppercase tracking-widest text-content-muted">
-                        Letra
-                      </label>
-                      <textarea
-                        name="letra"
-                        rows={5}
-                        placeholder="Pegá la letra aquí…"
-                        className="w-full resize-y rounded-xl border border-glass-elevated bg-glass-base px-3 py-2.5 font-mono text-sm text-content-primary placeholder-content-muted outline-none focus:border-lime-500/40 focus:ring-2 focus:ring-lime-500/15"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-semibold uppercase tracking-widest text-content-muted">
-                        Charts
-                      </label>
-                      <textarea
-                        name="charts"
-                        rows={5}
-                        placeholder="Cifra Nashville o acordes…"
-                        className="w-full resize-y rounded-xl border border-glass-elevated bg-glass-base px-3 py-2.5 font-mono text-sm text-content-primary placeholder-content-muted outline-none focus:border-lime-500/40 focus:ring-2 focus:ring-lime-500/15"
-                      />
-                    </div>
+                    <CargarCancion
+                      defaultLetra={c.letra ?? ""}
+                      defaultCharts={c.charts ?? ""}
+                    />
 
                     <button
                       type="submit"
-                      className="rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-black transition-colors hover:bg-lime-300 active:bg-lime-500"
+                      className="rounded-full bg-green-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-500 active:scale-95"
                     >
                       Aprobar
                     </button>
@@ -102,7 +97,7 @@ export default async function AdminCancionesPage() {
                     <input type="hidden" name="decision"   value="RECHAZADA" />
                     <button
                       type="submit"
-                      className="rounded-full border border-red-500/30 px-4 py-2 text-sm text-red-400 transition-colors hover:border-red-500/60 hover:text-red-300"
+                      className="rounded-full border border-red-500/30 px-4 py-2 text-sm text-red-600 transition-colors hover:border-red-500/50 hover:bg-red-500/10 dark:text-red-400"
                     >
                       Rechazar
                     </button>

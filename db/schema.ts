@@ -9,6 +9,7 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/mysql-core";
+import { sql } from "drizzle-orm";
 
 // ─── Usuarios ────────────────────────────────────────────────────────────────
 
@@ -22,11 +23,30 @@ export const usuarios = mysqlTable("usuarios", {
 
 // ─── Cronograma (Cola de rotación) ───────────────────────────────────────────
 
-export const cronograma = mysqlTable("cronograma", {
-  id_turno:     int("id_turno").autoincrement().primaryKey(),
-  id_usuario:   int("id_usuario").notNull().references(() => usuarios.id_usuario),
-  estado_turno: mysqlEnum("estado_turno", ["EN_ESPERA", "ACTIVO", "COMPLETADO"]).notNull().default("EN_ESPERA"),
-});
+// Garantía a nivel de base de datos de "como máximo un turno ACTIVO":
+// la columna virtual `activo_unico` vale 1 cuando el turno está ACTIVO y NULL
+// en cualquier otro caso. Como MySQL permite múltiples NULL dentro de un índice
+// UNIQUE, el índice `uq_un_solo_activo` solo puede contener un único valor 1,
+// forzando que jamás coexistan dos turnos en estado 'ACTIVO' (ni por concurrencia
+// ni por ediciones manuales).
+export const cronograma = mysqlTable(
+  "cronograma",
+  {
+    id_turno:     int("id_turno").autoincrement().primaryKey(),
+    id_usuario:   int("id_usuario").notNull().references(() => usuarios.id_usuario),
+    estado_turno: mysqlEnum("estado_turno", ["EN_ESPERA", "ACTIVO", "COMPLETADO"]).notNull().default("EN_ESPERA"),
+  orden:        int("orden").notNull().default(0),
+    // Columna virtual generada: 1 solo si el turno está ACTIVO, sino NULL.
+    activo_unico: int("activo_unico").generatedAlwaysAs(
+      sql`(case when \`estado_turno\` = 'ACTIVO' then 1 else null end)`,
+      { mode: "virtual" },
+    ),
+  },
+  (table) => ({
+    // Índice único sobre la columna virtual = a lo sumo un ACTIVO en toda la tabla.
+    uq_un_solo_activo: uniqueIndex("uq_un_solo_activo").on(table.activo_unico),
+  }),
+);
 
 // ─── Canciones ───────────────────────────────────────────────────────────────
 

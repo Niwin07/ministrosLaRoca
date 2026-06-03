@@ -24,7 +24,6 @@ export default async function DashboardPage() {
 
   const [esMiTurno, listaActiva, misListas] = await Promise.all([
 
-    // ¿El usuario actual es el ministro activo esta semana?
     db
       .select({ id_turno: cronograma.id_turno })
       .from(cronograma)
@@ -35,7 +34,6 @@ export default async function DashboardPage() {
       .limit(1)
       .then((r) => !!r[0]),
 
-    // Lista activa del equipo (ENSAYO o DEFINITIVA)
     db
       .select({
         id_playlist: playlists.id_playlist,
@@ -56,7 +54,6 @@ export default async function DashboardPage() {
       .limit(1)
       .then((r) => r[0] ?? null),
 
-    // Listas recientes del usuario
     db
       .select({
         id_playlist:      playlists.id_playlist,
@@ -74,7 +71,6 @@ export default async function DashboardPage() {
       .limit(4),
   ]);
 
-  // Canciones de la lista activa (query secuencial: depende de listaActiva)
   const cancionesActivas = listaActiva
     ? await db
         .select({
@@ -91,36 +87,41 @@ export default async function DashboardPage() {
     : [];
 
   return (
-    <div className="flex flex-col gap-6 px-4 pt-6 pb-4">
+    <div className="flex flex-col gap-7 px-4 pt-7 pb-4">
+
+      {/* ── GREETING ──────────────────────────────────────────────── */}
+      <div className="pb-1">
+        <p className="text-[11px] font-medium uppercase tracking-widest text-gone">Portal de Alabanza</p>
+        <h1 className="mt-1 text-[28px] font-bold leading-tight tracking-tight text-hi">
+          Hola, {primerNombre}
+        </h1>
+      </div>
 
       {/* ── HERO ──────────────────────────────────────────────────── */}
-      <HeroCard
-        listaActiva={listaActiva}
-        primerNombre={primerNombre}
-      />
+      <HeroCard listaActiva={listaActiva} primerNombre={primerNombre} />
 
       {/* ── ESTA SEMANA ───────────────────────────────────────────── */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-content-secondary">
+        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gone">
           Esta semana
         </h2>
 
         {/* Turno propio */}
-        <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${
+        <div className={`flex items-center gap-3 rounded-2xl border px-4 py-4 shadow-card dark:shadow-none ${
           esMiTurno
-            ? "border-lime-400/25 bg-lime-400/8"
-            : "border-glass-base bg-glass-subtle"
+            ? "border-violet-500/30 bg-violet-500/[0.08]"
+            : "border-line bg-card"
         }`}>
           <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-            esMiTurno ? "bg-lime-400/20" : "bg-glass-elevated"
+            esMiTurno ? "bg-violet-600" : "bg-input"
           }`}>
-            <Mic2 size={15} className={esMiTurno ? "text-lime-400" : "text-content-muted"} />
+            <Mic2 size={15} className={esMiTurno ? "text-white" : "text-lo"} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className={`text-sm font-semibold ${esMiTurno ? "text-lime-400" : "text-content-secondary"}`}>
+            <p className={`text-sm font-semibold ${esMiTurno ? "text-violet-600" : "text-mid"}`}>
               {esMiTurno ? "Tu turno está activo" : "Esta semana descansás"}
             </p>
-            <p className="text-[11px] text-content-muted">
+            <p className="text-[11px] text-lo">
               {esMiTurno
                 ? "Sos el ministro en servicio esta semana."
                 : "No sos el ministro principal esta semana."}
@@ -130,43 +131,43 @@ export default async function DashboardPage() {
 
         {/* Canciones del ensayo activo */}
         {cancionesActivas.length > 0 && listaActiva && (
-          <div className="rounded-2xl border border-glass-base bg-glass-subtle overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-glass-base">
+          <div className="overflow-hidden rounded-2xl border border-line bg-card shadow-card dark:shadow-none">
+            <div className="flex items-center justify-between border-b border-line px-4 py-4">
               <div>
-                <p className="text-sm font-semibold text-content-primary">{listaActiva.nombre}</p>
-                <p className="text-[11px] text-content-muted">
+                <p className="text-sm font-semibold text-hi">{listaActiva.nombre}</p>
+                <p className="text-[11px] text-lo">
                   {ESTADO_LABEL[listaActiva.estado ?? ""] ?? listaActiva.estado}
                   {" · "}{cancionesActivas.length} canciones
                 </p>
               </div>
               <Link
                 href={`/escenario/mazo/${listaActiva.id_playlist}`}
-                className="flex items-center gap-1.5 rounded-full border border-lime-400/30 bg-lime-400/10 px-3 py-1.5 text-[11px] font-semibold text-lime-400 transition-colors hover:bg-lime-400/20"
+                className="flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-[11px] font-semibold text-violet-600 transition-colors hover:bg-violet-500/20"
               >
                 <Tv2 size={11} />
                 Escenario
               </Link>
             </div>
-            <ul className="divide-y divide-glass-base">
+            <ul className="divide-y divide-line">
               {cancionesActivas.map((c) => (
-                <li key={c.id_lista_cancion} className="flex items-center gap-3 px-4 py-2.5">
-                  <span className="w-5 shrink-0 text-right text-[11px] font-bold tabular-nums text-content-muted">
+                <li key={c.id_lista_cancion} className="flex items-center gap-3 px-4 py-3">
+                  <span className="w-5 shrink-0 text-right text-[11px] font-medium tabular-nums text-gone">
                     {String(c.orden).padStart(2, "0")}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-content-primary">{c.nombre}</p>
-                    <p className="text-[11px] text-content-muted">{c.artista}</p>
+                    <p className="truncate text-sm text-hi">{c.nombre}</p>
+                    <p className="text-[11px] text-lo">{c.artista}</p>
                   </div>
                   {c.nota && (
-                    <span className="shrink-0 text-sm font-bold text-lime-400">{c.nota}</span>
+                    <span className="shrink-0 text-sm font-semibold text-violet-600">{c.nota}</span>
                   )}
                 </li>
               ))}
             </ul>
-            <div className="px-4 py-2.5 border-t border-glass-base">
+            <div className="border-t border-line px-4 py-3">
               <Link
                 href={`/playlists/${listaActiva.id_playlist}`}
-                className="flex items-center gap-1 text-[11px] text-purple-400/70 transition-colors hover:text-purple-300"
+                className="flex items-center gap-1 text-[11px] text-violet-600/70 transition-colors hover:text-violet-600"
               >
                 Ver letras y acordes <ChevronRight size={11} />
               </Link>
@@ -175,7 +176,7 @@ export default async function DashboardPage() {
         )}
 
         {cancionesActivas.length === 0 && !listaActiva && (
-          <p className="rounded-2xl border border-glass-base bg-glass-subtle px-4 py-4 text-sm text-content-muted">
+          <p className="rounded-2xl border border-line bg-card px-4 py-5 text-sm text-lo">
             No hay lista de ensayo activa esta semana.
           </p>
         )}
@@ -185,12 +186,12 @@ export default async function DashboardPage() {
       <section className="flex flex-col gap-3">
 
         <div className="flex items-center justify-between">
-          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-content-secondary">
+          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gone">
             Mis listas
           </h2>
           <Link
             href="/playlists"
-            className="flex items-center gap-0.5 text-[11px] text-purple-400/60 transition-colors hover:text-purple-300"
+            className="flex items-center gap-0.5 text-[11px] text-violet-600/70 transition-colors hover:text-violet-600"
           >
             Ver todas <ChevronRight size={11} />
           </Link>
@@ -198,22 +199,22 @@ export default async function DashboardPage() {
 
         {misListas.length === 0 ? (
           <Link href="/playlists">
-            <div className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-glass-elevated py-8 transition-all duration-300 hover:border-glass-highlight hover:bg-glass-subtle">
-              <Plus size={15} className="text-content-secondary" />
-              <span className="text-sm text-content-secondary">Crear primera lista</span>
+            <div className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-mark py-8 transition-all duration-200 hover:border-line hover:bg-card">
+              <Plus size={15} className="text-lo" />
+              <span className="text-sm text-lo">Crear primera lista</span>
             </div>
           </Link>
         ) : (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             {misListas.map((lista) => (
               <Link key={lista.id_playlist} href={`/playlists/${lista.id_playlist}`}>
-                <div className="flex items-center gap-3 rounded-2xl border border-glass-base bg-glass-subtle px-4 py-3 backdrop-blur-sm transition-all duration-300 hover:bg-glass-elevated active:scale-[0.98]">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-500/15">
-                    <Music2 size={15} className="text-purple-300/70" />
+                <div className="flex items-center gap-4 rounded-2xl border border-line bg-card px-4 py-4 shadow-card transition-colors duration-200 hover:bg-input active:scale-[0.98] dark:shadow-none">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-input">
+                    <Music2 size={15} className="text-mid" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-content-primary">{lista.nombre}</p>
-                    <p className="mt-0.5 text-[11px] text-content-secondary">
+                    <p className="truncate text-sm font-medium text-hi">{lista.nombre}</p>
+                    <p className="mt-0.5 text-[11px] text-lo">
                       {lista.tipo === "EVENTO" && lista.fecha_programada
                         ? formatFecha(lista.fecha_programada)
                         : lista.tipo}{" "}
@@ -221,11 +222,11 @@ export default async function DashboardPage() {
                     </p>
                   </div>
                   {lista.estado && (
-                    <span className="shrink-0 text-[10px] font-semibold text-content-muted">
+                    <span className="shrink-0 text-[10px] font-medium text-gone">
                       {ESTADO_LABEL[lista.estado] ?? lista.estado}
                     </span>
                   )}
-                  <ChevronRight size={13} className="shrink-0 text-content-muted" />
+                  <ChevronRight size={13} className="shrink-0 text-gone" />
                 </div>
               </Link>
             ))}

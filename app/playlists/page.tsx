@@ -1,26 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { and, desc, eq, or } from "drizzle-orm";
-import { ChevronRight, Plus, ListMusic, FlaskConical, Archive, Copy } from "lucide-react";
+import { ChevronRight, Plus, ListMusic, Mic2, Archive, Copy, Music2 } from "lucide-react";
 import { ESTADO_LABEL } from "@/lib/estados";
 import { db } from "@/db";
-import { playlists, usuarios } from "@/db/schema";
+import { cronograma, playlists, usuarios } from "@/db/schema";
 import { auth } from "@/auth";
 import { crearPlaylist, instanciarPreset } from "@/app/actions/playlists";
-
-const ESTADO_DOT: Record<string, string> = {
-  PREPARACION: "bg-lime-400",
-  ENSAYO:      "bg-yellow-400",
-  DEFINITIVA:  "bg-blue-400",
-  MAZO:        "bg-glass-highlight",
-};
-
-const ESTADO_TEXT: Record<string, string> = {
-  PREPARACION: "text-lime-400",
-  ENSAYO:      "text-yellow-400",
-  DEFINITIVA:  "text-blue-400",
-  MAZO:        "text-content-secondary",
-};
 
 export default async function PlaylistsPage() {
   const session = await auth();
@@ -28,30 +14,61 @@ export default async function PlaylistsPage() {
 
   const { id_usuario } = session.user;
 
-  const [misListas, ensayos, mazosArchivo] = await Promise.all([
+  // El director de la semana = único turno ACTIVO en el cronograma.
+  const [directorActivo] = await db
+    .select({ id_usuario: cronograma.id_usuario })
+    .from(cronograma)
+    .where(eq(cronograma.estado_turno, "ACTIVO"))
+    .limit(1);
+
+  const [estaSemana, enPreparacion, plantillas, historial] = await Promise.all([
+    // ESTA SEMANA — el set publicado del director activo (en ensayo o definitiva).
+    directorActivo
+      ? db
+          .select({
+            id_playlist:    playlists.id_playlist,
+            nombre:         playlists.nombre,
+            estado:         playlists.estado,
+            nombre_usuario: usuarios.nombre,
+          })
+          .from(playlists)
+          .innerJoin(usuarios, eq(playlists.id_usuario, usuarios.id_usuario))
+          .where(
+            and(
+              eq(playlists.tipo, "EVENTO"),
+              or(eq(playlists.estado, "ENSAYO"), eq(playlists.estado, "DEFINITIVA")),
+              eq(playlists.id_usuario, directorActivo.id_usuario),
+            ),
+          )
+          .orderBy(desc(playlists.actualizadoEn))
+      : Promise.resolve([]),
+
+    // EN PREPARACIÓN — servicios que estás armando vos.
     db
-      .select()
+      .select({ id_playlist: playlists.id_playlist, nombre: playlists.nombre })
       .from(playlists)
-      .where(eq(playlists.id_usuario, id_usuario))
+      .where(
+        and(
+          eq(playlists.tipo, "EVENTO"),
+          eq(playlists.estado, "PREPARACION"),
+          eq(playlists.id_usuario, id_usuario),
+        ),
+      )
       .orderBy(desc(playlists.id_playlist)),
 
+    // PLANTILLAS — moldes reutilizables del equipo.
     db
       .select({
         id_playlist:    playlists.id_playlist,
         nombre:         playlists.nombre,
-        estado:         playlists.estado,
         nombre_usuario: usuarios.nombre,
       })
       .from(playlists)
       .innerJoin(usuarios, eq(playlists.id_usuario, usuarios.id_usuario))
-      .where(
-        and(
-          eq(playlists.tipo, "EVENTO"),
-          or(eq(playlists.estado, "ENSAYO"), eq(playlists.estado, "DEFINITIVA"))
-        )
-      )
-      .orderBy(desc(playlists.actualizadoEn)),
+      .where(eq(playlists.tipo, "PRESET"))
+      .orderBy(playlists.nombre),
 
+    // HISTORIAL — servicios archivados, clonables.
     db
       .select({
         id_playlist:    playlists.id_playlist,
@@ -73,214 +90,197 @@ export default async function PlaylistsPage() {
   return (
     <div className="flex flex-col gap-8 px-4 pt-8 pb-6">
 
-      {/* Encabezado de página */}
+      {/* Encabezado */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Listas</h1>
-        <p className="mt-1 text-sm text-content-muted">
-          Organizá las canciones de cada servicio.
-        </p>
+        <h1 className="text-2xl font-bold text-hi">Listas</h1>
+        <p className="mt-1 text-sm text-lo">El servicio de la semana, lo que estás armando y tus plantillas.</p>
       </div>
 
-      {/* ══ ENSAYOS DE LA SEMANA ═══════════════════════════════════ */}
+      {/* ══ ESTA SEMANA ════════════════════════════════════════════════ */}
       <section className="flex flex-col gap-3">
-
-        <div>
-          <div className="flex items-center gap-2">
-            <FlaskConical size={13} className="text-yellow-400/70" />
-            <h2 className="text-xs font-bold uppercase tracking-widest text-yellow-400/80">
-              Ensayos de la Semana
-            </h2>
-          </div>
-          <p className="mt-0.5 text-[11px] text-content-muted pl-5">
-            Listas que el equipo está practicando ahora.
-          </p>
+        <div className="flex items-center gap-2">
+          <Mic2 size={14} className="shrink-0 text-violet-500" />
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Esta semana</h2>
         </div>
+        <p className="-mt-1 text-[11px] text-lo">El set publicado del ministro de turno (en ensayo o definitiva).</p>
 
-        {ensayos.length === 0 ? (
-          <p className="rounded-2xl border border-glass-base bg-glass-subtle px-5 py-6 text-sm text-content-secondary">
-            Sin listas en ensayo esta semana.
+        {estaSemana.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-card px-5 py-5 text-sm text-lo">
+            {directorActivo
+              ? "El ministro de turno todavía no publicó su lista."
+              : "Nadie está dirigiendo esta semana."}
           </p>
         ) : (
           <div className="flex flex-col gap-2">
-            {ensayos.map((lista) => (
+            {estaSemana.map((lista) => (
               <Link
                 key={lista.id_playlist}
                 href={`/playlists/${lista.id_playlist}`}
-                className="flex items-center gap-4 rounded-2xl border border-glass-highlight bg-glass-base px-5 py-5 backdrop-blur-sm transition-all duration-300 ease-out hover:border-glass-highlight hover:bg-glass-elevated active:scale-[0.98]"
+                className="flex items-center gap-4 rounded-2xl border border-violet-500/30 bg-violet-500/[0.06] px-5 py-5 shadow-card transition-all duration-200 hover:bg-violet-500/[0.12] active:scale-[0.98] dark:shadow-none"
               >
-                <span
-                  className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                    lista.estado ? (ESTADO_DOT[lista.estado] ?? "bg-glass-highlight") : "bg-glass-highlight"
-                  }`}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-semibold text-white">{lista.nombre}</p>
-                  <p className="mt-0.5 truncate text-xs text-content-secondary">{lista.nombre_usuario}</p>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-600">
+                  <Mic2 size={16} className="text-white" />
                 </div>
-                {lista.estado && (
-                  <span
-                    className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                      lista.estado === "DEFINITIVA"
-                        ? "border-blue-400/30 bg-blue-400/10 text-blue-400"
-                        : "border-yellow-400/30 bg-yellow-400/10 text-yellow-400"
-                    }`}
-                  >
-                    {ESTADO_LABEL[lista.estado!] ?? lista.estado}
-                  </span>
-                )}
-                <ChevronRight size={15} className="shrink-0 text-content-muted" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-base font-semibold text-hi">{lista.nombre}</p>
+                  <p className="mt-0.5 truncate text-xs text-lo">{lista.nombre_usuario}</p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                    lista.estado === "DEFINITIVA"
+                      ? "border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-400"
+                      : "border-yellow-200 bg-yellow-100 text-yellow-700 dark:border-yellow-400/30 dark:bg-yellow-400/10 dark:text-yellow-400"
+                  }`}
+                >
+                  {ESTADO_LABEL[lista.estado ?? ""] ?? lista.estado}
+                </span>
+                <ChevronRight size={15} className="shrink-0 text-gone" />
               </Link>
             ))}
           </div>
         )}
       </section>
 
-      {/* ══ MIS LISTAS ══════════════════════════════════════════════ */}
-      <section className="flex flex-col gap-2">
-
-        <div>
-          <div className="flex items-center gap-2">
-            <ListMusic size={12} className="text-content-muted" />
-            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-content-muted">
-              Mis Listas
-            </h2>
-          </div>
-          <p className="mt-0.5 text-[11px] text-content-muted pl-4">
-            Las listas que creaste vos.
-          </p>
+      {/* ══ EN PREPARACIÓN ═════════════════════════════════════════════ */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Music2 size={13} className="shrink-0 text-lo" />
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">En preparación</h2>
         </div>
+        <p className="-mt-1 text-[11px] text-lo">Servicios que estás armando. Editables hasta pasarlos a ensayo.</p>
 
-        {misListas.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <ListMusic size={24} className="text-glass-highlight" />
-            <p className="text-sm text-content-secondary">No tenés listas todavía.</p>
-          </div>
+        {enPreparacion.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-card px-5 py-5 text-sm text-lo">
+            No tenés servicios en preparación. Usá una plantilla de abajo para empezar uno.
+          </p>
         ) : (
           <div className="flex flex-col gap-1">
-            {misListas.map((lista) => (
+            {enPreparacion.map((lista) => (
+              <Link
+                key={lista.id_playlist}
+                href={`/playlists/${lista.id_playlist}`}
+                className="flex items-center gap-3 rounded-xl border-l-2 border-l-violet-500 bg-card px-4 py-3.5 transition-all duration-200 hover:bg-input active:scale-[0.98]"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-hi">{lista.nombre}</p>
+                  <p className="mt-0.5 text-[11px] text-violet-600/80">Seguí armándola</p>
+                </div>
+                <ChevronRight size={13} className="shrink-0 text-gone" />
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ══ PLANTILLAS ═════════════════════════════════════════════════ */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <ListMusic size={13} className="shrink-0 text-lo" />
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Plantillas</h2>
+        </div>
+        <p className="-mt-1 text-[11px] text-lo">Moldes reutilizables. Tocá &ldquo;Usar&rdquo; para armar un servicio nuevo a partir de uno.</p>
+
+        {plantillas.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-card px-5 py-5 text-sm text-lo">
+            No hay plantillas todavía. Creá la primera abajo.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {plantillas.map((lista) => (
               <div
                 key={lista.id_playlist}
-                className="flex items-center gap-3 rounded-xl border border-transparent bg-glass-subtle px-3.5 py-3 transition-all duration-200 hover:bg-glass-base active:scale-[0.98]"
+                className="flex items-center gap-3 rounded-xl border-l-2 border-l-line bg-card px-4 py-3.5 transition-all duration-200 hover:bg-input"
               >
                 <Link
                   href={`/playlists/${lista.id_playlist}`}
                   className="flex min-w-0 flex-1 items-center gap-3"
                 >
-                  <span
-                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                      lista.estado ? (ESTADO_DOT[lista.estado] ?? "bg-glass-highlight") : "bg-glass-highlight"
-                    }`}
-                  />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-content-primary">{lista.nombre}</p>
-                    <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-content-secondary">
-                      <span>{lista.tipo === "EVENTO" ? "Evento" : lista.tipo === "PRESET" ? "Plantilla" : lista.tipo}</span>
-                      {lista.estado && (
-                        <>
-                          <span>·</span>
-                          <span className={ESTADO_TEXT[lista.estado] ?? "text-content-secondary"}>
-                            {ESTADO_LABEL[lista.estado] ?? lista.estado}
-                          </span>
-                        </>
-                      )}
-                    </div>
+                    <p className="truncate text-sm font-medium text-hi">{lista.nombre}</p>
+                    <p className="mt-0.5 truncate text-[11px] text-lo">{lista.nombre_usuario}</p>
                   </div>
                 </Link>
-
                 <div className="flex shrink-0 items-center gap-2">
-                  {lista.tipo === "PRESET" && (
-                    <form action={handleInstanciarPreset}>
-                      <input type="hidden" name="id_preset" value={lista.id_playlist} />
-                      <button
-                        type="submit"
-                        title="Usar como lista de evento"
-                        className="rounded-lg border border-glass-elevated bg-glass-subtle px-2.5 py-1 text-[10px] font-medium text-content-secondary transition-all duration-200 hover:border-glass-highlight hover:text-content-primary"
-                      >
-                        Usar
-                      </button>
-                    </form>
-                  )}
-                  <ChevronRight size={13} className="text-content-muted" />
+                  <form action={handleInstanciarPreset}>
+                    <input type="hidden" name="id_preset" value={lista.id_playlist} />
+                    <button
+                      type="submit"
+                      title="Armar un servicio a partir de esta plantilla"
+                      className="rounded-lg border border-mark bg-input px-2.5 py-1 text-[10px] font-medium text-mid transition-all duration-200 hover:border-line hover:text-hi"
+                    >
+                      Usar
+                    </button>
+                  </form>
+                  <ChevronRight size={13} className="text-gone" />
                 </div>
               </div>
             ))}
           </div>
         )}
+
+        {/* Crear nueva plantilla — colapsable */}
+        <details className="group mt-1">
+          <summary className="flex cursor-pointer select-none list-none items-center [&::-webkit-details-marker]:hidden">
+            <div className="flex items-center gap-2 rounded-xl border border-dashed border-mark px-4 py-2.5 transition-all duration-200 hover:border-line group-open:border-violet-500/50">
+              <Plus size={13} strokeWidth={2.5} className="text-lo group-open:text-violet-600" />
+              <span className="text-sm font-medium text-lo group-open:text-violet-600">Nueva plantilla</span>
+            </div>
+          </summary>
+
+          <div className="mt-3 rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
+            <form action={crearPlaylist} className="flex gap-2">
+              <input
+                name="nombre"
+                type="text"
+                placeholder="Nombre de la plantilla…"
+                required
+                className="min-w-0 flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+              />
+              <button
+                type="submit"
+                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:scale-95"
+              >
+                <Plus size={15} strokeWidth={2.5} />
+                Crear
+              </button>
+            </form>
+          </div>
+        </details>
       </section>
 
-      {/* ══ SERVICIOS ANTERIORES ════════════════════════════════════ */}
-      <section className="flex flex-col gap-2">
-
-        <div>
-          <div className="flex items-center gap-2">
-            <Archive size={12} className="text-content-muted" />
-            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-content-muted">
-              Servicios Anteriores
-            </h2>
-          </div>
-          <p className="mt-0.5 text-[11px] text-content-muted pl-4">
-            Servicios finalizados. Podés clonarlos como base.
-          </p>
+      {/* ══ HISTORIAL ══════════════════════════════════════════════════ */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Archive size={13} className="shrink-0 text-lo" />
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Historial</h2>
         </div>
+        <p className="-mt-1 text-[11px] text-lo">Servicios finalizados. Podés clonarlos como base para el próximo.</p>
 
-        {mazosArchivo.length === 0 ? (
-          <p className="rounded-2xl border border-glass-base bg-glass-subtle px-5 py-5 text-sm text-content-secondary">
-            Sin mazos archivados.
+        {historial.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-card px-5 py-5 text-sm text-lo">
+            Sin servicios archivados.
           </p>
         ) : (
           <div className="flex flex-col gap-1">
-            {mazosArchivo.map((lista) => (
+            {historial.map((lista) => (
               <Link
                 key={lista.id_playlist}
                 href={`/playlists/${lista.id_playlist}`}
-                className="flex items-center gap-3 rounded-xl border border-transparent bg-glass-subtle px-3.5 py-3 transition-all duration-200 hover:bg-glass-base active:scale-[0.98]"
+                className="flex items-center gap-3 rounded-xl border-l-2 border-l-gone bg-card px-4 py-3.5 transition-all duration-200 hover:bg-input active:scale-[0.98]"
               >
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-glass-highlight" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-content-primary">{lista.nombre}</p>
-                  <p className="mt-0.5 truncate text-[11px] text-content-secondary">{lista.nombre_usuario}</p>
+                  <p className="truncate text-sm font-medium text-hi">{lista.nombre}</p>
+                  <p className="mt-0.5 truncate text-[11px] text-lo">{lista.nombre_usuario}</p>
                 </div>
-                {/* Affordance: el usuario sabe que puede clonar antes de entrar */}
-                <span className="flex shrink-0 items-center gap-1 rounded-full border border-glass-elevated bg-glass-subtle px-2 py-0.5 text-[10px] text-content-secondary">
+                <span className="flex shrink-0 items-center gap-1 rounded-full border border-mark bg-input px-2 py-0.5 text-[10px] text-mid">
                   <Copy size={9} />
                   Clonable
                 </span>
-                <ChevronRight size={13} className="shrink-0 text-content-muted" />
+                <ChevronRight size={13} className="shrink-0 text-gone" />
               </Link>
             ))}
           </div>
         )}
-      </section>
-
-      {/* ══ CREAR NUEVA LISTA — AL FONDO, COLAPSABLE ════════════════ */}
-      <section>
-        <details className="group">
-          <summary className="flex cursor-pointer select-none list-none items-center [&::-webkit-details-marker]:hidden">
-            <div className="flex items-center gap-2 rounded-xl border border-dashed border-glass-elevated px-4 py-2.5 transition-all duration-200 hover:border-glass-highlight group-open:border-purple-500/30">
-              <Plus size={13} strokeWidth={2.5} className="text-content-secondary group-open:text-purple-400" />
-              <span className="text-sm font-medium text-content-secondary group-open:text-purple-300">
-                Nueva lista
-              </span>
-            </div>
-          </summary>
-
-          <form action={crearPlaylist} className="mt-3 flex gap-2">
-            <input
-              name="nombre"
-              type="text"
-              placeholder="Nombre de la lista…"
-              required
-              className="min-w-0 flex-1 rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-white placeholder-content-muted outline-none backdrop-blur-sm transition-all duration-300 focus:border-purple-500/50 focus:bg-glass-elevated focus:ring-2 focus:ring-purple-500/20"
-            />
-            <button
-              type="submit"
-              className="flex shrink-0 items-center gap-1.5 rounded-xl bg-purple-600/80 px-4 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-300 ease-out hover:bg-purple-500/80 active:scale-95"
-            >
-              <Plus size={15} strokeWidth={2.5} />
-              Crear
-            </button>
-          </form>
-        </details>
       </section>
 
     </div>

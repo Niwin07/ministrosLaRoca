@@ -13,9 +13,9 @@ const FEEDBACK: Record<string, string> = {
 };
 
 const ROL_STYLE: Record<string, string> = {
-  ADMINISTRADOR: "bg-purple-500/20 text-purple-400",
-  LIDER:         "bg-blue-500/20 text-blue-400",
-  MINISTRO:      "bg-glass-elevated text-content-secondary",
+  ADMINISTRADOR: "bg-violet-500/15 text-violet-700 dark:text-violet-400",
+  LIDER:         "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+  MINISTRO:      "bg-input text-mid",
 };
 
 export default async function AdminUsuariosPage({
@@ -45,31 +45,31 @@ export default async function AdminUsuariosPage({
       {/* ── Cabecera ─────────────────────────────────────────────────── */}
       <Link
         href="/"
-        className="inline-flex items-center gap-1.5 text-sm text-content-muted transition-colors hover:text-content-primary"
+        className="inline-flex items-center gap-1.5 text-sm text-lo transition-colors hover:text-hi"
       >
         <ArrowLeft size={15} />
         Inicio
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-hi">
           Gestión de Usuarios
         </h1>
-        <p className="mt-1 text-sm text-content-muted">
+        <p className="mt-1 text-sm text-lo">
           Creá y administrá las cuentas del equipo.
         </p>
       </div>
 
       {/* ── Feedback ─────────────────────────────────────────────────── */}
       {mensaje && (
-        <div className="rounded-xl border border-lime-500/30 bg-lime-500/10 px-4 py-3 text-sm text-lime-400">
+        <div className="rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
           {mensaje}
         </div>
       )}
 
       {/* ── Formulario: crear usuario ────────────────────────────────── */}
-      <div className="rounded-2xl border border-glass-base bg-glass-subtle p-5">
-        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-content-muted">
+      <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
+        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-lo">
           Nuevo usuario
         </p>
         <form action={crearUsuario} className="flex flex-col gap-4">
@@ -77,7 +77,7 @@ export default async function AdminUsuariosPage({
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="nombre"
-              className="text-xs font-medium uppercase tracking-wider text-content-muted"
+              className="text-xs font-medium uppercase tracking-wider text-lo"
             >
               Nombre
             </label>
@@ -87,14 +87,14 @@ export default async function AdminUsuariosPage({
               type="text"
               required
               placeholder="Ej: Juan Pérez"
-              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder:text-content-muted outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
+              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="email"
-              className="text-xs font-medium uppercase tracking-wider text-content-muted"
+              className="text-xs font-medium uppercase tracking-wider text-lo"
             >
               Email
             </label>
@@ -104,14 +104,14 @@ export default async function AdminUsuariosPage({
               type="email"
               required
               placeholder="juan@iglesia.com"
-              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder:text-content-muted outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
+              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="password"
-              className="text-xs font-medium uppercase tracking-wider text-content-muted"
+              className="text-xs font-medium uppercase tracking-wider text-lo"
             >
               Contraseña
             </label>
@@ -122,14 +122,14 @@ export default async function AdminUsuariosPage({
               required
               minLength={6}
               placeholder="Mínimo 6 caracteres"
-              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder:text-content-muted outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
+              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="rol"
-              className="text-xs font-medium uppercase tracking-wider text-content-muted"
+              className="text-xs font-medium uppercase tracking-wider text-lo"
             >
               Rol
             </label>
@@ -137,7 +137,7 @@ export default async function AdminUsuariosPage({
               id="rol"
               name="rol"
               required
-              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 [&>option]:bg-glass-base"
+              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
             >
               <option value="">— Seleccionar rol —</option>
               <option value="ADMINISTRADOR">Administrador</option>
@@ -148,7 +148,7 @@ export default async function AdminUsuariosPage({
 
           <button
             type="submit"
-            className="self-start rounded-full bg-lime-400 px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-lime-300 active:bg-lime-500"
+            className="self-start rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:bg-violet-700"
           >
             Crear Usuario
           </button>
@@ -158,12 +158,12 @@ export default async function AdminUsuariosPage({
 
       {/* ── Lista de usuarios ─────────────────────────────────────────── */}
       <section className="space-y-3">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-content-muted">
+        <h2 className="text-xs font-medium uppercase tracking-wider text-lo">
           Usuarios registrados ({listaUsuarios.length})
         </h2>
 
         {listaUsuarios.length === 0 ? (
-          <p className="rounded-2xl border border-glass-base bg-glass-subtle px-5 py-4 text-sm text-content-muted">
+          <p className="rounded-2xl border border-line bg-card px-5 py-4 text-sm text-lo">
             No hay usuarios registrados.
           </p>
         ) : (
@@ -171,18 +171,18 @@ export default async function AdminUsuariosPage({
             {listaUsuarios.map((u) => (
               <div
                 key={u.id_usuario}
-                className="flex items-center gap-4 rounded-2xl border border-glass-base bg-glass-subtle px-4 py-4"
+                className="flex items-center gap-4 rounded-2xl border border-line bg-card px-4 py-4 shadow-card dark:shadow-none"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-glass-elevated">
-                  <span className="text-xs font-bold text-content-secondary">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-input">
+                  <span className="text-xs font-bold text-mid">
                     {u.nombre.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-white">
+                  <p className="truncate text-sm font-semibold text-hi">
                     {u.nombre}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-content-muted">
+                  <p className="mt-0.5 truncate text-xs text-lo">
                     {u.email}
                   </p>
                 </div>
@@ -194,7 +194,7 @@ export default async function AdminUsuariosPage({
                 <Link
                   href={`/admin/usuarios/${u.id_usuario}`}
                   aria-label={`Editar ${u.nombre}`}
-                  className="shrink-0 rounded-full p-2 text-content-muted transition-colors hover:bg-glass-elevated hover:text-content-primary"
+                  className="shrink-0 rounded-full p-2 text-lo transition-colors hover:bg-input hover:text-hi"
                 >
                   <Pencil size={15} />
                 </Link>

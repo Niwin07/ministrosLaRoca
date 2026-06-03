@@ -4,11 +4,22 @@ import { canciones } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, CheckCircle2 } from "lucide-react";
+import { CatalogoCanciones } from "@/components/CatalogoCanciones";
+import { CargarCancion } from "@/components/CargarCancion";
+import { sugerirCancion as crearSugerencia } from "@/app/actions/canciones";
+import { METRICAS } from "@/lib/metricas";
 
-export default async function CancionesPage() {
+export default async function CancionesPage({
+  searchParams,
+}: {
+  searchParams: { sugerida?: string; editada?: string };
+}) {
   const session = await auth();
   if (!session?.user) redirect("/login");
+
+  const puedeEditar =
+    session.user.rol === "ADMINISTRADOR" || session.user.rol === "LIDER";
 
   const aprobadas = await db
     .select()
@@ -16,82 +27,120 @@ export default async function CancionesPage() {
     .where(eq(canciones.estado_aprobacion, "APROBADA"))
     .orderBy(canciones.nombre);
 
-  async function sugerirCancion(formData: FormData) {
+  const sugeridaOk = searchParams.sugerida === "1";
+  const editadaOk  = searchParams.editada === "1";
+
+  async function handleSugerir(formData: FormData) {
     "use server";
     const nombre  = (formData.get("nombre")  as string)?.trim();
     const artista = (formData.get("artista") as string)?.trim();
     if (!nombre || !artista) return;
-    await db.insert(canciones).values({ nombre, artista });
+
+    const clean = (raw: FormDataEntryValue | null) =>
+      typeof raw === "string" && raw.trim()
+        ? raw.replace(/\r\n/g, "\n").trim()
+        : undefined;
+
+    const bpmRaw = formData.get("bpm");
+    const bpm = typeof bpmRaw === "string" && bpmRaw.trim() ? Number(bpmRaw) : undefined;
+
+    await crearSugerencia({
+      nombre,
+      artista,
+      bpm:     bpm !== undefined && Number.isFinite(bpm) ? bpm : undefined,
+      metrica: clean(formData.get("metrica")),
+      letra:   clean(formData.get("letra")),
+      charts:  clean(formData.get("charts")),
+    });
+
     revalidatePath("/canciones");
+    redirect("/canciones?sugerida=1");
   }
 
   return (
     <main className="flex flex-col gap-8 px-4 pt-8 pb-6">
 
+      {editadaOk && (
+        <div className="flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+          <CheckCircle2 size={15} className="shrink-0" />
+          Cambios guardados.
+        </div>
+      )}
+
       {/* ── Catálogo ──────────────────────────────────────────────────── */}
       <section className="flex flex-col gap-4">
         <div>
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-white">Catálogo</h1>
-            <span className="text-xs text-content-secondary">{aprobadas.length} canciones</span>
+            <h1 className="text-xl font-bold text-hi">Catálogo</h1>
+            <span className="text-xs text-lo">{aprobadas.length} canciones</span>
           </div>
-          <p className="mt-1 text-sm text-content-muted">
-            Canciones aprobadas para agregar a tus listas.
-          </p>
+          <p className="mt-1 text-sm text-lo">Buscá una canción y mirá su letra y acordes.</p>
         </div>
 
-        {aprobadas.length === 0 ? (
-          <p className="text-sm text-content-secondary">Sin canciones aprobadas aún.</p>
-        ) : (
-          <ul className="flex flex-col gap-1.5">
-            {aprobadas.map((c) => (
-              <li
-                key={c.id_cancion}
-                className="flex items-center gap-3 rounded-xl border border-glass-base bg-glass-subtle px-4 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-content-primary">{c.nombre}</p>
-                  <p className="mt-0.5 text-xs text-content-secondary">{c.artista}</p>
-                </div>
-                {(c.bpm || c.metrica) && (
-                  <div className="flex shrink-0 items-center gap-2 text-[10px] text-content-muted">
-                    {c.metrica && <span>{c.metrica}</span>}
-                    {c.bpm && <span>{c.bpm} BPM</span>}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+        <CatalogoCanciones canciones={aprobadas} puedeEditar={puedeEditar} />
       </section>
 
       {/* ── Sugerir (colapsable) ──────────────────────────────────────── */}
-      <details className="group overflow-hidden rounded-2xl border border-glass-base bg-glass-subtle">
+      <details className="group overflow-hidden rounded-2xl border border-line bg-card shadow-card dark:shadow-none" open={sugeridaOk}>
         <summary className="flex cursor-pointer select-none list-none items-center justify-between px-5 py-4 [&::-webkit-details-marker]:hidden">
-          <h2 className="text-sm font-semibold text-content-primary">Sugerir Canción</h2>
+          <div>
+            <h2 className="text-sm font-semibold text-hi">Sugerir canción</h2>
+            <p className="mt-0.5 text-[11px] text-lo">Queda pendiente de aprobación de un líder.</p>
+          </div>
           <ChevronDown
             size={15}
-            className="text-content-secondary transition-transform duration-200 group-open:rotate-180"
+            className="shrink-0 text-lo transition-transform duration-200 group-open:rotate-180"
           />
         </summary>
 
-        <div className="border-t border-glass-base px-5 pb-5 pt-4">
-          <form action={sugerirCancion} className="flex flex-col gap-3">
+        <div className="border-t border-line px-5 pb-5 pt-4">
+          {sugeridaOk && (
+            <div className="mb-4 flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+              <CheckCircle2 size={15} className="shrink-0" />
+              ¡Gracias! Tu sugerencia quedó pendiente de aprobación.
+            </div>
+          )}
+
+          <form action={handleSugerir} className="flex flex-col gap-3">
             <input
               name="nombre"
-              placeholder="Nombre de la canción"
+              placeholder="Nombre de la canción *"
               required
-              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder-content-muted outline-none focus:border-purple-500/60 focus:ring-2 focus:ring-purple-500/20"
+              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
             />
             <input
               name="artista"
-              placeholder="Artista"
+              placeholder="Artista *"
               required
-              className="rounded-xl border border-glass-elevated bg-glass-base px-4 py-3 text-sm text-content-primary placeholder-content-muted outline-none focus:border-purple-500/60 focus:ring-2 focus:ring-purple-500/20"
+              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
             />
+
+            <div className="flex gap-2">
+              <select
+                name="metrica"
+                defaultValue=""
+                className="flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
+              >
+                <option value="">Métrica (opcional)…</option>
+                {METRICAS.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+              <input
+                name="bpm"
+                type="number"
+                min={1}
+                max={300}
+                placeholder="BPM"
+                className="w-24 rounded-xl border border-mark bg-input px-3 py-3 text-center text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+              />
+            </div>
+
+            <CargarCancion />
+
             <button
               type="submit"
-              className="self-start rounded-full bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-500 active:bg-purple-700"
+              className="self-start rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:scale-95"
             >
               Sugerir
             </button>

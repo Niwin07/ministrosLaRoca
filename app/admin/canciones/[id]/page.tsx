@@ -1,0 +1,82 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { ArrowLeft, Save } from "lucide-react";
+import { db } from "@/db";
+import { canciones } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { auth } from "@/auth";
+import { CargarCancion } from "@/components/CargarCancion";
+import { actualizarCancion } from "@/app/actions/canciones";
+import { METRICAS } from "@/lib/metricas";
+
+export default async function EditarCancionPage({ params }: { params: { id: string } }) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (session.user.rol !== "ADMINISTRADOR" && session.user.rol !== "LIDER") redirect("/");
+
+  const id = Number(params.id);
+  if (Number.isNaN(id)) notFound();
+
+  const [c] = await db.select().from(canciones).where(eq(canciones.id_cancion, id));
+  if (!c) notFound();
+
+  const inputCls =
+    "w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30";
+
+  return (
+    <main className="flex flex-col gap-5 px-4 pt-8 pb-10">
+
+      <Link
+        href="/canciones"
+        className="inline-flex items-center gap-1.5 text-xs text-lo transition-colors hover:text-hi"
+      >
+        <ArrowLeft size={13} />
+        Catálogo
+      </Link>
+
+      <div>
+        <h1 className="text-xl font-bold text-hi">Editar canción</h1>
+        <p className="mt-0.5 text-xs text-lo">Corregí la letra, los acordes o los datos.</p>
+      </div>
+
+      <form action={actualizarCancion} className="flex flex-col gap-3">
+        <input type="hidden" name="id_cancion" value={c.id_cancion} />
+
+        <input name="nombre" defaultValue={c.nombre} placeholder="Nombre de la canción *" required className={inputCls} />
+        <input name="artista" defaultValue={c.artista} placeholder="Artista *" required className={inputCls} />
+
+        <div className="flex gap-2">
+          <select
+            name="metrica"
+            defaultValue={c.metrica ?? ""}
+            className={`${inputCls} flex-1 [&>option]:bg-card`}
+          >
+            <option value="">Métrica…</option>
+            {METRICAS.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+          <input
+            name="bpm"
+            type="number"
+            min={1}
+            max={300}
+            defaultValue={c.bpm ?? ""}
+            placeholder="BPM"
+            className="w-24 rounded-xl border border-mark bg-input px-3 py-3 text-center text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+          />
+        </div>
+
+        <CargarCancion defaultLetra={c.letra ?? ""} defaultCharts={c.charts ?? ""} />
+
+        <button
+          type="submit"
+          className="mt-1 inline-flex items-center justify-center gap-1.5 self-start rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:scale-95"
+        >
+          <Save size={14} />
+          Guardar cambios
+        </button>
+      </form>
+    </main>
+  );
+}

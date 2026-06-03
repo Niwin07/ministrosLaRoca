@@ -1,6 +1,7 @@
 import { signIn } from "@/auth";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
+import { Music2 } from "lucide-react";
 
 export default function LoginPage({
   searchParams,
@@ -21,46 +22,60 @@ export default function LoginPage({
       if (error instanceof AuthError) {
         redirect("/login?error=credenciales");
       }
-      throw error; // re-lanzar NEXT_REDIRECT para que Next.js lo procese
+      throw error;
     }
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6">
+    <main className="flex min-h-screen items-center justify-center bg-base px-4">
+      <div className="w-full max-w-sm space-y-8">
 
-        <h1 className="text-2xl font-bold text-white">Iniciar sesión</h1>
+        {/* App logo / title */}
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-600">
+            <Music2 size={28} className="text-white" strokeWidth={1.5} />
+          </div>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-hi">Ministros</h1>
+            <p className="mt-0.5 text-sm text-lo">Portal de Alabanza</p>
+          </div>
+        </div>
 
-        {hayError && (
-          <p className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-400">
-            Email o contraseña incorrectos.
-          </p>
-        )}
+        {/* Form card */}
+        <div className="w-full space-y-5 rounded-2xl border border-line bg-card p-6 shadow-card dark:shadow-none">
 
-        <form action={loginAction} className="flex flex-col gap-4">
-          <input
-            name="email"
-            type="email"
-            placeholder="Email"
-            required
-            autoComplete="email"
-            className="w-full rounded-xl bg-glass-base px-4 py-3 text-sm text-content-primary placeholder-content-muted outline-none focus:ring-2 focus:ring-purple-500"
-          />
-          <input
-            name="password"
-            type="password"
-            placeholder="Contraseña"
-            required
-            autoComplete="current-password"
-            className="w-full rounded-xl bg-glass-base px-4 py-3 text-sm text-content-primary placeholder-content-muted outline-none focus:ring-2 focus:ring-purple-500"
-          />
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-purple-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-purple-500 active:bg-purple-700"
-          >
-            Ingresar
-          </button>
-        </form>
+          {hayError && (
+            <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+              Email o contraseña incorrectos.
+            </p>
+          )}
+
+          <form action={loginAction} className="flex flex-col gap-3">
+            <input
+              name="email"
+              type="email"
+              placeholder="Email"
+              required
+              autoComplete="email"
+              className="w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+            />
+            <input
+              name="password"
+              type="password"
+              placeholder="Contraseña"
+              required
+              autoComplete="current-password"
+              className="w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+            />
+            <button
+              type="submit"
+              className="mt-1 w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:bg-violet-700"
+            >
+              Ingresar
+            </button>
+          </form>
+
+        </div>
 
       </div>
     </main>

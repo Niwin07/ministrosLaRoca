@@ -14,12 +14,18 @@ interface ItemReorden {
 // ── Helper privado ────────────────────────────────────────────────────────────
 
 /**
- * Verifica que la playlist sea editable:
+ * Regla única de mutabilidad del contenido (canciones, orden, notas):
  * - PRESET (estado siempre null): editable sin restricciones.
- * - EVENTO en PREPARACION: editable.
- * - EVENTO en cualquier otro estado: bloqueado.
+ * - EVENTO en PREPARACION o ENSAYO: editable (la lista en ensayo está
+ *   publicada pero todavía sujeta a modificaciones).
+ * - EVENTO en DEFINITIVA o MAZO: bloqueado — hay que retroceder de etapa.
  */
-async function assertPreparacion(id_playlist: number): Promise<void> {
+function estadoPermiteEdicion(tipo: string, estado: string | null): boolean {
+  if (tipo === "PRESET") return true;
+  return tipo === "EVENTO" && (estado === "PREPARACION" || estado === "ENSAYO");
+}
+
+async function assertEditable(id_playlist: number): Promise<void> {
   const [lista] = await db
     .select({ estado: playlists.estado, tipo: playlists.tipo })
     .from(playlists)
@@ -29,14 +35,11 @@ async function assertPreparacion(id_playlist: number): Promise<void> {
     throw new Error(`Playlist ${id_playlist} no encontrada.`);
   }
 
-  // PRESET es siempre mutable — salir sin error
-  if (lista.tipo === "PRESET") return;
-
-  // EVENTO: solo editable en PREPARACION
-  if (lista.tipo === "EVENTO" && lista.estado === "PREPARACION") return;
+  if (estadoPermiteEdicion(lista.tipo, lista.estado)) return;
 
   throw new Error(
-    `La lista no es editable. Solo se pueden modificar PLAYLISTs de tipo PRESET o EVENTOs en PREPARACION. Estado actual: ${lista.tipo}/${lista.estado ?? "null"}.`
+    `La lista no es editable en su etapa actual (${lista.tipo}/${lista.estado ?? "null"}). ` +
+    `Volvé a 'En preparación' o 'En ensayo' para modificarla.`
   );
 }
 
@@ -53,7 +56,7 @@ export async function agregarCancionALista(
   orden: number,
   nota?: string
 ): Promise<{ id_lista_cancion: number }> {
-  await assertPreparacion(id_playlist);
+  await assertEditable(id_playlist);
 
   const [inserted] = await db
     .insert(lista_canciones)
@@ -94,9 +97,9 @@ export async function actualizarNotaCancion(
       `Registro ${id_lista_cancion} no encontrado en ninguna lista.`
     );
   }
-  if (registro.estado_playlist !== "PREPARACION") {
+  if (!estadoPermiteEdicion(registro.tipo_playlist, registro.estado_playlist)) {
     throw new Error(
-      `Solo se puede editar la nota en una lista en estado PREPARACION. Estado actual: ${registro.tipo_playlist}/${registro.estado_playlist ?? "null"}.`
+      `No se puede editar la nota en esta etapa (${registro.tipo_playlist}/${registro.estado_playlist ?? "null"}). Volvé a 'En preparación' o 'En ensayo'.`
     );
   }
 
@@ -121,7 +124,7 @@ export async function reordenarLista(
 ): Promise<void> {
   if (reordenamientos.length === 0) return;
 
-  await assertPreparacion(id_playlist);
+  await assertEditable(id_playlist);
 
   await db.transaction(async (tx) => {
     // Fase 1: mover todos los órdenes fuera del rango de trabajo
@@ -170,9 +173,9 @@ export async function eliminarCancionDeLista(
       `Registro ${id_lista_cancion} no encontrado en ninguna lista.`
     );
   }
-  if (registro.estado_playlist !== "PREPARACION") {
+  if (!estadoPermiteEdicion(registro.tipo_playlist, registro.estado_playlist)) {
     throw new Error(
-      `Solo se puede eliminar una canción de una lista en estado PREPARACION. Estado actual: ${registro.tipo_playlist}/${registro.estado_playlist ?? "null"}.`
+      `No se puede eliminar una canción en esta etapa (${registro.tipo_playlist}/${registro.estado_playlist ?? "null"}). Volvé a 'En preparación' o 'En ensayo'.`
     );
   }
 
