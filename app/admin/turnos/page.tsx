@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { eq, asc } from "drizzle-orm";
 import { agregarACola, marcarActivo, desactivarActivo, quitarTurno, reordenarCola } from "@/app/actions/turnos";
 import { ColaTurnos } from "@/components/ColaTurnos";
+import { ErrorBanner } from "@/components/ErrorBanner";
 
 const FEEDBACK: Record<string, string> = {
   agregado:    "Usuario agregado a la cola.",
@@ -18,7 +19,7 @@ const FEEDBACK: Record<string, string> = {
 export default async function AdminTurnosPage({
   searchParams,
 }: {
-  searchParams: { success?: string };
+  searchParams: { success?: string; error?: string };
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -26,7 +27,8 @@ export default async function AdminTurnosPage({
     redirect("/");
   }
 
-  const mensaje = searchParams.success ? (FEEDBACK[searchParams.success] ?? null) : null;
+  const mensaje  = searchParams.success ? (FEEDBACK[searchParams.success] ?? null) : null;
+  const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
 
   const listaUsuarios = await db
     .select({ id_usuario: usuarios.id_usuario, nombre: usuarios.nombre })
@@ -71,6 +73,7 @@ export default async function AdminTurnosPage({
       </div>
 
       {/* ── Feedback ─────────────────────────────────────────────────── */}
+      <ErrorBanner message={errorMsg} />
       {mensaje && (
         <div className="rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
           {mensaje}

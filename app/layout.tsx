@@ -56,7 +56,7 @@ export default async function RootLayout({
 
         {/* ── Header ───────────────────────────────────────────────────── */}
         {session?.user && (
-          <header className="sticky top-0 z-50 mx-auto flex w-full max-w-md items-center justify-between border-b border-line/60 bg-base/95 px-5 py-3.5 backdrop-blur-xl">
+          <header className="sticky top-0 z-50 mx-auto flex w-full max-w-md items-center justify-between border-b border-line/60 bg-base/95 px-5 py-3.5 backdrop-blur-xl animate-fade-in-down">
 
             {/* Avatar */}
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600">
@@ -95,7 +95,7 @@ export default async function RootLayout({
           {children}
         </div>
 
-        <NavWrapper rol={session?.user?.rol} />
+        {session?.user && <NavWrapper rol={session.user.rol} />}
       </body>
     </html>
   );

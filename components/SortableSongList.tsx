@@ -38,14 +38,16 @@ export function SortableSongList({
   // Snapshot de ids al iniciar el arrastre, para detectar si hubo cambio al soltar.
   const ordenInicial = useRef<number[]>([]);
 
-  // Sincroniza con el servidor cuando cambia el conjunto/secuencia de canciones
-  // (agregar, quitar o reordenar ya confirmado). Se compara por la firma de ids
-  // para no pisar el reordenamiento en vivo durante un arrastre.
-  const idsKey = items.map((i) => i.id_lista_cancion).join(",");
+  // Sincroniza con el servidor cuando cambia el conjunto de canciones (agregar,
+  // quitar) o el tono de alguna (cambiar tono). La firma incluye id + nota para
+  // que un cambio de tono se refleje al instante. No incluye `orden` para no
+  // pisar el reordenamiento en vivo durante un arrastre (el prop `items` solo
+  // cambia tras un refresh del server, nunca a mitad del drag).
+  const syncKey = items.map((i) => `${i.id_lista_cancion}:${i.nota ?? ""}`).join(",");
   useEffect(() => {
     setOrden(items);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsKey]);
+  }, [syncKey]);
 
   function handleDragStart() {
     ordenInicial.current = orden.map((i) => i.id_lista_cancion);

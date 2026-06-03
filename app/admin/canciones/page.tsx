@@ -7,11 +7,18 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { resolverSugerencia } from "@/app/actions/canciones";
 import { CargarCancion } from "@/components/CargarCancion";
+import { ErrorBanner } from "@/components/ErrorBanner";
 
-export default async function AdminCancionesPage() {
+export default async function AdminCancionesPage({
+  searchParams,
+}: {
+  searchParams: { error?: string };
+}) {
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.user.rol !== "ADMINISTRADOR" && session.user.rol !== "LIDER") redirect("/");
+
+  const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
 
   const pendientes = await db
     .select()
@@ -37,6 +44,8 @@ export default async function AdminCancionesPage() {
           {pendientes.length === 1 ? "canción pendiente" : "canciones pendientes"}
         </p>
       </div>
+
+      <ErrorBanner message={errorMsg} />
 
       {pendientes.length === 0 ? (
         <p className="rounded-2xl border border-line bg-card px-5 py-10 text-center text-sm text-lo">

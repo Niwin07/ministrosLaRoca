@@ -7,16 +7,19 @@ import { auth } from "@/auth";
 import { ChevronDown, CheckCircle2 } from "lucide-react";
 import { CatalogoCanciones } from "@/components/CatalogoCanciones";
 import { CargarCancion } from "@/components/CargarCancion";
+import { ErrorBanner } from "@/components/ErrorBanner";
 import { sugerirCancion as crearSugerencia } from "@/app/actions/canciones";
 import { METRICAS } from "@/lib/metricas";
 
 export default async function CancionesPage({
   searchParams,
 }: {
-  searchParams: { sugerida?: string; editada?: string };
+  searchParams: { sugerida?: string; editada?: string; error?: string };
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
+
+  const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
 
   const puedeEditar =
     session.user.rol === "ADMINISTRADOR" || session.user.rol === "LIDER";
@@ -32,33 +35,43 @@ export default async function CancionesPage({
 
   async function handleSugerir(formData: FormData) {
     "use server";
-    const nombre  = (formData.get("nombre")  as string)?.trim();
-    const artista = (formData.get("artista") as string)?.trim();
-    if (!nombre || !artista) return;
+    try {
+      const nombre  = (formData.get("nombre")  as string)?.trim();
+      const artista = (formData.get("artista") as string)?.trim();
+      if (!nombre || !artista) return;
 
-    const clean = (raw: FormDataEntryValue | null) =>
-      typeof raw === "string" && raw.trim()
-        ? raw.replace(/\r\n/g, "\n").trim()
-        : undefined;
+      const clean = (raw: FormDataEntryValue | null) =>
+        typeof raw === "string" && raw.trim()
+          ? raw.replace(/\r\n/g, "\n").trim()
+          : undefined;
 
-    const bpmRaw = formData.get("bpm");
-    const bpm = typeof bpmRaw === "string" && bpmRaw.trim() ? Number(bpmRaw) : undefined;
+      const bpmRaw = formData.get("bpm");
+      const bpm = typeof bpmRaw === "string" && bpmRaw.trim() ? Number(bpmRaw) : undefined;
 
-    await crearSugerencia({
-      nombre,
-      artista,
-      bpm:     bpm !== undefined && Number.isFinite(bpm) ? bpm : undefined,
-      metrica: clean(formData.get("metrica")),
-      letra:   clean(formData.get("letra")),
-      charts:  clean(formData.get("charts")),
-    });
+      await crearSugerencia({
+        nombre,
+        artista,
+        bpm:     bpm !== undefined && Number.isFinite(bpm) ? bpm : undefined,
+        metrica: clean(formData.get("metrica")),
+        letra:   clean(formData.get("letra")),
+        charts:  clean(formData.get("charts")),
+      });
 
-    revalidatePath("/canciones");
+      revalidatePath("/canciones");
+    } catch (e) {
+      redirect(
+        `/canciones?error=${encodeURIComponent(
+          e instanceof Error ? e.message : "No se pudo enviar la sugerencia."
+        )}`
+      );
+    }
     redirect("/canciones?sugerida=1");
   }
 
   return (
     <main className="flex flex-col gap-8 px-4 pt-8 pb-6">
+
+      <ErrorBanner message={errorMsg} />
 
       {editadaOk && (
         <div className="flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
@@ -68,7 +81,7 @@ export default async function CancionesPage({
       )}
 
       {/* ── Catálogo ──────────────────────────────────────────────────── */}
-      <section className="flex flex-col gap-4">
+      <section className="flex flex-col gap-4 animate-fade-in-up">
         <div>
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold text-hi">Catálogo</h1>
@@ -81,7 +94,7 @@ export default async function CancionesPage({
       </section>
 
       {/* ── Sugerir (colapsable) ──────────────────────────────────────── */}
-      <details className="group overflow-hidden rounded-2xl border border-line bg-card shadow-card dark:shadow-none" open={sugeridaOk}>
+      <details className="group overflow-hidden rounded-2xl border border-line bg-card shadow-card animate-fade-in-up [animation-delay:120ms] dark:shadow-none" open={sugeridaOk}>
         <summary className="flex cursor-pointer select-none list-none items-center justify-between px-5 py-4 [&::-webkit-details-marker]:hidden">
           <div>
             <h2 className="text-sm font-semibold text-hi">Sugerir canción</h2>

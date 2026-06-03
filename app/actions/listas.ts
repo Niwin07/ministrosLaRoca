@@ -46,29 +46,52 @@ async function assertEditable(id_playlist: number): Promise<void> {
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 /**
- * Agrega una canción a la lista en la posición indicada.
- * El UNIQUE(id_playlist, orden) impide duplicar posiciones; el caller
- * debe garantizar que el orden no esté ocupado o hacer un reordenamiento previo.
+ * Agrega una canción a la lista.
+ *
+ * `ordenDeseado` es solo una preferencia de posición: se respeta únicamente si
+ * es un entero válido y la posición está libre. Si está ocupada (p. ej. el
+ * formulario mandó un número desactualizado y repetido) o no se pasa, la
+ * canción se anexa al final (max + 1). Así nunca se viola el
+ * UNIQUE(id_playlist, orden) ni se rompe la página por un orden duplicado.
+ * Todo dentro de una transacción para evitar carreras en el cálculo del máximo.
  */
 export async function agregarCancionALista(
   id_playlist: number,
   id_cancion: number,
-  orden: number,
+  ordenDeseado?: number,
   nota?: string
-): Promise<{ id_lista_cancion: number }> {
+): Promise<{ id_lista_cancion: number; orden: number }> {
   await assertEditable(id_playlist);
 
-  const [inserted] = await db
-    .insert(lista_canciones)
-    .values({
-      id_playlist,
-      id_cancion,
-      orden,
-      nota: nota ?? null,
-    })
-    .$returningId();
+  return db.transaction(async (tx) => {
+    const filas = await tx
+      .select({ orden: lista_canciones.orden })
+      .from(lista_canciones)
+      .where(eq(lista_canciones.id_playlist, id_playlist));
 
-  return { id_lista_cancion: inserted.id_lista_cancion };
+    const ocupados = new Set(filas.map((f) => f.orden));
+    const maxOrden = filas.length ? Math.max(...filas.map((f) => f.orden)) : 0;
+
+    const orden =
+      ordenDeseado !== undefined &&
+      Number.isInteger(ordenDeseado) &&
+      ordenDeseado >= 1 &&
+      !ocupados.has(ordenDeseado)
+        ? ordenDeseado
+        : maxOrden + 1;
+
+    const [inserted] = await tx
+      .insert(lista_canciones)
+      .values({
+        id_playlist,
+        id_cancion,
+        orden,
+        nota: nota ?? null,
+      })
+      .$returningId();
+
+    return { id_lista_cancion: inserted.id_lista_cancion, orden };
+  });
 }
 
 /**

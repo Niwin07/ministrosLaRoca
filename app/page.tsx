@@ -90,7 +90,7 @@ export default async function DashboardPage() {
     <div className="flex flex-col gap-7 px-4 pt-7 pb-4">
 
       {/* ── GREETING ──────────────────────────────────────────────── */}
-      <div className="pb-1">
+      <div className="pb-1 animate-fade-in-down">
         <p className="text-[11px] font-medium uppercase tracking-widest text-gone">Portal de Alabanza</p>
         <h1 className="mt-1 text-[28px] font-bold leading-tight tracking-tight text-hi">
           Hola, {primerNombre}
@@ -101,7 +101,7 @@ export default async function DashboardPage() {
       <HeroCard listaActiva={listaActiva} primerNombre={primerNombre} />
 
       {/* ── ESTA SEMANA ───────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:120ms]">
         <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gone">
           Esta semana
         </h2>
@@ -183,7 +183,7 @@ export default async function DashboardPage() {
       </section>
 
       {/* ── MIS LISTAS ────────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:240ms]">
 
         <div className="flex items-center justify-between">
           <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gone">
@@ -208,7 +208,7 @@ export default async function DashboardPage() {
           <div className="flex flex-col gap-2">
             {misListas.map((lista) => (
               <Link key={lista.id_playlist} href={`/playlists/${lista.id_playlist}`}>
-                <div className="flex items-center gap-4 rounded-2xl border border-line bg-card px-4 py-4 shadow-card transition-colors duration-200 hover:bg-input active:scale-[0.98] dark:shadow-none">
+                <div className="flex items-center gap-4 rounded-2xl border border-line bg-card px-4 py-4 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-mark hover:bg-input active:scale-[0.98] dark:shadow-none">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-input">
                     <Music2 size={15} className="text-mid" />
                   </div>

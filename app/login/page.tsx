@@ -27,25 +27,32 @@ export default function LoginPage({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-base px-4">
-      <div className="w-full max-w-sm space-y-8">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-base px-4">
+
+      {/* Glow ambiental de fondo */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-600/20 blur-[100px] animate-pulse-soft"
+      />
+
+      <div className="relative w-full max-w-sm space-y-8">
 
         {/* App logo / title */}
         <div className="flex flex-col items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-600">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-600 shadow-lg shadow-violet-600/30 animate-scale-in">
             <Music2 size={28} className="text-white" strokeWidth={1.5} />
           </div>
-          <div className="text-center">
+          <div className="text-center animate-fade-in-up [animation-delay:120ms]">
             <h1 className="text-2xl font-bold text-hi">Ministros</h1>
             <p className="mt-0.5 text-sm text-lo">Portal de Alabanza</p>
           </div>
         </div>
 
         {/* Form card */}
-        <div className="w-full space-y-5 rounded-2xl border border-line bg-card p-6 shadow-card dark:shadow-none">
+        <div className="w-full space-y-5 rounded-2xl border border-line bg-card p-6 shadow-card animate-fade-in-up [animation-delay:200ms] dark:shadow-none">
 
           {hayError && (
-            <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+            <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600 animate-fade-in dark:text-red-400">
               Email o contraseña incorrectos.
             </p>
           )}
@@ -69,7 +76,7 @@ export default function LoginPage({
             />
             <button
               type="submit"
-              className="mt-1 w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:bg-violet-700"
+              className="mt-1 w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-600/20 transition-all duration-200 hover:bg-violet-500 hover:shadow-violet-600/40 active:scale-[0.98] active:bg-violet-700"
             >
               Ingresar
             </button>

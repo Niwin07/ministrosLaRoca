@@ -60,21 +60,29 @@ export function BottomNav({ rol }: { rol?: string }) {
               href={item.href}
               aria-label={item.label}
               aria-current={isActive ? "page" : undefined}
-              className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-[3px]"
+              className="group flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-[3px]"
             >
-              {/* Icon — color-only active state (iOS tab bar) */}
+              {/* Icon — pill animado deslizante (layoutId) */}
               <motion.span
                 animate={isActive ? { scale: 1.05 } : { scale: 1 }}
+                whileTap={{ scale: 0.9 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                className="flex items-center justify-center p-2"
+                className="relative flex items-center justify-center p-2"
               >
+                {isActive && (
+                  <motion.span
+                    layoutId="nav-pill"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    className="absolute inset-0 rounded-full bg-violet-500/10 dark:bg-violet-400/10"
+                  />
+                )}
                 <Icon
                   size={19}
                   strokeWidth={isActive ? 2.5 : 1.8}
-                  className={`transition-colors duration-200 ${
+                  className={`relative transition-colors duration-200 ${
                     isActive
                       ? "text-violet-600 dark:text-violet-400"
-                      : "text-lo"
+                      : "text-lo group-hover:text-mid"
                   }`}
                 />
               </motion.span>

@@ -48,39 +48,47 @@ export async function sugerirCancion(
  * Normaliza los saltos de línea (\r\n → \n) de letra y charts.
  */
 export async function actualizarCancion(formData: FormData): Promise<void> {
-  const session = await auth();
-  if (!session?.user) throw new Error("No autenticado.");
-  if (session.user.rol !== "ADMINISTRADOR" && session.user.rol !== "LIDER") {
-    throw new Error("Sin permisos para editar canciones.");
-  }
-
   const id_cancion = Number(formData.get("id_cancion"));
-  const nombre     = (formData.get("nombre")  as string | null)?.trim();
-  const artista    = (formData.get("artista") as string | null)?.trim();
-  if (!id_cancion || !nombre || !artista) {
-    throw new Error("Nombre y artista son obligatorios.");
+  try {
+    const session = await auth();
+    if (!session?.user) throw new Error("No autenticado.");
+    if (session.user.rol !== "ADMINISTRADOR" && session.user.rol !== "LIDER") {
+      throw new Error("Sin permisos para editar canciones.");
+    }
+
+    const nombre  = (formData.get("nombre")  as string | null)?.trim();
+    const artista = (formData.get("artista") as string | null)?.trim();
+    if (!id_cancion || !nombre || !artista) {
+      throw new Error("Nombre y artista son obligatorios.");
+    }
+
+    const norm = (raw: FormDataEntryValue | null) =>
+      typeof raw === "string" && raw.trim() ? raw.replace(/\r\n/g, "\n").trim() : null;
+
+    const bpmRaw = formData.get("bpm");
+    const bpm = typeof bpmRaw === "string" && bpmRaw.trim() ? Number(bpmRaw) : NaN;
+
+    await db
+      .update(canciones)
+      .set({
+        nombre,
+        artista,
+        bpm:     Number.isFinite(bpm) ? bpm : null,
+        metrica: (formData.get("metrica") as string | null)?.trim() || null,
+        letra:   norm(formData.get("letra")),
+        charts:  norm(formData.get("charts")),
+      })
+      .where(eq(canciones.id_cancion, id_cancion));
+
+    revalidatePath("/canciones");
+    revalidatePath(`/admin/canciones/${id_cancion}`);
+  } catch (e) {
+    redirect(
+      `/admin/canciones/${id_cancion}?error=${encodeURIComponent(
+        e instanceof Error ? e.message : "No se pudieron guardar los cambios."
+      )}`
+    );
   }
-
-  const norm = (raw: FormDataEntryValue | null) =>
-    typeof raw === "string" && raw.trim() ? raw.replace(/\r\n/g, "\n").trim() : null;
-
-  const bpmRaw = formData.get("bpm");
-  const bpm = typeof bpmRaw === "string" && bpmRaw.trim() ? Number(bpmRaw) : NaN;
-
-  await db
-    .update(canciones)
-    .set({
-      nombre,
-      artista,
-      bpm:     Number.isFinite(bpm) ? bpm : null,
-      metrica: (formData.get("metrica") as string | null)?.trim() || null,
-      letra:   norm(formData.get("letra")),
-      charts:  norm(formData.get("charts")),
-    })
-    .where(eq(canciones.id_cancion, id_cancion));
-
-  revalidatePath("/canciones");
-  revalidatePath(`/admin/canciones/${id_cancion}`);
   redirect("/canciones?editada=1");
 }
 
@@ -92,48 +100,63 @@ export async function actualizarCancion(formData: FormData): Promise<void> {
  * Los saltos de línea del browser (\r\n) se normalizan a \n antes de persistir.
  */
 export async function resolverSugerencia(formData: FormData): Promise<void> {
-  const id_cancion = Number(formData.get("id_cancion"));
-  const decision   = formData.get("decision") as "APROBADA" | "RECHAZADA";
+  try {
+    // Guard de auth/permisos (antes faltaba — DT-12).
+    const session = await auth();
+    if (!session?.user) throw new Error("No autenticado.");
+    if (session.user.rol !== "ADMINISTRADOR" && session.user.rol !== "LIDER") {
+      throw new Error("Sin permisos para moderar canciones.");
+    }
 
-  if (!id_cancion || !decision) return;
+    const id_cancion = Number(formData.get("id_cancion"));
+    const decision   = formData.get("decision") as "APROBADA" | "RECHAZADA";
 
-  const normalize = (raw: FormDataEntryValue | null) =>
-    typeof raw === "string" && raw.trim()
-      ? raw.replace(/\r\n/g, "\n").trim()
-      : null;
+    if (!id_cancion || !decision) return;
 
-  const letra  = normalize(formData.get("letra"));
-  const charts = normalize(formData.get("charts"));
+    const normalize = (raw: FormDataEntryValue | null) =>
+      typeof raw === "string" && raw.trim()
+        ? raw.replace(/\r\n/g, "\n").trim()
+        : null;
 
-  const [cancion] = await db
-    .select({ id_cancion: canciones.id_cancion })
-    .from(canciones)
-    .where(eq(canciones.id_cancion, id_cancion));
+    const letra  = normalize(formData.get("letra"));
+    const charts = normalize(formData.get("charts"));
 
-  if (!cancion) throw new Error(`Canción ${id_cancion} no encontrada.`);
-
-  if (decision === "APROBADA") {
-    await db
-      .update(canciones)
-      .set({
-        estado_aprobacion: "APROBADA",
-        letra,
-        charts,
-        motivo_rechazo:    null,
-      })
+    const [cancion] = await db
+      .select({ id_cancion: canciones.id_cancion })
+      .from(canciones)
       .where(eq(canciones.id_cancion, id_cancion));
-  } else {
-    await db
-      .update(canciones)
-      .set({
-        estado_aprobacion: "RECHAZADA",
-        letra:             null,
-        charts:            null,
-        motivo_rechazo:    "No cumple los criterios del ministerio.",
-      })
-      .where(eq(canciones.id_cancion, id_cancion));
+
+    if (!cancion) throw new Error(`Canción ${id_cancion} no encontrada.`);
+
+    if (decision === "APROBADA") {
+      await db
+        .update(canciones)
+        .set({
+          estado_aprobacion: "APROBADA",
+          letra,
+          charts,
+          motivo_rechazo:    null,
+        })
+        .where(eq(canciones.id_cancion, id_cancion));
+    } else {
+      await db
+        .update(canciones)
+        .set({
+          estado_aprobacion: "RECHAZADA",
+          letra:             null,
+          charts:            null,
+          motivo_rechazo:    "No cumple los criterios del ministerio.",
+        })
+        .where(eq(canciones.id_cancion, id_cancion));
+    }
+
+    revalidatePath("/canciones");
+    revalidatePath("/admin/canciones");
+  } catch (e) {
+    redirect(
+      `/admin/canciones?error=${encodeURIComponent(
+        e instanceof Error ? e.message : "No se pudo resolver la sugerencia."
+      )}`
+    );
   }
-
-  revalidatePath("/canciones");
-  revalidatePath("/admin/canciones");
 }

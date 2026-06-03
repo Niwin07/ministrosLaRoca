@@ -1,18 +1,30 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, desc, eq, or } from "drizzle-orm";
-import { ChevronRight, Plus, ListMusic, Mic2, Archive, Copy, Music2 } from "lucide-react";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { ChevronRight, Plus, ListMusic, Mic2, Archive, Music2 } from "lucide-react";
 import { ESTADO_LABEL } from "@/lib/estados";
 import { db } from "@/db";
-import { cronograma, playlists, usuarios } from "@/db/schema";
+import { canciones, cronograma, lista_canciones, playlists, usuarios } from "@/db/schema";
 import { auth } from "@/auth";
-import { crearPlaylist, instanciarPreset } from "@/app/actions/playlists";
+import { crearPlaylist, instanciarPreset, clonarMazo } from "@/app/actions/playlists";
+import { HistorialListas } from "@/components/HistorialListas";
+import { ErrorBanner } from "@/components/ErrorBanner";
 
-export default async function PlaylistsPage() {
+function fmtFecha(d: Date | null): string {
+  if (!d) return "Sin fecha";
+  return new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short", year: "numeric" }).format(d);
+}
+
+export default async function PlaylistsPage({
+  searchParams,
+}: {
+  searchParams: { error?: string };
+}) {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const { id_usuario } = session.user;
+  const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
 
   // El director de la semana = único turno ACTIVO en el cronograma.
   const [directorActivo] = await db
@@ -68,18 +80,51 @@ export default async function PlaylistsPage() {
       .where(eq(playlists.tipo, "PRESET"))
       .orderBy(playlists.nombre),
 
-    // HISTORIAL — servicios archivados, clonables.
+    // HISTORIAL — servicios archivados, clonables. Con cantidad de temas y
+    // fecha de archivado (actualizadoEn) para darle contexto a cada entrada.
     db
       .select({
         id_playlist:    playlists.id_playlist,
         nombre:         playlists.nombre,
         nombre_usuario: usuarios.nombre,
+        actualizado_en: playlists.actualizadoEn,
+        total:          sql<number>`COUNT(${lista_canciones.id_lista_cancion})`,
       })
       .from(playlists)
       .innerJoin(usuarios, eq(playlists.id_usuario, usuarios.id_usuario))
+      .leftJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
       .where(and(eq(playlists.tipo, "EVENTO"), eq(playlists.estado, "MAZO")))
-      .orderBy(desc(playlists.id_playlist)),
+      .groupBy(playlists.id_playlist, playlists.nombre, usuarios.nombre, playlists.actualizadoEn)
+      .orderBy(desc(playlists.actualizadoEn)),
   ]);
+
+  // Canciones de las listas archivadas (una sola query) para el preview inline.
+  const historialIds = historial.map((h) => h.id_playlist);
+  const historialCanciones = historialIds.length
+    ? await db
+        .select({
+          id_playlist: lista_canciones.id_playlist,
+          orden:       lista_canciones.orden,
+          nota:        lista_canciones.nota,
+          nombre:      canciones.nombre,
+          artista:     canciones.artista,
+        })
+        .from(lista_canciones)
+        .innerJoin(canciones, eq(canciones.id_cancion, lista_canciones.id_cancion))
+        .where(inArray(lista_canciones.id_playlist, historialIds))
+        .orderBy(lista_canciones.orden)
+    : [];
+
+  const historialData = historial.map((h) => ({
+    id_playlist:    h.id_playlist,
+    nombre:         h.nombre,
+    nombre_usuario: h.nombre_usuario,
+    fecha:          fmtFecha(h.actualizado_en),
+    total:          Number(h.total),
+    canciones: historialCanciones
+      .filter((c) => c.id_playlist === h.id_playlist)
+      .map((c) => ({ orden: c.orden, nota: c.nota, nombre: c.nombre, artista: c.artista })),
+  }));
 
   async function handleInstanciarPreset(formData: FormData) {
     "use server";
@@ -87,17 +132,37 @@ export default async function PlaylistsPage() {
     await instanciarPreset(id_preset);
   }
 
+  // Clona una lista archivada. Si es propia → nuevo EVENTO en preparación;
+  // si es de otro → plantilla (PRESET). Errores se muestran como banner.
+  async function handleClonarMazo(formData: FormData) {
+    "use server";
+    let destino: string;
+    try {
+      const id = Number(formData.get("id_playlist"));
+      const { nuevaPlaylistId } = await clonarMazo(id, id_usuario);
+      destino = `/playlists/${nuevaPlaylistId}`;
+    } catch (e) {
+      destino = `/playlists?error=${encodeURIComponent(
+        e instanceof Error ? e.message : "No se pudo clonar la lista."
+      )}`;
+    }
+    redirect(destino);
+  }
+
   return (
     <div className="flex flex-col gap-8 px-4 pt-8 pb-6">
 
       {/* Encabezado */}
-      <div>
+      <div className="animate-fade-in-down">
         <h1 className="text-2xl font-bold text-hi">Listas</h1>
         <p className="mt-1 text-sm text-lo">El servicio de la semana, lo que estás armando y tus plantillas.</p>
       </div>
 
+      {/* Banner de error (p. ej. clonado fallido) */}
+      <ErrorBanner message={errorMsg} />
+
       {/* ══ ESTA SEMANA ════════════════════════════════════════════════ */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:80ms]">
         <div className="flex items-center gap-2">
           <Mic2 size={14} className="shrink-0 text-violet-500" />
           <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Esta semana</h2>
@@ -142,7 +207,7 @@ export default async function PlaylistsPage() {
       </section>
 
       {/* ══ EN PREPARACIÓN ═════════════════════════════════════════════ */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:160ms]">
         <div className="flex items-center gap-2">
           <Music2 size={13} className="shrink-0 text-lo" />
           <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">En preparación</h2>
@@ -173,7 +238,7 @@ export default async function PlaylistsPage() {
       </section>
 
       {/* ══ PLANTILLAS ═════════════════════════════════════════════════ */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:240ms]">
         <div className="flex items-center gap-2">
           <ListMusic size={13} className="shrink-0 text-lo" />
           <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Plantillas</h2>
@@ -249,38 +314,19 @@ export default async function PlaylistsPage() {
       </section>
 
       {/* ══ HISTORIAL ══════════════════════════════════════════════════ */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:320ms]">
         <div className="flex items-center gap-2">
           <Archive size={13} className="shrink-0 text-lo" />
           <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Historial</h2>
+          {historialData.length > 0 && (
+            <span className="rounded-full bg-input px-1.5 py-0.5 text-[10px] font-medium text-mid">
+              {historialData.length}
+            </span>
+          )}
         </div>
-        <p className="-mt-1 text-[11px] text-lo">Servicios finalizados. Podés clonarlos como base para el próximo.</p>
+        <p className="-mt-1 text-[11px] text-lo">Servicios finalizados. Mirá qué se tocó y reutilizalos como base para el próximo.</p>
 
-        {historial.length === 0 ? (
-          <p className="rounded-2xl border border-line bg-card px-5 py-5 text-sm text-lo">
-            Sin servicios archivados.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-1">
-            {historial.map((lista) => (
-              <Link
-                key={lista.id_playlist}
-                href={`/playlists/${lista.id_playlist}`}
-                className="flex items-center gap-3 rounded-xl border-l-2 border-l-gone bg-card px-4 py-3.5 transition-all duration-200 hover:bg-input active:scale-[0.98]"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-hi">{lista.nombre}</p>
-                  <p className="mt-0.5 truncate text-[11px] text-lo">{lista.nombre_usuario}</p>
-                </div>
-                <span className="flex shrink-0 items-center gap-1 rounded-full border border-mark bg-input px-2 py-0.5 text-[10px] text-mid">
-                  <Copy size={9} />
-                  Clonable
-                </span>
-                <ChevronRight size={13} className="shrink-0 text-gone" />
-              </Link>
-            ))}
-          </div>
-        )}
+        <HistorialListas listas={historialData} onClonar={handleClonarMazo} />
       </section>
 
     </div>

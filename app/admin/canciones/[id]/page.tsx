@@ -6,16 +6,25 @@ import { canciones } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { CargarCancion } from "@/components/CargarCancion";
+import { ErrorBanner } from "@/components/ErrorBanner";
 import { actualizarCancion } from "@/app/actions/canciones";
 import { METRICAS } from "@/lib/metricas";
 
-export default async function EditarCancionPage({ params }: { params: { id: string } }) {
+export default async function EditarCancionPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { error?: string };
+}) {
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.user.rol !== "ADMINISTRADOR" && session.user.rol !== "LIDER") redirect("/");
 
   const id = Number(params.id);
   if (Number.isNaN(id)) notFound();
+
+  const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
 
   const [c] = await db.select().from(canciones).where(eq(canciones.id_cancion, id));
   if (!c) notFound();
@@ -38,6 +47,8 @@ export default async function EditarCancionPage({ params }: { params: { id: stri
         <h1 className="text-xl font-bold text-hi">Editar canción</h1>
         <p className="mt-0.5 text-xs text-lo">Corregí la letra, los acordes o los datos.</p>
       </div>
+
+      <ErrorBanner message={errorMsg} />
 
       <form action={actualizarCancion} className="flex flex-col gap-3">
         <input type="hidden" name="id_cancion" value={c.id_cancion} />

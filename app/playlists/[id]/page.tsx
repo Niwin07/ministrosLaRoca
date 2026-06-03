@@ -1,11 +1,11 @@
 import { notFound, redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { ArrowLeft, Music2, PlusCircle, Copy, Tv2 } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/db";
-import { canciones, lista_canciones, playlists } from "@/db/schema";
+import { canciones, cronograma, lista_canciones, playlists } from "@/db/schema";
 import { SortableSongList } from "@/components/SortableSongList";
+import { ErrorBanner } from "@/components/ErrorBanner";
 import { auth } from "@/auth";
 import {
   agregarCancionALista,
@@ -51,9 +51,26 @@ async function getCatalogoAprobado() {
     .orderBy(canciones.nombre);
 }
 
+/** Id del ministro con el turno ACTIVO esta semana (o null si no hay). */
+async function getDirectorActivo(): Promise<number | null> {
+  const [activo] = await db
+    .select({ id_usuario: cronograma.id_usuario })
+    .from(cronograma)
+    .where(eq(cronograma.estado_turno, "ACTIVO"))
+    .limit(1);
+  return activo?.id_usuario ?? null;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 type ReordenItem = { id_lista_cancion: number; orden: number };
+
+// URL de retorno con un mensaje de error. Vive a nivel de módulo porque los
+// Server Actions inline NO pueden capturar funciones del scope del componente
+// (solo variables serializables como `id`).
+function urlError(id: number, msg: string): string {
+  return `/playlists/${id}?error=${encodeURIComponent(msg)}`;
+}
 
 // ── Badges ────────────────────────────────────────────────────────────────────
 
@@ -66,16 +83,25 @@ const ESTADO_BADGE: Record<string, string> = {
 
 // ── Página ────────────────────────────────────────────────────────────────────
 
-export default async function PlaylistDetailPage({ params }: { params: { id: string } }) {
+export default async function PlaylistDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { error?: string };
+}) {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const id = Number(params.id);
   if (isNaN(id)) notFound();
 
-  const [rows, catalogo] = await Promise.all([
+  const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
+
+  const [rows, catalogo, directorActivoId] = await Promise.all([
     getPlaylistConCanciones(id),
     getCatalogoAprobado(),
+    getDirectorActivo(),
   ]);
 
   if (rows.length === 0) notFound();
@@ -111,6 +137,15 @@ export default async function PlaylistDetailPage({ params }: { params: { id: str
     (cabecera.estado ?? "") as (typeof ESTADOS_EVENTO)[number]
   );
 
+  // Publicar (pasar a ENSAYO o DEFINITIVA) solo es posible si el dueño de la
+  // lista es el director con el turno activo esta semana. Refleja la regla del
+  // server `avanzarEstadoPlaylist`, para deshabilitar esos botones de antemano.
+  const puedePublicar = directorActivoId === cabecera.id_usuario;
+  const motivoBloqueo =
+    directorActivoId === null
+      ? "No hay un director de turno activo esta semana."
+      : "Solo el director con el turno activo puede publicar esta lista.";
+
   const items = rows
     .filter((row) => row.id_lista_cancion !== null)
     .map((row) => ({
@@ -127,49 +162,85 @@ export default async function PlaylistDetailPage({ params }: { params: { id: str
   const nextOrden = items.length > 0 ? Math.max(...items.map((i) => i.orden)) + 1 : 1;
 
   // ── Server Actions ────────────────────────────────────────────────────────
+  // Toda mutación termina en un redirect: a la URL limpia si salió bien, o con
+  // ?error=<mensaje> si falló. Así un throw del action (p. ej. "no sos el
+  // director de turno") se muestra como banner en vez de romper la página.
 
   async function handleAgregar(formData: FormData) {
     "use server";
-    const id_cancion = Number(formData.get("id_cancion"));
-    const orden      = Number(formData.get("orden"));
-    const nota       = (formData.get("nota") as string).trim() || undefined;
-    await agregarCancionALista(id, id_cancion, orden, nota);
-    revalidatePath(`/playlists/${id}`);
+    let destino = `/playlists/${id}`;
+    try {
+      const id_cancion = Number(formData.get("id_cancion"));
+      const ordenRaw   = Number(formData.get("orden"));
+      const orden      = Number.isFinite(ordenRaw) ? ordenRaw : undefined;
+      const nota       = (formData.get("nota") as string).trim() || undefined;
+      await agregarCancionALista(id, id_cancion, orden, nota);
+    } catch (e) {
+      destino = urlError(id, e instanceof Error ? e.message : "No se pudo agregar la canción.");
+    }
+    redirect(destino);
   }
 
   async function handleEliminar(formData: FormData) {
     "use server";
-    const idListaCancion = Number(formData.get("id_lista_cancion"));
-    await eliminarCancionDeLista(idListaCancion);
-    revalidatePath(`/playlists/${id}`);
+    let destino = `/playlists/${id}`;
+    try {
+      const idListaCancion = Number(formData.get("id_lista_cancion"));
+      await eliminarCancionDeLista(idListaCancion);
+    } catch (e) {
+      destino = urlError(id, e instanceof Error ? e.message : "No se pudo eliminar la canción.");
+    }
+    redirect(destino);
   }
 
   async function handleActualizarNota(formData: FormData) {
     "use server";
-    const idListaCancion = Number(formData.get("id_lista_cancion"));
-    const nota           = (formData.get("nota") as string).trim();
-    await actualizarNotaCancion(idListaCancion, nota);
-    revalidatePath(`/playlists/${id}`);
+    let destino = `/playlists/${id}`;
+    try {
+      const idListaCancion = Number(formData.get("id_lista_cancion"));
+      const nota           = (formData.get("nota") as string).trim();
+      await actualizarNotaCancion(idListaCancion, nota);
+    } catch (e) {
+      destino = urlError(id, e instanceof Error ? e.message : "No se pudo actualizar el tono.");
+    }
+    redirect(destino);
   }
 
   async function handleReordenar(formData: FormData) {
     "use server";
-    const raw             = formData.get("reordenamientos") as string;
-    const reordenamientos = JSON.parse(raw) as ReordenItem[];
-    await reordenarLista(id, reordenamientos);
-    revalidatePath(`/playlists/${id}`);
+    let destino = `/playlists/${id}`;
+    try {
+      const raw             = formData.get("reordenamientos") as string;
+      const reordenamientos = JSON.parse(raw) as ReordenItem[];
+      await reordenarLista(id, reordenamientos);
+    } catch (e) {
+      destino = urlError(id, e instanceof Error ? e.message : "No se pudo reordenar la lista.");
+    }
+    redirect(destino);
   }
 
   async function handleClonar() {
     "use server";
-    const { nuevaPlaylistId } = await clonarMazo(id, id_usuario);
-    redirect(`/playlists/${nuevaPlaylistId}`);
+    let destino: string;
+    try {
+      const { nuevaPlaylistId } = await clonarMazo(id, id_usuario);
+      destino = `/playlists/${nuevaPlaylistId}`;
+    } catch (e) {
+      destino = urlError(id, e instanceof Error ? e.message : "No se pudo clonar la lista.");
+    }
+    redirect(destino);
   }
 
   async function handleAvanzarEstado(formData: FormData) {
     "use server";
-    const nuevoEstado = formData.get("nuevoEstado") as string;
-    await avanzarEstadoPlaylist(id, nuevoEstado);
+    let destino = `/playlists/${id}`;
+    try {
+      const nuevoEstado = formData.get("nuevoEstado") as string;
+      await avanzarEstadoPlaylist(id, nuevoEstado);
+    } catch (e) {
+      destino = urlError(id, e instanceof Error ? e.message : "No se pudo cambiar la etapa.");
+    }
+    redirect(destino);
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -185,6 +256,9 @@ export default async function PlaylistDetailPage({ params }: { params: { id: str
         <ArrowLeft size={13} />
         Mis Listas
       </Link>
+
+      {/* ── Banner de error (acción que no se pudo completar) ─────────── */}
+      <ErrorBanner message={errorMsg} />
 
       {/* ── Header ────────────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-line bg-card px-5 py-5 shadow-card dark:shadow-none">
@@ -241,36 +315,46 @@ export default async function PlaylistDetailPage({ params }: { params: { id: str
               {ESTADOS_EVENTO.map((estado, idx) => {
                 const esCurrent = idx === estadoActualIdx;
                 const esPasado  = idx < estadoActualIdx;
+                const label     = ESTADO_LABEL[estado] ?? estado;
+
                 if (esCurrent) {
                   return (
                     <span key={estado} className="rounded-full bg-green-200 px-3 py-1 text-[10px] font-semibold text-green-700 dark:bg-violet-600 dark:text-white" aria-current="step">
-                      {ESTADO_LABEL[estado] ?? estado}
+                      {label}
                     </span>
                   );
                 }
-                if (esPasado) {
-                  // Etapa anterior: clickeable para RETROCEDER (deshacer / corregir).
+
+                // Pasar a ENSAYO/DEFINITIVA (publicar) requiere ser el director
+                // de turno activo. Si no, el botón queda deshabilitado.
+                const esPublicacion = estado === "ENSAYO" || estado === "DEFINITIVA";
+                const bloqueado     = esPublicacion && !puedePublicar;
+
+                if (bloqueado) {
                   return (
-                    <form key={estado} action={handleAvanzarEstado}>
-                      <input type="hidden" name="nuevoEstado" value={estado} />
-                      <button
-                        type="submit"
-                        title={`Volver a ${ESTADO_LABEL[estado] ?? estado}`}
-                        className="rounded-full border border-mark px-3 py-1 text-[10px] text-mid transition-colors hover:border-line hover:text-hi"
-                      >
-                        ← {ESTADO_LABEL[estado] ?? estado}
-                      </button>
-                    </form>
+                    <button
+                      key={estado}
+                      type="button"
+                      disabled
+                      title={motivoBloqueo}
+                      className="cursor-not-allowed rounded-full border border-dashed border-mark px-3 py-1 text-[10px] text-gone opacity-60"
+                    >
+                      {esPasado ? `← ${label}` : `${label} →`}
+                    </button>
                   );
                 }
+
+                // Etapa anterior: retroceder (deshacer / corregir).
+                // Etapa posterior: avanzar.
                 return (
                   <form key={estado} action={handleAvanzarEstado}>
                     <input type="hidden" name="nuevoEstado" value={estado} />
                     <button
                       type="submit"
+                      title={esPasado ? `Volver a ${label}` : `Pasar a ${label}`}
                       className="rounded-full border border-mark px-3 py-1 text-[10px] text-mid transition-colors hover:border-line hover:text-hi"
                     >
-                      {ESTADO_LABEL[estado] ?? estado} →
+                      {esPasado ? `← ${label}` : `${label} →`}
                     </button>
                   </form>
                 );
@@ -280,6 +364,12 @@ export default async function PlaylistDetailPage({ params }: { params: { id: str
             {cabecera.estado && ESTADO_NEXT_HINT[cabecera.estado] && (
               <p className="mt-3 text-[11px] leading-relaxed text-gone">
                 {ESTADO_NEXT_HINT[cabecera.estado]}
+              </p>
+            )}
+            {/* Aviso si no se puede publicar (etapas Ensayo/Definitiva bloqueadas) */}
+            {!puedePublicar && (
+              <p className="mt-2 text-[11px] leading-relaxed text-amber-600 dark:text-amber-400/80">
+                {motivoBloqueo} Las etapas de publicación quedan deshabilitadas.
               </p>
             )}
           </div>
@@ -332,7 +422,7 @@ export default async function PlaylistDetailPage({ params }: { params: { id: str
           {catalogo.length === 0 ? (
             <p className="text-xs text-lo">Sin canciones aprobadas en el catálogo.</p>
           ) : (
-            <form action={handleAgregar} className="flex flex-col gap-3">
+            <form key={`add-${items.length}`} action={handleAgregar} className="flex flex-col gap-3">
               <select
                 name="id_cancion"
                 required
