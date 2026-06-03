@@ -31,6 +31,10 @@ async function main() {
     user:     process.env.DB_USER     ?? "root",
     password: process.env.DB_PASSWORD || undefined,
     database: process.env.DB_NAME     ?? "ministros",
+    ssl:
+      process.env.DB_SSL === "true" || process.env.DB_SSL === "require"
+        ? { rejectUnauthorized: false }
+        : undefined,
     multipleStatements: true,
   });
 
