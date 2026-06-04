@@ -4,9 +4,13 @@ import { db } from "@/db";
 import { usuarios } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import type { Rol } from "@/lib/mock-user";
+import { authConfig } from "@/auth.config";
 
+// Instancia completa (Node runtime): hereda `authConfig` (callbacks + pages) y
+// le suma el provider Credentials, que usa la base y bcrypt. Lo de edge vive en
+// auth.config.ts para que el middleware no arrastre mysql2/bcryptjs.
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -38,22 +42,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        // user solo existe en el primer login; hydratamos el token para siempre
-        token.rol        = user.rol;
-        token.id_usuario = user.id_usuario;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      session.user.rol        = token.rol        as Rol;
-      session.user.id_usuario = token.id_usuario as number;
-      return session;
-    },
-  },
-  pages: {
-    signIn: "/login",
-  },
 });

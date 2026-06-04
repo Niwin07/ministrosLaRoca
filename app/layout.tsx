@@ -43,7 +43,7 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await auth();
-  const tema = (cookies().get("tema")?.value ?? "oscuro") as "claro" | "oscuro";
+  const tema = ((await cookies()).get("tema")?.value ?? "oscuro") as "claro" | "oscuro";
 
   async function logoutAction() {
     "use server";
@@ -58,12 +58,16 @@ export default async function RootLayout({
         {session?.user && (
           <header className="sticky top-0 z-50 mx-auto flex w-full max-w-md items-center justify-between border-b border-line/60 bg-base/95 px-5 py-3.5 backdrop-blur-xl animate-fade-in-down">
 
-            {/* Avatar */}
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600">
+            {/* Avatar — enlace al perfil */}
+            <Link
+              href="/perfil"
+              aria-label="Mi perfil"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600 transition-opacity hover:opacity-80"
+            >
               <span className="text-[11px] font-semibold text-white">
                 {session.user.name?.charAt(0).toUpperCase()}
               </span>
-            </div>
+            </Link>
 
             {/* Acciones */}
             <div className="flex items-center gap-1">
