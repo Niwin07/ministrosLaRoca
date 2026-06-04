@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 import { ChevronRight, Music2, Plus, Tv2, Mic2 } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { cronograma, playlists, lista_canciones, canciones } from "@/db/schema";
+import { cronograma, playlists, lista_canciones, canciones, usuarios } from "@/db/schema";
 import { eq, desc, and, or, sql } from "drizzle-orm";
 import { HeroCard } from "@/components/HeroCard";
+import { Avatar } from "@/components/Avatar";
 import { ESTADO_LABEL } from "@/lib/estados";
 
 function formatFecha(d: Date | null): string {
@@ -22,7 +23,7 @@ export default async function DashboardPage() {
   const { id_usuario } = session.user;
   const primerNombre = (session.user.name ?? "").split(" ")[0];
 
-  const [esMiTurno, listaActiva, misListas] = await Promise.all([
+  const [esMiTurno, listaActiva, misListas, miFoto] = await Promise.all([
 
     db
       .select({ id_turno: cronograma.id_turno })
@@ -69,6 +70,13 @@ export default async function DashboardPage() {
       .groupBy(playlists.id_playlist, playlists.nombre, playlists.tipo, playlists.estado, playlists.fecha_programada)
       .orderBy(desc(playlists.id_playlist))
       .limit(4),
+
+    db
+      .select({ foto: usuarios.foto })
+      .from(usuarios)
+      .where(eq(usuarios.id_usuario, id_usuario))
+      .limit(1)
+      .then((r) => r[0]?.foto ?? null),
   ]);
 
   const cancionesActivas = listaActiva
@@ -112,11 +120,13 @@ export default async function DashboardPage() {
             ? "border-violet-500/30 bg-violet-500/[0.08]"
             : "border-line bg-card"
         }`}>
-          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-            esMiTurno ? "bg-violet-600" : "bg-input"
-          }`}>
-            <Mic2 size={15} className={esMiTurno ? "text-white" : "text-lo"} />
-          </div>
+          {esMiTurno ? (
+            <Avatar foto={miFoto} nombre={session.user.name ?? ""} size={32} />
+          ) : (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-input">
+              <Mic2 size={15} className="text-lo" />
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <p className={`text-sm font-semibold ${esMiTurno ? "text-violet-600" : "text-mid"}`}>
               {esMiTurno ? "Tu turno está activo" : "Esta semana descansás"}

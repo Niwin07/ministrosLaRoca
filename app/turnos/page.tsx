@@ -4,6 +4,7 @@ import { cronograma, usuarios } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { auth } from "@/auth";
 import { Mic2, Clock } from "lucide-react";
+import { Avatar } from "@/components/Avatar";
 
 export default async function TurnosPage() {
   const session = await auth();
@@ -13,6 +14,7 @@ export default async function TurnosPage() {
     .select({
       id_turno:       cronograma.id_turno,
       nombre_usuario: usuarios.nombre,
+      foto:           usuarios.foto,
     })
     .from(cronograma)
     .innerJoin(usuarios, eq(cronograma.id_usuario, usuarios.id_usuario))
@@ -23,6 +25,7 @@ export default async function TurnosPage() {
     .select({
       id_turno:       cronograma.id_turno,
       nombre_usuario: usuarios.nombre,
+      foto:           usuarios.foto,
     })
     .from(cronograma)
     .innerJoin(usuarios, eq(cronograma.id_usuario, usuarios.id_usuario))
@@ -55,9 +58,7 @@ export default async function TurnosPage() {
                 </p>
               </div>
               <div className="flex items-center gap-4 rounded-2xl border border-violet-500/30 bg-violet-500/[0.08] px-5 py-4 shadow-card dark:shadow-none">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-600">
-                  <Mic2 size={18} className="text-white" />
-                </div>
+                <Avatar foto={turnoActivo.foto} nombre={turnoActivo.nombre_usuario} size={40} />
                 <div>
                   <p className="text-[10px] font-medium uppercase tracking-widest text-violet-600">
                     Activo
@@ -83,11 +84,12 @@ export default async function TurnosPage() {
                 {cola.map((t, idx) => (
                   <div
                     key={t.id_turno}
-                    className="flex items-center gap-4 rounded-2xl border border-line bg-card px-4 py-4 shadow-card dark:shadow-none"
+                    className="flex items-center gap-3 rounded-2xl border border-line bg-card px-4 py-4 shadow-card dark:shadow-none"
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-input text-xs font-bold text-mid">
+                    <span className="w-4 shrink-0 text-center text-xs font-semibold tabular-nums text-gone">
                       {idx + 1}
                     </span>
+                    <Avatar foto={t.foto} nombre={t.nombre_usuario} size={36} />
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-hi">
                         {t.nombre_usuario}

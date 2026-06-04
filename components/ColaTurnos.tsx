@@ -3,11 +3,14 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { GripVertical, Mic2, Trash2 } from "lucide-react";
+import { Avatar } from "@/components/Avatar";
+import { Button } from "@/components/Button";
 
 interface TurnoItem {
   id_turno:       number;
   nombre_usuario: string;
   orden:          number;
+  foto:           string | null;
 }
 
 interface Props {
@@ -120,20 +123,14 @@ function Fila({ turno, pos, onDragStart, onDragEnd, onActivar, onQuitar }: FilaP
         <GripVertical size={16} />
       </button>
 
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-xs font-semibold text-violet-600">
-        {pos}
-      </span>
+      <span className="w-4 shrink-0 text-center text-xs font-semibold tabular-nums text-gone">{pos}</span>
+      <Avatar foto={turno.foto} nombre={turno.nombre_usuario} size={32} />
 
       <p className="min-w-0 flex-1 truncate text-sm font-semibold text-hi">{turno.nombre_usuario}</p>
 
-      <button
-        type="button"
-        onClick={onActivar}
-        className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-violet-500 active:scale-95"
-      >
-        <Mic2 size={12} />
+      <Button type="button" size="sm" onClick={onActivar} icon={<Mic2 size={12} />} className="shrink-0">
         Al servicio
-      </button>
+      </Button>
 
       <button
         type="button"

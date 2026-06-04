@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Mic2, X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { db } from "@/db";
 import { cronograma, usuarios } from "@/db/schema";
 import { auth } from "@/auth";
@@ -9,6 +9,7 @@ import { agregarACola, marcarActivo, desactivarActivo, quitarTurno, reordenarCol
 import { ColaTurnos } from "@/components/ColaTurnos";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
+import { Avatar } from "@/components/Avatar";
 
 const FEEDBACK: Record<string, string> = {
   agregado:    "Usuario agregado a la cola.",
@@ -39,6 +40,7 @@ export default async function AdminTurnosPage(props: {
     .select({
       id_turno:       cronograma.id_turno,
       nombre_usuario: usuarios.nombre,
+      foto:           usuarios.foto,
     })
     .from(cronograma)
     .innerJoin(usuarios, eq(cronograma.id_usuario, usuarios.id_usuario))
@@ -50,6 +52,7 @@ export default async function AdminTurnosPage(props: {
       id_turno:       cronograma.id_turno,
       nombre_usuario: usuarios.nombre,
       orden:          cronograma.orden,
+      foto:           usuarios.foto,
     })
     .from(cronograma)
     .innerJoin(usuarios, eq(cronograma.id_usuario, usuarios.id_usuario))
@@ -109,9 +112,7 @@ export default async function AdminTurnosPage(props: {
         <h2 className="text-xs font-semibold uppercase tracking-wider text-mid">En Servicio Ahora</h2>
         {turnoActivo ? (
           <div className="flex items-center gap-4 rounded-2xl border border-violet-500/30 bg-violet-500/[0.08] px-5 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-600">
-              <Mic2 size={18} className="text-white" />
-            </div>
+            <Avatar foto={turnoActivo.foto} nombre={turnoActivo.nombre_usuario} size={40} />
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-medium uppercase tracking-widest text-violet-600">
                 Activo

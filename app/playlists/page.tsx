@@ -12,6 +12,7 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
 import { PlantillaItem } from "@/components/PlantillaItem";
 import { ListaPrepItem } from "@/components/ListaPrepItem";
+import { Avatar } from "@/components/Avatar";
 
 function fmtFecha(d: Date | null): string {
   if (!d) return "Sin fecha";
@@ -44,6 +45,7 @@ export default async function PlaylistsPage(props: {
             nombre:         playlists.nombre,
             estado:         playlists.estado,
             nombre_usuario: usuarios.nombre,
+            foto:           usuarios.foto,
           })
           .from(playlists)
           .innerJoin(usuarios, eq(playlists.id_usuario, usuarios.id_usuario))
@@ -212,9 +214,7 @@ export default async function PlaylistsPage(props: {
                 href={`/playlists/${lista.id_playlist}`}
                 className="flex items-center gap-4 rounded-2xl border border-violet-500/30 bg-violet-500/[0.06] px-5 py-5 shadow-card transition-all duration-200 hover:bg-violet-500/[0.12] active:scale-[0.98] dark:shadow-none"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-600">
-                  <Mic2 size={16} className="text-white" />
-                </div>
+                <Avatar foto={lista.foto} nombre={lista.nombre_usuario} size={36} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-base font-semibold text-hi">{lista.nombre}</p>
                   <p className="mt-0.5 truncate text-xs text-lo">{lista.nombre_usuario}</p>
