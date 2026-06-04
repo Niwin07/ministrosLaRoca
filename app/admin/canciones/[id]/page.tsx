@@ -9,6 +9,7 @@ import { CargarCancion } from "@/components/CargarCancion";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { actualizarCancion } from "@/app/actions/canciones";
 import { METRICAS } from "@/lib/metricas";
+import { Button } from "@/components/Button";
 
 export default async function EditarCancionPage(props: {
   params: Promise<{ id: string }>;
@@ -79,13 +80,9 @@ export default async function EditarCancionPage(props: {
 
         <CargarCancion defaultLetra={c.letra ?? ""} defaultCharts={c.charts ?? ""} />
 
-        <button
-          type="submit"
-          className="mt-1 inline-flex items-center justify-center gap-1.5 self-start rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:scale-95"
-        >
-          <Save size={14} />
+        <Button type="submit" className="mt-1 self-start" icon={<Save size={14} />}>
           Guardar cambios
-        </button>
+        </Button>
       </form>
     </main>
   );

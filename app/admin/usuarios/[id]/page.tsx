@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { usuarios } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { actualizarUsuario } from "@/app/actions/usuarios";
+import { Button } from "@/components/Button";
 
 export default async function EditarUsuarioPage(props: {
   params: Promise<{ id: string }>;
@@ -131,12 +132,9 @@ export default async function EditarUsuarioPage(props: {
           </div>
 
           <div className="flex items-center gap-3 pt-1">
-            <button
-              type="submit"
-              className="rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:bg-violet-700"
-            >
+            <Button type="submit">
               Guardar cambios
-            </button>
+            </Button>
             <Link
               href="/admin/usuarios"
               className="rounded-full border border-mark px-5 py-2.5 text-sm font-medium text-mid transition-colors hover:border-line hover:text-hi"

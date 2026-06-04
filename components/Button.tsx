@@ -4,7 +4,7 @@ import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "success";
 type Size = "sm" | "md" | "lg";
 type Shape = "pill" | "block";
 
@@ -28,6 +28,11 @@ const VARIANT: Record<Variant, string> = {
     "shadow-lg shadow-red-600/30 hover:from-red-400 hover:to-red-500 " +
     "hover:shadow-xl hover:shadow-red-600/45 hover:-translate-y-0.5 " +
     "active:translate-y-0 active:shadow-md active:from-red-600 active:to-red-700",
+  success:
+    "bg-gradient-to-b from-green-500 to-green-600 text-white ring-1 ring-inset ring-white/15 " +
+    "shadow-lg shadow-green-600/30 hover:from-green-400 hover:to-green-500 " +
+    "hover:shadow-xl hover:shadow-green-600/45 hover:-translate-y-0.5 " +
+    "active:translate-y-0 active:shadow-md active:from-green-600 active:to-green-700",
 };
 
 // Todos los tamaños cumplen el mínimo táctil cómodo (≥44px en md/lg; sm queda

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronDown, ShieldCheck, Check } from "lucide-react";
 import { db } from "@/db";
 import { canciones } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { resolverSugerencia } from "@/app/actions/canciones";
 import { CargarCancion } from "@/components/CargarCancion";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { Button } from "@/components/Button";
 
 export default async function AdminCancionesPage(props: {
   searchParams: Promise<{ error?: string }>;
@@ -36,12 +37,17 @@ export default async function AdminCancionesPage(props: {
         Catálogo
       </Link>
 
-      <div>
-        <h1 className="text-xl font-bold text-hi">Moderación</h1>
-        <p className="mt-0.5 text-xs text-lo">
-          {pendientes.length}{" "}
-          {pendientes.length === 1 ? "canción pendiente" : "canciones pendientes"}
-        </p>
+      <div className="flex items-center gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/10">
+          <ShieldCheck size={16} className="text-violet-600" />
+        </span>
+        <div>
+          <h1 className="text-xl font-bold text-hi">Moderación</h1>
+          <p className="mt-0.5 text-xs text-lo">
+            {pendientes.length}{" "}
+            {pendientes.length === 1 ? "canción pendiente" : "canciones pendientes"}
+          </p>
+        </div>
       </div>
 
       <ErrorBanner message={errorMsg} />
@@ -92,12 +98,9 @@ export default async function AdminCancionesPage(props: {
                       defaultCharts={c.charts ?? ""}
                     />
 
-                    <button
-                      type="submit"
-                      className="rounded-full bg-green-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-500 active:scale-95"
-                    >
+                    <Button type="submit" variant="success" icon={<Check size={14} />}>
                       Aprobar
-                    </button>
+                    </Button>
                   </form>
 
                   <form action={resolverSugerencia}>

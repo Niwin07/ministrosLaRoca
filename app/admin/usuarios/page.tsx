@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, UserPlus, Users } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { usuarios } from "@/db/schema";
 import { asc } from "drizzle-orm";
 import { crearUsuario } from "@/app/actions/usuarios";
+import { Button } from "@/components/Button";
 
 const FEEDBACK: Record<string, string> = {
   creado:       "Usuario creado exitosamente.",
@@ -34,6 +35,7 @@ export default async function AdminUsuariosPage(props: {
       nombre:     usuarios.nombre,
       email:      usuarios.email,
       rol:        usuarios.rol,
+      foto:       usuarios.foto,
     })
     .from(usuarios)
     .orderBy(asc(usuarios.nombre));
@@ -68,9 +70,12 @@ export default async function AdminUsuariosPage(props: {
 
       {/* ── Formulario: crear usuario ────────────────────────────────── */}
       <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
-        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-lo">
-          Nuevo usuario
-        </p>
+        <div className="mb-4 flex items-center gap-2">
+          <UserPlus size={13} className="shrink-0 text-violet-500" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-mid">
+            Nuevo usuario
+          </p>
+        </div>
         <form action={crearUsuario} className="flex flex-col gap-4">
 
           <div className="flex flex-col gap-1.5">
@@ -145,21 +150,21 @@ export default async function AdminUsuariosPage(props: {
             </select>
           </div>
 
-          <button
-            type="submit"
-            className="self-start rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:bg-violet-700"
-          >
+          <Button type="submit" className="self-start" icon={<UserPlus size={14} />}>
             Crear Usuario
-          </button>
+          </Button>
 
         </form>
       </div>
 
       {/* ── Lista de usuarios ─────────────────────────────────────────── */}
       <section className="space-y-3">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-lo">
-          Usuarios registrados ({listaUsuarios.length})
-        </h2>
+        <div className="flex items-center gap-2">
+          <Users size={13} className="shrink-0 text-violet-500" />
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-mid">
+            Usuarios registrados ({listaUsuarios.length})
+          </h2>
+        </div>
 
         {listaUsuarios.length === 0 ? (
           <p className="rounded-2xl border border-line bg-card px-5 py-4 text-sm text-lo">
@@ -172,10 +177,15 @@ export default async function AdminUsuariosPage(props: {
                 key={u.id_usuario}
                 className="flex items-center gap-4 rounded-2xl border border-line bg-card px-4 py-4 shadow-card dark:shadow-none"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-input">
-                  <span className="text-xs font-bold text-mid">
-                    {u.nombre.charAt(0).toUpperCase()}
-                  </span>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-input">
+                  {u.foto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={u.foto} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-bold text-mid">
+                      {u.nombre.charAt(0).toUpperCase()}
+                    </span>
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-hi">
