@@ -48,7 +48,9 @@ const config: Config = {
         gone:  "rgb(var(--gone)  / <alpha-value>)",
       },
       boxShadow: {
-        card: "0 2px 10px rgba(0,0,0,0.08)",
+        // Doble capa con tinte violeta: las tarjetas "flotan" sobre el fondo
+        // claro con un poco de carácter de marca (en dark se usa shadow-none).
+        card: "0 1px 2px rgba(24,24,40,0.06), 0 8px 24px -6px rgba(70,50,140,0.20)",
       },
       keyframes: {
         "fade-in": {

@@ -3,17 +3,19 @@
 @tailwind utilities;
 
 /* ── Light mode (default) ──────────────────────────────────── */
-/* Medium gray palette — see design-system/ministros/pages/light-mode.md */
+/* Blanco-sobre-gris suave: la página es gris muy claro y las tarjetas son
+   blancas, así resaltan con su sombra. Los textos cumplen WCAG sobre blanco:
+   mid = zinc-600 (~7:1 AAA), lo = zinc-500 (~4.8:1 AA). */
 :root {
-  --base:  212 212 216;   /* zinc-300 #d4d4d8 — page background           */
-  --card:  228 228 231;   /* zinc-200 #e4e4e7 — card surface (lighter)    */
-  --input: 212 212 216;   /* zinc-300 #d4d4d8 — inputs (= base level)     */
-  --mark:  161 161 170;   /* zinc-400 #a1a1aa — borders + strong hover    */
-  --line:  161 161 170;   /* zinc-400 #a1a1aa — standard borders          */
-  --hi:    24  24  27;    /* zinc-900 #18181b — primary text              */
-  --mid:   113 113 122;   /* zinc-500 #71717a — secondary text            */
-  --lo:    161 161 170;   /* zinc-400 #a1a1aa — muted text                */
-  --gone:  161 161 170;   /* zinc-400 #a1a1aa — placeholder / ghost       */
+  --base:  226 223 240;   /* #e2dff0 — lavanda-gris definido: las tarjetas resaltan */
+  --card:  255 255 255;   /* white    #ffffff — tarjeta blanca nítida              */
+  --input: 237 234 248;   /* #edeaf8 — input / superficie elevada                  */
+  --mark:  205 200 222;   /* #cdc8de — borde fuerte (violeta tenue)               */
+  --line:  216 212 230;   /* #d8d4e6 — borde estándar (violeta tenue)             */
+  --hi:    24  24  27;    /* zinc-900 #18181b — texto principal (~16:1)         */
+  --mid:   82  82  91;    /* zinc-600 #52525b — texto secundario (~7:1 AAA)     */
+  --lo:    113 113 122;   /* zinc-500 #71717a — texto apagado (~4.8:1 AA)       */
+  --gone:  161 161 170;   /* zinc-400 #a1a1aa — placeholder / muy sutil         */
 }
 
 /* ── Dark mode ─────────────────────────────────────────────── */
