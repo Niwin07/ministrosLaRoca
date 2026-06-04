@@ -3,6 +3,7 @@
 import { db } from "@/db";
 import { lista_canciones, playlists } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
+import { auth } from "@/auth";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -25,9 +26,39 @@ function estadoPermiteEdicion(tipo: string, estado: string | null): boolean {
   return tipo === "EVENTO" && (estado === "PREPARACION" || estado === "ENSAYO");
 }
 
+/** Exige sesión y devuelve el usuario; lanza si no hay nadie logueado. */
+async function getUsuario() {
+  const session = await auth();
+  if (!session?.user) throw new Error("No autenticado.");
+  return session.user;
+}
+
+/**
+ * Guard central de mutación: combina autenticación, permiso (dueño de la lista
+ * o ADMINISTRADOR/LÍDER) y mutabilidad por etapa. Las acciones reciben el
+ * dueño/tipo/estado ya cargados para no repetir el SELECT.
+ */
+function assertPuedeModificar(
+  user: { id_usuario: number; rol: string },
+  ownerId: number,
+  tipo: string,
+  estado: string | null
+): void {
+  const esDueño = user.id_usuario === ownerId;
+  if (!esDueño && user.rol !== "ADMINISTRADOR" && user.rol !== "LIDER") {
+    throw new Error("No tenés permisos para modificar esta lista.");
+  }
+  if (estadoPermiteEdicion(tipo, estado)) return;
+  throw new Error(
+    `La lista no es editable en su etapa actual (${tipo}/${estado ?? "null"}). ` +
+    `Volvé a 'En preparación' o 'En ensayo' para modificarla.`
+  );
+}
+
 async function assertEditable(id_playlist: number): Promise<void> {
+  const user = await getUsuario();
   const [lista] = await db
-    .select({ estado: playlists.estado, tipo: playlists.tipo })
+    .select({ estado: playlists.estado, tipo: playlists.tipo, id_usuario: playlists.id_usuario })
     .from(playlists)
     .where(eq(playlists.id_playlist, id_playlist));
 
@@ -35,12 +66,7 @@ async function assertEditable(id_playlist: number): Promise<void> {
     throw new Error(`Playlist ${id_playlist} no encontrada.`);
   }
 
-  if (estadoPermiteEdicion(lista.tipo, lista.estado)) return;
-
-  throw new Error(
-    `La lista no es editable en su etapa actual (${lista.tipo}/${lista.estado ?? "null"}). ` +
-    `Volvé a 'En preparación' o 'En ensayo' para modificarla.`
-  );
+  assertPuedeModificar(user, lista.id_usuario, lista.tipo, lista.estado);
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -102,11 +128,13 @@ export async function actualizarNotaCancion(
   id_lista_cancion: number,
   nota: string
 ): Promise<void> {
+  const user = await getUsuario();
   const [registro] = await db
     .select({
       id_lista_cancion: lista_canciones.id_lista_cancion,
       estado_playlist:  playlists.estado,
       tipo_playlist:    playlists.tipo,
+      owner:            playlists.id_usuario,
     })
     .from(lista_canciones)
     .innerJoin(
@@ -120,11 +148,7 @@ export async function actualizarNotaCancion(
       `Registro ${id_lista_cancion} no encontrado en ninguna lista.`
     );
   }
-  if (!estadoPermiteEdicion(registro.tipo_playlist, registro.estado_playlist)) {
-    throw new Error(
-      `No se puede editar la nota en esta etapa (${registro.tipo_playlist}/${registro.estado_playlist ?? "null"}). Volvé a 'En preparación' o 'En ensayo'.`
-    );
-  }
+  assertPuedeModificar(user, registro.owner, registro.tipo_playlist, registro.estado_playlist);
 
   await db
     .update(lista_canciones)
@@ -178,11 +202,13 @@ export async function reordenarLista(
 export async function eliminarCancionDeLista(
   id_lista_cancion: number
 ): Promise<void> {
+  const user = await getUsuario();
   const [registro] = await db
     .select({
       id_lista_cancion: lista_canciones.id_lista_cancion,
       estado_playlist:  playlists.estado,
       tipo_playlist:    playlists.tipo,
+      owner:            playlists.id_usuario,
     })
     .from(lista_canciones)
     .innerJoin(
@@ -196,11 +222,7 @@ export async function eliminarCancionDeLista(
       `Registro ${id_lista_cancion} no encontrado en ninguna lista.`
     );
   }
-  if (!estadoPermiteEdicion(registro.tipo_playlist, registro.estado_playlist)) {
-    throw new Error(
-      `No se puede eliminar una canción en esta etapa (${registro.tipo_playlist}/${registro.estado_playlist ?? "null"}). Volvé a 'En preparación' o 'En ensayo'.`
-    );
-  }
+  assertPuedeModificar(user, registro.owner, registro.tipo_playlist, registro.estado_playlist);
 
   await db
     .delete(lista_canciones)
