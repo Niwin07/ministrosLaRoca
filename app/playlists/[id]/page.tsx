@@ -208,15 +208,17 @@ export default async function PlaylistDetailPage(props: {
 
   async function handleReordenar(formData: FormData) {
     "use server";
-    let destino = `/playlists/${id}`;
+    // En éxito NO redirigimos: el nuevo orden ya está en pantalla (optimista en
+    // SortableSongList), así que recargar se sentía un parpadeo innecesario. La
+    // página es dinámica y re-consulta en la próxima visita. Solo redirigimos si
+    // algo falla, para mostrar el banner de error.
     try {
       const raw             = formData.get("reordenamientos") as string;
       const reordenamientos = JSON.parse(raw) as ReordenItem[];
       await reordenarLista(id, reordenamientos);
     } catch (e) {
-      destino = urlError(id, e instanceof Error ? e.message : "No se pudo reordenar la lista.");
+      redirect(urlError(id, e instanceof Error ? e.message : "No se pudo reordenar la lista."));
     }
-    redirect(destino);
   }
 
   async function handleClonar() {
