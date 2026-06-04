@@ -8,6 +8,7 @@ import { eq, asc } from "drizzle-orm";
 import { agregarACola, marcarActivo, desactivarActivo, quitarTurno, reordenarCola } from "@/app/actions/turnos";
 import { ColaTurnos } from "@/components/ColaTurnos";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { Button } from "@/components/Button";
 
 const FEEDBACK: Record<string, string> = {
   agregado:    "Usuario agregado a la cola.",
@@ -16,11 +17,10 @@ const FEEDBACK: Record<string, string> = {
   quitado:     "Turno quitado de la cola.",
 };
 
-export default async function AdminTurnosPage({
-  searchParams,
-}: {
-  searchParams: { success?: string; error?: string };
+export default async function AdminTurnosPage(props: {
+  searchParams: Promise<{ success?: string; error?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.user.rol !== "ADMINISTRADOR" && session.user.rol !== "LIDER") {
@@ -98,12 +98,9 @@ export default async function AdminTurnosPage({
               </option>
             ))}
           </select>
-          <button
-            type="submit"
-            className="shrink-0 rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:bg-violet-700"
-          >
+          <Button type="submit" className="shrink-0">
             Agregar
-          </button>
+          </Button>
         </form>
       </div>
 
@@ -122,14 +119,16 @@ export default async function AdminTurnosPage({
               <p className="truncate text-base font-bold text-hi">{turnoActivo.nombre_usuario}</p>
             </div>
             <form action={desactivarActivo}>
-              <button
+              <Button
                 type="submit"
-                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-mark bg-input px-3 py-1.5 text-xs font-medium text-mid transition-colors hover:border-line hover:text-hi"
+                variant="secondary"
+                size="sm"
+                className="shrink-0"
+                icon={<X size={12} />}
                 title="Sacar de servicio y devolver a la cola"
               >
-                <X size={12} />
                 Desactivar
-              </button>
+              </Button>
             </form>
           </div>
         ) : (

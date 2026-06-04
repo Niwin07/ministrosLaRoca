@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { canciones, cronograma, lista_canciones, playlists } from "@/db/schema";
 import { SortableSongList } from "@/components/SortableSongList";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { Button } from "@/components/Button";
 import { auth } from "@/auth";
 import {
   agregarCancionALista,
@@ -83,13 +84,12 @@ const ESTADO_BADGE: Record<string, string> = {
 
 // ── Página ────────────────────────────────────────────────────────────────────
 
-export default async function PlaylistDetailPage({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  searchParams: { error?: string };
+export default async function PlaylistDetailPage(props: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
+  const params = await props.params;
+  const searchParams = await props.searchParams;
   const session = await auth();
   if (!session?.user) redirect("/login");
 
@@ -294,13 +294,9 @@ export default async function PlaylistDetailPage({
           )}
           {esMazo && puedeEditar && (
             <form action={handleClonar}>
-              <button
-                type="submit"
-                className="inline-flex items-center gap-1.5 rounded-full border border-mark bg-input px-3.5 py-2 text-xs font-medium text-mid transition-colors hover:border-line hover:text-hi"
-              >
-                <Copy size={12} />
+              <Button type="submit" variant="secondary" size="sm" icon={<Copy size={12} />}>
                 Clonar
-              </button>
+              </Button>
             </form>
           )}
         </div>
@@ -461,12 +457,9 @@ export default async function PlaylistDetailPage({
                 />
               </div>
 
-              <button
-                type="submit"
-                className="w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:bg-violet-700"
-              >
+              <Button type="submit" shape="block" size="lg" fullWidth icon={<PlusCircle size={15} />}>
                 Agregar
-              </button>
+              </Button>
             </form>
           )}
         </div>

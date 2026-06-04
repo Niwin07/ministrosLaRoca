@@ -2,12 +2,12 @@ import { signIn } from "@/auth";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { Music2 } from "lucide-react";
+import { Button } from "@/components/Button";
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: { error?: string | string[] };
+export default async function LoginPage(props: {
+  searchParams: Promise<{ error?: string | string[] }>;
 }) {
+  const searchParams = await props.searchParams;
   const hayError = searchParams?.error === "credenciales";
 
   async function loginAction(formData: FormData) {
@@ -74,12 +74,15 @@ export default function LoginPage({
               autoComplete="current-password"
               className="w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
             />
-            <button
+            <Button
               type="submit"
-              className="mt-1 w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-600/20 transition-all duration-200 hover:bg-violet-500 hover:shadow-violet-600/40 active:scale-[0.98] active:bg-violet-700"
+              shape="block"
+              size="lg"
+              fullWidth
+              className="mt-1 shadow-lg shadow-violet-600/20 hover:shadow-violet-600/40"
             >
               Ingresar
-            </button>
+            </Button>
           </form>
 
         </div>
