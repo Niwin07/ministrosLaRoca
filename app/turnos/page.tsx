@@ -48,9 +48,12 @@ export default async function TurnosPage() {
           {/* En Servicio */}
           {turnoActivo && (
             <section className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-lo">
-                En Servicio
-              </p>
+              <div className="flex items-center gap-2">
+                <Mic2 size={13} className="shrink-0 text-violet-500" />
+                <p className="text-xs font-semibold uppercase tracking-wider text-mid">
+                  En Servicio
+                </p>
+              </div>
               <div className="flex items-center gap-4 rounded-2xl border border-violet-500/30 bg-violet-500/[0.08] px-5 py-4 shadow-card dark:shadow-none">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-600">
                   <Mic2 size={18} className="text-white" />
@@ -70,9 +73,12 @@ export default async function TurnosPage() {
           {/* Cola */}
           {cola.length > 0 && (
             <section className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-lo">
-                Cola de Espera
-              </p>
+              <div className="flex items-center gap-2">
+                <Clock size={13} className="shrink-0 text-violet-500" />
+                <p className="text-xs font-semibold uppercase tracking-wider text-mid">
+                  Cola de Espera
+                </p>
+              </div>
               <div className="flex flex-col gap-2">
                 {cola.map((t, idx) => (
                   <div

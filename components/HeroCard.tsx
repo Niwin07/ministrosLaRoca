@@ -104,16 +104,16 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
           <div className="flex items-center gap-3">
             <Link
               href="/playlists"
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-line bg-input py-3 text-sm font-medium text-mid transition-all duration-200 hover:bg-mark active:scale-[0.98]"
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-line bg-card py-3.5 text-sm font-semibold text-hi shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-500/40 active:translate-y-0 active:scale-[0.98] dark:bg-input"
             >
-              <ListMusic size={15} />
+              <ListMusic size={16} className="text-violet-600" />
               Mis listas
             </Link>
             <Link
               href="/canciones"
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-line bg-input py-3 text-sm font-medium text-mid transition-all duration-200 hover:bg-mark active:scale-[0.98]"
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-line bg-card py-3.5 text-sm font-semibold text-hi shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-500/40 active:translate-y-0 active:scale-[0.98] dark:bg-input"
             >
-              <BookOpen size={15} />
+              <BookOpen size={16} className="text-violet-600" />
               Catálogo
             </Link>
           </div>

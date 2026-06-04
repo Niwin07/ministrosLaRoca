@@ -84,8 +84,8 @@ export default async function PerfilPage(props: {
       {/* ── Datos de la cuenta ───────────────────────────────────────── */}
       <section className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
         <div className="mb-4 flex items-center gap-2">
-          <User size={14} className="text-lo" />
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-lo">Datos de la cuenta</h2>
+          <User size={14} className="text-violet-500" />
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Datos de la cuenta</h2>
         </div>
 
         <form action={actualizarMiNombre} className="flex flex-col gap-4">
@@ -112,8 +112,8 @@ export default async function PerfilPage(props: {
       {/* ── Cambiar contraseña ───────────────────────────────────────── */}
       <section className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
         <div className="mb-4 flex items-center gap-2">
-          <KeyRound size={14} className="text-lo" />
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-lo">Cambiar contraseña</h2>
+          <KeyRound size={14} className="text-violet-500" />
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Cambiar contraseña</h2>
         </div>
 
         <form action={cambiarMiPassword} className="flex flex-col gap-4">

@@ -91,7 +91,7 @@ export default async function DashboardPage() {
 
       {/* ── GREETING ──────────────────────────────────────────────── */}
       <div className="pb-1 animate-fade-in-down">
-        <p className="text-[11px] font-medium uppercase tracking-widest text-gone">Portal de Alabanza</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-violet-600">Portal de Alabanza</p>
         <h1 className="mt-1 text-[28px] font-bold leading-tight tracking-tight text-hi">
           Hola, {primerNombre}
         </h1>
@@ -102,7 +102,7 @@ export default async function DashboardPage() {
 
       {/* ── ESTA SEMANA ───────────────────────────────────────────── */}
       <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:120ms]">
-        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gone">
+        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-mid">
           Esta semana
         </h2>
 
@@ -186,7 +186,7 @@ export default async function DashboardPage() {
       <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:240ms]">
 
         <div className="flex items-center justify-between">
-          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gone">
+          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-mid">
             Mis listas
           </h2>
           <Link

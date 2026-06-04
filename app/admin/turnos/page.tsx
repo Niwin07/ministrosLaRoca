@@ -82,7 +82,7 @@ export default async function AdminTurnosPage(props: {
 
       {/* ── Formulario: agregar a la cola ────────────────────────────── */}
       <div className="rounded-2xl border border-line bg-card p-5">
-        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-lo">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-mid">
           Agregar a la cola
         </p>
         <form action={agregarACola} className="flex gap-3">
@@ -106,7 +106,7 @@ export default async function AdminTurnosPage(props: {
 
       {/* ── En Servicio Ahora ─────────────────────────────────────────── */}
       <section className="space-y-3">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-lo">En Servicio Ahora</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-mid">En Servicio Ahora</h2>
         {turnoActivo ? (
           <div className="flex items-center gap-4 rounded-2xl border border-violet-500/30 bg-violet-500/[0.08] px-5 py-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-600">
@@ -140,7 +140,7 @@ export default async function AdminTurnosPage(props: {
 
       {/* ── Cola de espera ────────────────────────────────────────────── */}
       <section className="space-y-3">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-lo">Cola de Espera</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-mid">Cola de Espera</h2>
         <p className="-mt-1 text-[11px] text-lo">Arrastrá para reordenar quién sigue.</p>
         <ColaTurnos
           turnos={cola}

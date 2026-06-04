@@ -4,10 +4,11 @@ import { canciones } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { ChevronDown, CheckCircle2 } from "lucide-react";
+import { ChevronDown, CheckCircle2, Sparkles } from "lucide-react";
 import { CatalogoCanciones } from "@/components/CatalogoCanciones";
 import { CargarCancion } from "@/components/CargarCancion";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { Button } from "@/components/Button";
 import { sugerirCancion as crearSugerencia } from "@/app/actions/canciones";
 import { METRICAS } from "@/lib/metricas";
 
@@ -95,9 +96,14 @@ export default async function CancionesPage(props: {
       {/* ── Sugerir (colapsable) ──────────────────────────────────────── */}
       <details className="group overflow-hidden rounded-2xl border border-line bg-card shadow-card animate-fade-in-up [animation-delay:120ms] dark:shadow-none" open={sugeridaOk}>
         <summary className="flex cursor-pointer select-none list-none items-center justify-between px-5 py-4 [&::-webkit-details-marker]:hidden">
-          <div>
-            <h2 className="text-sm font-semibold text-hi">Sugerir canción</h2>
-            <p className="mt-0.5 text-[11px] text-lo">Queda pendiente de aprobación de un líder.</p>
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/10">
+              <Sparkles size={16} className="text-violet-600" />
+            </span>
+            <div>
+              <h2 className="text-sm font-semibold text-hi">Sugerir canción</h2>
+              <p className="mt-0.5 text-[11px] text-lo">Queda pendiente de aprobación de un líder.</p>
+            </div>
           </div>
           <ChevronDown
             size={15}
@@ -150,12 +156,9 @@ export default async function CancionesPage(props: {
 
             <CargarCancion />
 
-            <button
-              type="submit"
-              className="self-start rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:scale-95"
-            >
+            <Button type="submit" className="self-start" icon={<Sparkles size={14} />}>
               Sugerir
-            </button>
+            </Button>
           </form>
         </div>
       </details>
