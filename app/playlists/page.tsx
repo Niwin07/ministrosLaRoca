@@ -11,6 +11,7 @@ import { HistorialListas } from "@/components/HistorialListas";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
 import { PlantillaItem } from "@/components/PlantillaItem";
+import { ListaPrepItem } from "@/components/ListaPrepItem";
 
 function fmtFecha(d: Date | null): string {
   if (!d) return "Sin fecha";
@@ -146,7 +147,7 @@ export default async function PlaylistsPage(props: {
     redirect(destino);
   }
 
-  async function handleEliminarPlantilla(formData: FormData) {
+  async function handleEliminarLista(formData: FormData) {
     "use server";
     let destino = "/playlists";
     try {
@@ -154,7 +155,7 @@ export default async function PlaylistsPage(props: {
       await eliminarPlaylist(id);
     } catch (e) {
       destino = `/playlists?error=${encodeURIComponent(
-        e instanceof Error ? e.message : "No se pudo borrar la plantilla."
+        e instanceof Error ? e.message : "No se pudo borrar la lista."
       )}`;
     }
     redirect(destino);
@@ -237,7 +238,7 @@ export default async function PlaylistsPage(props: {
       {/* ══ EN PREPARACIÓN ═════════════════════════════════════════════ */}
       <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:160ms]">
         <div className="flex items-center gap-2">
-          <Music2 size={13} className="shrink-0 text-lo" />
+          <Music2 size={13} className="shrink-0 text-violet-500" />
           <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">En preparación</h2>
         </div>
         <p className="-mt-1 text-[11px] text-lo">Servicios que estás armando. Editables hasta pasarlos a ensayo.</p>
@@ -249,17 +250,12 @@ export default async function PlaylistsPage(props: {
         ) : (
           <div className="flex flex-col gap-1">
             {enPreparacion.map((lista) => (
-              <Link
+              <ListaPrepItem
                 key={lista.id_playlist}
-                href={`/playlists/${lista.id_playlist}`}
-                className="flex items-center gap-3 rounded-xl border-l-2 border-l-violet-500 bg-card px-4 py-3.5 transition-all duration-200 hover:bg-input active:scale-[0.98]"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-hi">{lista.nombre}</p>
-                  <p className="mt-0.5 text-[11px] text-violet-600/80">Seguí armándola</p>
-                </div>
-                <ChevronRight size={13} className="shrink-0 text-gone" />
-              </Link>
+                id_playlist={lista.id_playlist}
+                nombre={lista.nombre}
+                onEliminar={handleEliminarLista}
+              />
             ))}
           </div>
         )}
@@ -268,7 +264,7 @@ export default async function PlaylistsPage(props: {
       {/* ══ PLANTILLAS ═════════════════════════════════════════════════ */}
       <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:240ms]">
         <div className="flex items-center gap-2">
-          <ListMusic size={13} className="shrink-0 text-lo" />
+          <ListMusic size={13} className="shrink-0 text-violet-500" />
           <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Plantillas</h2>
         </div>
         <p className="-mt-1 text-[11px] text-lo">Tus moldes reutilizables. Tocá &ldquo;Usar&rdquo; para armar un servicio, o editá/borrá las tuyas.</p>
@@ -286,7 +282,7 @@ export default async function PlaylistsPage(props: {
                 nombre={lista.nombre}
                 onUsar={handleInstanciarPreset}
                 onRenombrar={handleRenombrarPlantilla}
-                onEliminar={handleEliminarPlantilla}
+                onEliminar={handleEliminarLista}
               />
             ))}
           </div>
@@ -321,7 +317,7 @@ export default async function PlaylistsPage(props: {
       {/* ══ HISTORIAL ══════════════════════════════════════════════════ */}
       <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:320ms]">
         <div className="flex items-center gap-2">
-          <Archive size={13} className="shrink-0 text-lo" />
+          <Archive size={13} className="shrink-0 text-violet-500" />
           <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Historial</h2>
           {historialData.length > 0 && (
             <span className="rounded-full bg-input px-1.5 py-0.5 text-[10px] font-medium text-mid">
