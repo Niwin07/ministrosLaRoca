@@ -18,11 +18,10 @@ const ROL_STYLE: Record<string, string> = {
   MINISTRO:      "bg-input text-mid",
 };
 
-export default async function AdminUsuariosPage({
-  searchParams,
-}: {
-  searchParams: { success?: string };
+export default async function AdminUsuariosPage(props: {
+  searchParams: Promise<{ success?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.user.rol !== "ADMINISTRADOR") redirect("/");

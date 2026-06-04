@@ -10,13 +10,12 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { actualizarCancion } from "@/app/actions/canciones";
 import { METRICAS } from "@/lib/metricas";
 
-export default async function EditarCancionPage({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  searchParams: { error?: string };
+export default async function EditarCancionPage(props: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
+  const params = await props.params;
+  const searchParams = await props.searchParams;
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.user.rol !== "ADMINISTRADOR" && session.user.rol !== "LIDER") redirect("/");

@@ -11,11 +11,10 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { sugerirCancion as crearSugerencia } from "@/app/actions/canciones";
 import { METRICAS } from "@/lib/metricas";
 
-export default async function CancionesPage({
-  searchParams,
-}: {
-  searchParams: { sugerida?: string; editada?: string; error?: string };
+export default async function CancionesPage(props: {
+  searchParams: Promise<{ sugerida?: string; editada?: string; error?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   if (!session?.user) redirect("/login");
 

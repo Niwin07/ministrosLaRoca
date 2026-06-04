@@ -5,11 +5,10 @@ import { canciones, lista_canciones, playlists } from "@/db/schema";
 import { auth } from "@/auth";
 import { LectorEscenario } from "@/components/LectorEscenario";
 
-export default async function EscenarioMazoPage({
-  params,
-}: {
-  params: { id: string };
+export default async function EscenarioMazoPage(props: {
+  params: Promise<{ id: string }>;
 }) {
+  const params = await props.params;
   const session = await auth();
   if (!session?.user) redirect("/login");
 

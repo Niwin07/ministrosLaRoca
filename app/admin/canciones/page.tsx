@@ -9,11 +9,10 @@ import { resolverSugerencia } from "@/app/actions/canciones";
 import { CargarCancion } from "@/components/CargarCancion";
 import { ErrorBanner } from "@/components/ErrorBanner";
 
-export default async function AdminCancionesPage({
-  searchParams,
-}: {
-  searchParams: { error?: string };
+export default async function AdminCancionesPage(props: {
+  searchParams: Promise<{ error?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.user.rol !== "ADMINISTRADOR" && session.user.rol !== "LIDER") redirect("/");
