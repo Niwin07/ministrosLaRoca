@@ -34,6 +34,43 @@ export async function actualizarMiNombre(formData: FormData) {
 }
 
 /**
+ * Actualiza (o quita) la foto de perfil del usuario logueado.
+ * La imagen llega como data URL (base64) ya redimensionada desde el cliente.
+ * Si `foto` viene vacía, se borra la foto actual.
+ */
+export async function actualizarMiFoto(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
+  const foto = (formData.get("foto") as string | null) ?? "";
+
+  if (foto === "") {
+    // Quitar la foto.
+    await db
+      .update(usuarios)
+      .set({ foto: null })
+      .where(eq(usuarios.id_usuario, session.user.id_usuario));
+  } else {
+    // Validamos que sea una imagen en data URL y que no sea desproporcionada
+    // (el cliente la achica a ~256px; 1.5 MB de base64 es un techo holgado).
+    if (!/^data:image\/(png|jpe?g|webp);base64,/.test(foto)) {
+      volver(`error=${encodeURIComponent("Formato de imagen no válido.")}`);
+    }
+    if (foto.length > 1_500_000) {
+      volver(`error=${encodeURIComponent("La imagen es demasiado pesada. Probá con otra.")}`);
+    }
+    await db
+      .update(usuarios)
+      .set({ foto })
+      .where(eq(usuarios.id_usuario, session.user.id_usuario));
+  }
+
+  revalidatePath("/perfil");
+  revalidatePath("/", "layout"); // el header muestra el avatar
+  volver("success=foto");
+}
+
+/**
  * Cambia la contraseña del usuario logueado.
  * Exige la contraseña actual (verificada contra el hash) y confirmación de la
  * nueva. Nunca confía en un id del formulario: usa el de la sesión.

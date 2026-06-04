@@ -19,6 +19,9 @@ export const usuarios = mysqlTable("usuarios", {
   email:          varchar("email", { length: 255 }).notNull().unique(),
   password_hash:  varchar("password_hash", { length: 255 }).notNull(),
   rol:            mysqlEnum("rol", ["ADMINISTRADOR", "LIDER", "MINISTRO"]).notNull(),
+  // Foto de perfil como data URL (base64). Se guarda redimensionada/comprimida
+  // desde el cliente, así no hace falta storage externo (apto serverless).
+  foto:           text("foto"),
 });
 
 // ─── Cronograma (Cola de rotación) ───────────────────────────────────────────

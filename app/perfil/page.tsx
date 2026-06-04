@@ -7,7 +7,8 @@ import { usuarios } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
-import { actualizarMiNombre, cambiarMiPassword } from "@/app/actions/perfil";
+import { FotoPerfil } from "@/components/FotoPerfil";
+import { actualizarMiNombre, cambiarMiPassword, actualizarMiFoto } from "@/app/actions/perfil";
 
 const ROL_LABEL: Record<string, string> = {
   ADMINISTRADOR: "Administrador",
@@ -18,6 +19,7 @@ const ROL_LABEL: Record<string, string> = {
 const SUCCESS_MSG: Record<string, string> = {
   perfil:   "Perfil actualizado.",
   password: "Contraseña actualizada.",
+  foto:     "Foto actualizada.",
 };
 
 const inputCls =
@@ -36,6 +38,7 @@ export default async function PerfilPage(props: {
       nombre: usuarios.nombre,
       email:  usuarios.email,
       rol:    usuarios.rol,
+      foto:   usuarios.foto,
     })
     .from(usuarios)
     .where(eq(usuarios.id_usuario, session.user.id_usuario))
@@ -59,10 +62,15 @@ export default async function PerfilPage(props: {
       </Link>
 
       <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-violet-600">
-          <span className="text-xl font-semibold text-white">
-            {usuario.nombre.charAt(0).toUpperCase()}
-          </span>
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-600">
+          {usuario.foto ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={usuario.foto} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-xl font-semibold text-white">
+              {usuario.nombre.charAt(0).toUpperCase()}
+            </span>
+          )}
         </div>
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-bold tracking-tight text-hi">{usuario.nombre}</h1>
@@ -86,6 +94,10 @@ export default async function PerfilPage(props: {
         <div className="mb-4 flex items-center gap-2">
           <User size={14} className="text-violet-500" />
           <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Datos de la cuenta</h2>
+        </div>
+
+        <div className="mb-5 border-b border-line pb-5">
+          <FotoPerfil foto={usuario.foto} nombre={usuario.nombre} onActualizar={actualizarMiFoto} />
         </div>
 
         <form action={actualizarMiNombre} className="flex flex-col gap-4">

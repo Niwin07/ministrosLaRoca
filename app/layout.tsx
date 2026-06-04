@@ -6,6 +6,9 @@ import { Settings, LogOut } from "lucide-react";
 import { NavWrapper } from "@/components/NavWrapper";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { auth, signOut } from "@/auth";
+import { db } from "@/db";
+import { usuarios } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -45,6 +48,17 @@ export default async function RootLayout({
   const session = await auth();
   const tema = ((await cookies()).get("tema")?.value ?? "oscuro") as "claro" | "oscuro";
 
+  // Foto de perfil para el avatar del header (si el usuario tiene una).
+  let foto: string | null = null;
+  if (session?.user) {
+    const [u] = await db
+      .select({ foto: usuarios.foto })
+      .from(usuarios)
+      .where(eq(usuarios.id_usuario, session.user.id_usuario))
+      .limit(1);
+    foto = u?.foto ?? null;
+  }
+
   async function logoutAction() {
     "use server";
     await signOut({ redirectTo: "/login" });
@@ -62,11 +76,16 @@ export default async function RootLayout({
             <Link
               href="/perfil"
               aria-label="Mi perfil"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600 transition-opacity hover:opacity-80"
+              className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-600 transition-opacity hover:opacity-80"
             >
-              <span className="text-[11px] font-semibold text-white">
-                {session.user.name?.charAt(0).toUpperCase()}
-              </span>
+              {foto ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={foto} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-[11px] font-semibold text-white">
+                  {session.user.name?.charAt(0).toUpperCase()}
+                </span>
+              )}
             </Link>
 
             {/* Acciones */}
