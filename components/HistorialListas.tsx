@@ -6,12 +6,16 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Search,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   CalendarDays,
   Music2,
   ExternalLink,
   Loader2,
 } from "lucide-react";
+
+const POR_PAGINA = 5;
 
 interface CancionPreview {
   orden:   number;
@@ -37,6 +41,7 @@ interface Props {
 export function HistorialListas({ listas, onClonar }: Props) {
   const [q, setQ] = useState("");
   const [abierta, setAbierta] = useState<number | null>(null);
+  const [pagina, setPagina] = useState(1);
 
   const filtradas = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -48,6 +53,24 @@ export function HistorialListas({ listas, onClonar }: Props) {
         l.canciones.some((c) => c.nombre.toLowerCase().includes(t)),
     );
   }, [q, listas]);
+
+  // Paginación de a 5. La página actual se clampa por si el filtro la dejó fuera
+  // de rango (p. ej. buscar reduce los resultados a una sola página).
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const visibles = filtradas.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA);
+
+  // Al buscar, volvemos a la primera página y cerramos cualquier fila abierta.
+  function buscar(valor: string) {
+    setQ(valor);
+    setPagina(1);
+    setAbierta(null);
+  }
+
+  function irAPagina(n: number) {
+    setPagina(Math.min(Math.max(1, n), totalPaginas));
+    setAbierta(null);
+  }
 
   if (listas.length === 0) {
     return (
@@ -67,7 +90,7 @@ export function HistorialListas({ listas, onClonar }: Props) {
           <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gone" />
           <input
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => buscar(e.target.value)}
             placeholder="Buscar por nombre, ministro o canción…"
             className="w-full rounded-xl border border-mark bg-input py-2.5 pl-9 pr-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
           />
@@ -79,7 +102,7 @@ export function HistorialListas({ listas, onClonar }: Props) {
           Nada coincide con &ldquo;{q}&rdquo;.
         </p>
       ) : (
-        filtradas.map((lista) => (
+        visibles.map((lista) => (
           <FilaHistorial
             key={lista.id_playlist}
             lista={lista}
@@ -90,6 +113,35 @@ export function HistorialListas({ listas, onClonar }: Props) {
             onClonar={onClonar}
           />
         ))
+      )}
+
+      {/* Paginación — solo si hay más de una página */}
+      {filtradas.length > POR_PAGINA && (
+        <div className="mt-1 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => irAPagina(paginaActual - 1)}
+            disabled={paginaActual === 1}
+            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40"
+          >
+            <ChevronLeft size={14} />
+            Anterior
+          </button>
+
+          <span className="text-[11px] tabular-nums text-lo">
+            Página {paginaActual} de {totalPaginas}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => irAPagina(paginaActual + 1)}
+            disabled={paginaActual === totalPaginas}
+            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40"
+          >
+            Siguiente
+            <ChevronRight size={14} />
+          </button>
+        </div>
       )}
     </div>
   );
