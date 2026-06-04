@@ -7,6 +7,26 @@ import { cronograma, lista_canciones, playlists } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 
+// ── Guard de gestión (dueño o admin/líder) ────────────────────────────────────
+
+/** Exige sesión y que el usuario sea dueño de la lista (o ADMIN/LÍDER). */
+async function assertPuedeGestionar(id_playlist: number): Promise<void> {
+  const session = await auth();
+  if (!session?.user) throw new Error("No autenticado.");
+
+  const [pl] = await db
+    .select({ id_usuario: playlists.id_usuario })
+    .from(playlists)
+    .where(eq(playlists.id_playlist, id_playlist));
+
+  if (!pl) throw new Error(`Playlist ${id_playlist} no encontrada.`);
+
+  const { rol, id_usuario } = session.user;
+  if (id_usuario !== pl.id_usuario && rol !== "ADMINISTRADOR" && rol !== "LIDER") {
+    throw new Error("No tenés permisos para gestionar esta lista.");
+  }
+}
+
 // ── crearPlaylist ─────────────────────────────────────────────────────────────
 
 export async function crearPlaylist(formData: FormData): Promise<void> {
@@ -92,6 +112,41 @@ export async function avanzarEstadoPlaylist(
     .where(eq(playlists.id_playlist, id_playlist));
 
   revalidatePath(`/playlists/${id_playlist}`);
+  revalidatePath("/playlists");
+}
+
+// ── renombrarPlaylist ─────────────────────────────────────────────────────────
+
+export async function renombrarPlaylist(
+  id_playlist: number,
+  nombre: string
+): Promise<void> {
+  await assertPuedeGestionar(id_playlist);
+
+  const limpio = nombre.trim();
+  if (!limpio) throw new Error("El nombre no puede quedar vacío.");
+
+  await db
+    .update(playlists)
+    .set({ nombre: limpio })
+    .where(eq(playlists.id_playlist, id_playlist));
+
+  revalidatePath("/playlists");
+  revalidatePath(`/playlists/${id_playlist}`);
+}
+
+// ── eliminarPlaylist ──────────────────────────────────────────────────────────
+
+export async function eliminarPlaylist(id_playlist: number): Promise<void> {
+  await assertPuedeGestionar(id_playlist);
+
+  // Borramos primero las canciones de la lista (no hay ON DELETE CASCADE en el
+  // schema) y luego la cabecera, todo en una transacción.
+  await db.transaction(async (tx) => {
+    await tx.delete(lista_canciones).where(eq(lista_canciones.id_playlist, id_playlist));
+    await tx.delete(playlists).where(eq(playlists.id_playlist, id_playlist));
+  });
+
   revalidatePath("/playlists");
 }
 

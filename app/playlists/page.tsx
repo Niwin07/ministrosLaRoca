@@ -6,20 +6,21 @@ import { ESTADO_LABEL } from "@/lib/estados";
 import { db } from "@/db";
 import { canciones, cronograma, lista_canciones, playlists, usuarios } from "@/db/schema";
 import { auth } from "@/auth";
-import { crearPlaylist, instanciarPreset, clonarMazo } from "@/app/actions/playlists";
+import { crearPlaylist, instanciarPreset, clonarMazo, renombrarPlaylist, eliminarPlaylist } from "@/app/actions/playlists";
 import { HistorialListas } from "@/components/HistorialListas";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { Button } from "@/components/Button";
+import { PlantillaItem } from "@/components/PlantillaItem";
 
 function fmtFecha(d: Date | null): string {
   if (!d) return "Sin fecha";
   return new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short", year: "numeric" }).format(d);
 }
 
-export default async function PlaylistsPage({
-  searchParams,
-}: {
-  searchParams: { error?: string };
+export default async function PlaylistsPage(props: {
+  searchParams: Promise<{ error?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   if (!session?.user) redirect("/login");
 
@@ -68,16 +69,14 @@ export default async function PlaylistsPage({
       )
       .orderBy(desc(playlists.id_playlist)),
 
-    // PLANTILLAS — moldes reutilizables del equipo.
+    // PLANTILLAS — moldes reutilizables PROPIOS (cada usuario ve solo las suyas).
     db
       .select({
-        id_playlist:    playlists.id_playlist,
-        nombre:         playlists.nombre,
-        nombre_usuario: usuarios.nombre,
+        id_playlist: playlists.id_playlist,
+        nombre:      playlists.nombre,
       })
       .from(playlists)
-      .innerJoin(usuarios, eq(playlists.id_usuario, usuarios.id_usuario))
-      .where(eq(playlists.tipo, "PRESET"))
+      .where(and(eq(playlists.tipo, "PRESET"), eq(playlists.id_usuario, id_usuario)))
       .orderBy(playlists.nombre),
 
     // HISTORIAL — servicios archivados, clonables. Con cantidad de temas y
@@ -130,6 +129,35 @@ export default async function PlaylistsPage({
     "use server";
     const id_preset = Number(formData.get("id_preset"));
     await instanciarPreset(id_preset);
+  }
+
+  async function handleRenombrarPlantilla(formData: FormData) {
+    "use server";
+    let destino = "/playlists";
+    try {
+      const id     = Number(formData.get("id_playlist"));
+      const nombre = (formData.get("nombre") as string | null) ?? "";
+      await renombrarPlaylist(id, nombre);
+    } catch (e) {
+      destino = `/playlists?error=${encodeURIComponent(
+        e instanceof Error ? e.message : "No se pudo renombrar la plantilla."
+      )}`;
+    }
+    redirect(destino);
+  }
+
+  async function handleEliminarPlantilla(formData: FormData) {
+    "use server";
+    let destino = "/playlists";
+    try {
+      const id = Number(formData.get("id_playlist"));
+      await eliminarPlaylist(id);
+    } catch (e) {
+      destino = `/playlists?error=${encodeURIComponent(
+        e instanceof Error ? e.message : "No se pudo borrar la plantilla."
+      )}`;
+    }
+    redirect(destino);
   }
 
   // Clona una lista archivada. Si es propia → nuevo EVENTO en preparación;
@@ -243,42 +271,23 @@ export default async function PlaylistsPage({
           <ListMusic size={13} className="shrink-0 text-lo" />
           <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Plantillas</h2>
         </div>
-        <p className="-mt-1 text-[11px] text-lo">Moldes reutilizables. Tocá &ldquo;Usar&rdquo; para armar un servicio nuevo a partir de uno.</p>
+        <p className="-mt-1 text-[11px] text-lo">Tus moldes reutilizables. Tocá &ldquo;Usar&rdquo; para armar un servicio, o editá/borrá las tuyas.</p>
 
         {plantillas.length === 0 ? (
           <p className="rounded-2xl border border-line bg-card px-5 py-5 text-sm text-lo">
-            No hay plantillas todavía. Creá la primera abajo.
+            No tenés plantillas todavía. Creá la primera abajo.
           </p>
         ) : (
           <div className="flex flex-col gap-1">
             {plantillas.map((lista) => (
-              <div
+              <PlantillaItem
                 key={lista.id_playlist}
-                className="flex items-center gap-3 rounded-xl border-l-2 border-l-line bg-card px-4 py-3.5 transition-all duration-200 hover:bg-input"
-              >
-                <Link
-                  href={`/playlists/${lista.id_playlist}`}
-                  className="flex min-w-0 flex-1 items-center gap-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-hi">{lista.nombre}</p>
-                    <p className="mt-0.5 truncate text-[11px] text-lo">{lista.nombre_usuario}</p>
-                  </div>
-                </Link>
-                <div className="flex shrink-0 items-center gap-2">
-                  <form action={handleInstanciarPreset}>
-                    <input type="hidden" name="id_preset" value={lista.id_playlist} />
-                    <button
-                      type="submit"
-                      title="Armar un servicio a partir de esta plantilla"
-                      className="rounded-lg border border-mark bg-input px-2.5 py-1 text-[10px] font-medium text-mid transition-all duration-200 hover:border-line hover:text-hi"
-                    >
-                      Usar
-                    </button>
-                  </form>
-                  <ChevronRight size={13} className="text-gone" />
-                </div>
-              </div>
+                id_playlist={lista.id_playlist}
+                nombre={lista.nombre}
+                onUsar={handleInstanciarPreset}
+                onRenombrar={handleRenombrarPlantilla}
+                onEliminar={handleEliminarPlantilla}
+              />
             ))}
           </div>
         )}
@@ -301,13 +310,9 @@ export default async function PlaylistsPage({
                 required
                 className="min-w-0 flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
               />
-              <button
-                type="submit"
-                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:scale-95"
-              >
-                <Plus size={15} strokeWidth={2.5} />
+              <Button type="submit" shape="block" icon={<Plus size={15} strokeWidth={2.5} />}>
                 Crear
-              </button>
+              </Button>
             </form>
           </div>
         </details>
