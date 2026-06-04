@@ -7,6 +7,7 @@ import { canciones, cronograma, lista_canciones, playlists } from "@/db/schema";
 import { SortableSongList } from "@/components/SortableSongList";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
+import { StepperPill } from "@/components/StepperPill";
 import { auth } from "@/auth";
 import {
   agregarCancionALista,
@@ -347,13 +348,7 @@ export default async function PlaylistDetailPage(props: {
                 return (
                   <form key={estado} action={handleAvanzarEstado}>
                     <input type="hidden" name="nuevoEstado" value={estado} />
-                    <button
-                      type="submit"
-                      title={esPasado ? `Volver a ${label}` : `Pasar a ${label}`}
-                      className="rounded-full border border-mark px-3 py-1 text-[10px] text-mid transition-colors hover:border-line hover:text-hi"
-                    >
-                      {esPasado ? `← ${label}` : `${label} →`}
-                    </button>
+                    <StepperPill label={label} esPasado={esPasado} />
                   </form>
                 );
               })}

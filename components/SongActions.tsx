@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MoreVertical, Trash2, Music2 } from "lucide-react";
 import { NOTAS } from "@/lib/notas";
+import { Button } from "@/components/Button";
 
 interface SongActionsProps {
   item: { id_lista_cancion: number; nota: string | null };
@@ -68,12 +69,9 @@ export function SongActions({
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
-              <button
-                type="submit"
-                className="w-full rounded-lg bg-violet-600 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-violet-500"
-              >
+              <Button type="submit" size="sm" shape="block" fullWidth>
                 Guardar
-              </button>
+              </Button>
             </form>
           )}
 
