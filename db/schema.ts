@@ -6,10 +6,19 @@ import {
   datetime,
   timestamp,
   text,
+  tinyint,
   uniqueIndex,
   index,
 } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
+
+// ─── Plataformas ─────────────────────────────────────────────────────────────
+
+export const plataformas = mysqlTable("plataformas", {
+  id_plataforma: int("id_plataforma").autoincrement().primaryKey(),
+  nombre:        varchar("nombre", { length: 100 }).notNull(),
+  slug:          varchar("slug",   { length: 50  }).notNull().unique(),
+});
 
 // ─── Usuarios ────────────────────────────────────────────────────────────────
 
@@ -24,6 +33,20 @@ export const usuarios = mysqlTable("usuarios", {
   foto:           text("foto"),
 });
 
+// ─── Usuario ↔ Plataforma (join) ─────────────────────────────────────────────
+
+export const usuario_plataforma = mysqlTable(
+  "usuario_plataforma",
+  {
+    id_usuario:    int("id_usuario").notNull().references(() => usuarios.id_usuario),
+    id_plataforma: int("id_plataforma").notNull().references(() => plataformas.id_plataforma),
+    es_principal:  tinyint("es_principal").notNull().default(1),
+  },
+  (table) => ({
+    pk: uniqueIndex("pk_usuario_plataforma").on(table.id_usuario, table.id_plataforma),
+  }),
+);
+
 // ─── Cronograma (Cola de rotación) ───────────────────────────────────────────
 
 // Garantía a nivel de base de datos de "como máximo un turno ACTIVO":
@@ -35,13 +58,15 @@ export const usuarios = mysqlTable("usuarios", {
 export const cronograma = mysqlTable(
   "cronograma",
   {
-    id_turno:     int("id_turno").autoincrement().primaryKey(),
-    id_usuario:   int("id_usuario").notNull().references(() => usuarios.id_usuario),
-    estado_turno: mysqlEnum("estado_turno", ["EN_ESPERA", "ACTIVO", "COMPLETADO"]).notNull().default("EN_ESPERA"),
-  orden:        int("orden").notNull().default(0),
-    // Columna virtual generada: 1 solo si el turno está ACTIVO, sino NULL.
-    activo_unico: int("activo_unico").generatedAlwaysAs(
-      sql`(case when \`estado_turno\` = 'ACTIVO' then 1 else null end)`,
+    id_turno:      int("id_turno").autoincrement().primaryKey(),
+    id_usuario:    int("id_usuario").notNull().references(() => usuarios.id_usuario),
+    id_plataforma: int("id_plataforma").notNull().references(() => plataformas.id_plataforma),
+    estado_turno:  mysqlEnum("estado_turno", ["EN_ESPERA", "ACTIVO", "COMPLETADO"]).notNull().default("EN_ESPERA"),
+    orden:         int("orden").notNull().default(0),
+    // Virtual: id_plataforma cuando ACTIVO, NULL otherwise.
+    // El UNIQUE sobre esta columna garantiza un solo ACTIVO por plataforma.
+    activo_unico:  int("activo_unico").generatedAlwaysAs(
+      sql`(case when \`estado_turno\` = 'ACTIVO' then \`id_plataforma\` else null end)`,
       { mode: "virtual" },
     ),
   },
@@ -54,15 +79,16 @@ export const cronograma = mysqlTable(
 // ─── Canciones ───────────────────────────────────────────────────────────────
 
 export const canciones = mysqlTable("canciones", {
-  id_cancion:         int("id_cancion").autoincrement().primaryKey(),
-  nombre:             varchar("nombre", { length: 255 }).notNull(),
-  artista:            varchar("artista", { length: 255 }).notNull(),
-  bpm:                int("bpm"),
-  metrica:            varchar("metrica", { length: 10 }),
-  estado_aprobacion:  mysqlEnum("estado_aprobacion", ["APROBADA", "PENDIENTE", "RECHAZADA"]).notNull().default("PENDIENTE"),
-  motivo_rechazo:     text("motivo_rechazo"),
-  letra:              text("letra"),
-  charts:             text("charts"),
+  id_cancion:              int("id_cancion").autoincrement().primaryKey(),
+  nombre:                  varchar("nombre", { length: 255 }).notNull(),
+  artista:                 varchar("artista", { length: 255 }).notNull(),
+  bpm:                     int("bpm"),
+  metrica:                 varchar("metrica", { length: 10 }),
+  estado_aprobacion:       mysqlEnum("estado_aprobacion", ["APROBADA", "PENDIENTE", "RECHAZADA"]).notNull().default("PENDIENTE"),
+  motivo_rechazo:          text("motivo_rechazo"),
+  letra:                   text("letra"),
+  charts:                  text("charts"),
+  id_usuario_sugeridor:    int("id_usuario_sugeridor").references(() => usuarios.id_usuario, { onDelete: "set null" }),
 });
 
 // ─── Playlists ───────────────────────────────────────────────────────────────
@@ -70,11 +96,35 @@ export const canciones = mysqlTable("canciones", {
 export const playlists = mysqlTable("playlists", {
   id_playlist:        int("id_playlist").autoincrement().primaryKey(),
   id_usuario:         int("id_usuario").notNull().references(() => usuarios.id_usuario),
+  id_plataforma:      int("id_plataforma").notNull().references(() => plataformas.id_plataforma),
   nombre:             varchar("nombre", { length: 255 }).notNull(),
   tipo:               mysqlEnum("tipo", ["PRESET", "EVENTO"]).notNull(),
   estado:             mysqlEnum("estado", ["PREPARACION", "ENSAYO", "DEFINITIVA", "MAZO"]),
   fecha_programada:   datetime("fecha_programada"),
   actualizadoEn:      timestamp("actualizado_en").defaultNow().onUpdateNow(),
+});
+
+// ─── Notificaciones personales ───────────────────────────────────────────────
+
+export const notificaciones = mysqlTable("notificaciones", {
+  id_notificacion: int("id_notificacion").autoincrement().primaryKey(),
+  id_usuario:      int("id_usuario").notNull().references(() => usuarios.id_usuario, { onDelete: "cascade" }),
+  tipo:            mysqlEnum("tipo", ["TURNO_ASIGNADO", "LISTA_PUBLICADA", "CANCION_APROBADA", "CANCION_RECHAZADA", "MENCION"]).notNull(),
+  titulo:          varchar("titulo", { length: 255 }).notNull(),
+  cuerpo:          text("cuerpo").notNull(),
+  leida:           tinyint("leida").notNull().default(0),
+  creadaEn:        timestamp("creada_en").defaultNow(),
+});
+
+// ─── Suscripciones Web Push ───────────────────────────────────────────────────
+
+export const push_suscripciones = mysqlTable("push_suscripciones", {
+  id_suscripcion: int("id_suscripcion").autoincrement().primaryKey(),
+  id_usuario:     int("id_usuario").notNull().references(() => usuarios.id_usuario, { onDelete: "cascade" }),
+  endpoint:       text("endpoint").notNull(),
+  p256dh:         text("p256dh").notNull(),
+  auth_key:       varchar("auth_key", { length: 255 }).notNull(),
+  creadaEn:       timestamp("creada_en").defaultNow(),
 });
 
 // ─── Lista Canciones (Detalle / Pivot) ───────────────────────────────────────

@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { ArrowLeft, Music2, PlusCircle, Copy, Tv2 } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/db";
@@ -26,6 +26,7 @@ async function getPlaylistConCanciones(id: number) {
     .select({
       id_playlist:      playlists.id_playlist,
       id_usuario:       playlists.id_usuario,
+      id_plataforma:    playlists.id_plataforma,
       nombre_lista:     playlists.nombre,
       tipo:             playlists.tipo,
       estado:           playlists.estado,
@@ -53,12 +54,17 @@ async function getCatalogoAprobado() {
     .orderBy(canciones.nombre);
 }
 
-/** Id del ministro con el turno ACTIVO esta semana (o null si no hay). */
-async function getDirectorActivo(): Promise<number | null> {
+/** Id del ministro con el turno ACTIVO en la plataforma de esta lista (o null).
+ *  Filtramos por id_plataforma para que un activo en Remanentes no interfiera
+ *  con el activo en Plataforma General y viceversa. */
+async function getDirectorActivo(id_plataforma: number): Promise<number | null> {
   const [activo] = await db
     .select({ id_usuario: cronograma.id_usuario })
     .from(cronograma)
-    .where(eq(cronograma.estado_turno, "ACTIVO"))
+    .where(and(
+      eq(cronograma.estado_turno, "ACTIVO"),
+      eq(cronograma.id_plataforma, id_plataforma),
+    ))
     .limit(1);
   return activo?.id_usuario ?? null;
 }
@@ -99,21 +105,25 @@ export default async function PlaylistDetailPage(props: {
 
   const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
 
-  const [rows, catalogo, directorActivoId] = await Promise.all([
+  // Primero traemos la playlist para conocer su id_plataforma, luego buscamos
+  // el director activo en ESA plataforma (cada plataforma tiene el suyo).
+  const [rows, catalogo] = await Promise.all([
     getPlaylistConCanciones(id),
     getCatalogoAprobado(),
-    getDirectorActivo(),
   ]);
 
   if (rows.length === 0) notFound();
 
   const cabecera = {
-    id_playlist: rows[0].id_playlist,
-    id_usuario:  rows[0].id_usuario,
-    nombre:      rows[0].nombre_lista,
-    tipo:        rows[0].tipo,
-    estado:      rows[0].estado,
+    id_playlist:   rows[0].id_playlist,
+    id_usuario:    rows[0].id_usuario,
+    id_plataforma: rows[0].id_plataforma,
+    nombre:        rows[0].nombre_lista,
+    tipo:          rows[0].tipo,
+    estado:        rows[0].estado,
   };
+
+  const directorActivoId = await getDirectorActivo(cabecera.id_plataforma);
 
   const { rol, id_usuario } = session.user;
   const puedeEditar =

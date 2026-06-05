@@ -7,7 +7,9 @@ import { cronograma, playlists, lista_canciones, canciones, usuarios } from "@/d
 import { eq, desc, and, or, sql } from "drizzle-orm";
 import { HeroCard } from "@/components/HeroCard";
 import { Avatar } from "@/components/Avatar";
+import { ActivarNotifBanner } from "@/components/ActivarNotifBanner";
 import { ESTADO_LABEL } from "@/lib/estados";
+import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
 
 function formatFecha(d: Date | null): string {
   if (!d) return "Sin fecha";
@@ -20,8 +22,10 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const { id_usuario } = session.user;
+  const { id_usuario, rol } = session.user;
   const primerNombre = (session.user.name ?? "").split(" ")[0];
+
+  const plaId = await getPlataformaActivaId(id_usuario, rol);
 
   const [esMiTurno, listaActiva, misListas, miFoto] = await Promise.all([
 
@@ -31,6 +35,7 @@ export default async function DashboardPage() {
       .where(and(
         eq(cronograma.id_usuario, id_usuario),
         eq(cronograma.estado_turno, "ACTIVO"),
+        ...(plaId ? [eq(cronograma.id_plataforma, plaId)] : []),
       ))
       .limit(1)
       .then((r) => !!r[0]),
@@ -47,7 +52,8 @@ export default async function DashboardPage() {
       .where(
         and(
           eq(playlists.tipo, "EVENTO"),
-          or(eq(playlists.estado, "ENSAYO"), eq(playlists.estado, "DEFINITIVA"))
+          or(eq(playlists.estado, "ENSAYO"), eq(playlists.estado, "DEFINITIVA")),
+          ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
         )
       )
       .groupBy(playlists.id_playlist, playlists.nombre, playlists.estado)
@@ -66,7 +72,10 @@ export default async function DashboardPage() {
       })
       .from(playlists)
       .leftJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
-      .where(eq(playlists.id_usuario, id_usuario))
+      .where(and(
+        eq(playlists.id_usuario, id_usuario),
+        ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
+      ))
       .groupBy(playlists.id_playlist, playlists.nombre, playlists.tipo, playlists.estado, playlists.fecha_programada)
       .orderBy(desc(playlists.id_playlist))
       .limit(4),
@@ -104,6 +113,9 @@ export default async function DashboardPage() {
           Hola, {primerNombre}
         </h1>
       </div>
+
+      {/* ── ACTIVAR NOTIF (solo visible si no están activas) ──────── */}
+      <ActivarNotifBanner />
 
       {/* ── HERO ──────────────────────────────────────────────────── */}
       <HeroCard listaActiva={listaActiva} primerNombre={primerNombre} />

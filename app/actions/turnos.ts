@@ -1,11 +1,14 @@
 "use server";
 
 import { db } from "@/db";
-import { cronograma } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { cronograma, plataformas } from "@/db/schema";
+import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
+import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
+import { crearNotificacion } from "@/lib/notif";
 
 // Solo ADMINISTRADOR o LÍDER gestionan la cola.
 async function assertGestor(): Promise<void> {
@@ -35,18 +38,40 @@ export async function agregarACola(formData: FormData) {
     const id_usuario = Number(formData.get("id_usuario"));
     if (!id_usuario) return;
 
-    // Se agrega al final de la cola.
+    // El admin elige la plataforma en el form; si no viene, usa la del usuario.
+    const fromForm = resolverPlataforma(formData.get("id_plataforma") as string | undefined);
+    const session2 = await auth();
+    const id_plataforma = fromForm
+      ?? (session2?.user ? await getPlataformaActivaId(session2.user.id_usuario, session2.user.rol) : undefined)
+      ?? PLATAFORMA_IDS.general;
+
     const [{ max } = { max: 0 }] = await db
       .select({ max: sql<number>`COALESCE(MAX(${cronograma.orden}), 0)` })
-      .from(cronograma);
+      .from(cronograma)
+      .where(and(eq(cronograma.id_plataforma, id_plataforma), eq(cronograma.estado_turno, "EN_ESPERA")));
 
     await db.insert(cronograma).values({
       id_usuario,
+      id_plataforma,
       estado_turno: "EN_ESPERA",
       orden: Number(max) + 1,
     });
 
     revalidar();
+
+    // Notificar al ministro agregado (fire & forget)
+    const [plataforma] = await db
+      .select({ nombre: plataformas.nombre })
+      .from(plataformas)
+      .where(eq(plataformas.id_plataforma, id_plataforma))
+      .limit(1);
+
+    crearNotificacion(
+      id_usuario,
+      "TURNO_ASIGNADO",
+      "Te asignaron un turno",
+      `Estás en la cola de ${plataforma?.nombre ?? "la plataforma"}.`,
+    ).catch(() => {});
   } catch (e) {
     errorCola(e, "No se pudo agregar a la cola.");
   }
@@ -59,13 +84,22 @@ export async function marcarActivo(formData: FormData) {
     const id_turno = Number(formData.get("id_turno"));
     if (!id_turno) return;
 
-    // Atómico: el activo actual pasa a COMPLETADO y recién después se activa el
-    // nuevo, para no violar nunca el índice único `uq_un_solo_activo`.
+    // Leer la plataforma del turno que se va a activar para no tocar el activo
+    // de la otra plataforma (cada plataforma tiene su propio activo independiente).
+    const [turno] = await db
+      .select({ id_plataforma: cronograma.id_plataforma })
+      .from(cronograma)
+      .where(eq(cronograma.id_turno, id_turno));
+    if (!turno) return;
+
     await db.transaction(async (tx) => {
       await tx
         .update(cronograma)
         .set({ estado_turno: "COMPLETADO" })
-        .where(eq(cronograma.estado_turno, "ACTIVO"));
+        .where(and(
+          eq(cronograma.estado_turno, "ACTIVO"),
+          eq(cronograma.id_plataforma, turno.id_plataforma),
+        ));
 
       await tx
         .update(cronograma)
@@ -80,22 +114,32 @@ export async function marcarActivo(formData: FormData) {
   redirect("/admin/turnos?success=activo");
 }
 
-/** Saca al director activo y lo devuelve al frente de la cola (para corregir). */
-export async function desactivarActivo() {
+/** Saca al director activo y lo devuelve al frente de la cola (para corregir).
+ *  Recibe el id_turno del activo a desactivar para ser platform-aware. */
+export async function desactivarActivo(formData: FormData) {
   try {
     await assertGestor();
+    const id_turno = Number(formData.get("id_turno"));
+    if (!id_turno) return;
 
     const [activo] = await db
-      .select({ id_turno: cronograma.id_turno })
+      .select({ id_turno: cronograma.id_turno, id_plataforma: cronograma.id_plataforma })
       .from(cronograma)
-      .where(eq(cronograma.estado_turno, "ACTIVO"))
+      .where(and(
+        eq(cronograma.id_turno, id_turno),
+        eq(cronograma.estado_turno, "ACTIVO"),
+      ))
       .limit(1);
     if (!activo) return;
 
+    // El orden mínimo de la cola de ESA plataforma (para poner al frente).
     const [{ min } = { min: 1 }] = await db
       .select({ min: sql<number>`COALESCE(MIN(${cronograma.orden}), 1)` })
       .from(cronograma)
-      .where(eq(cronograma.estado_turno, "EN_ESPERA"));
+      .where(and(
+        eq(cronograma.estado_turno, "EN_ESPERA"),
+        eq(cronograma.id_plataforma, activo.id_plataforma),
+      ));
 
     await db
       .update(cronograma)

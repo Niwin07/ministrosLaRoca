@@ -3,9 +3,18 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { cronograma, lista_canciones, playlists } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { cronograma, lista_canciones, playlists, usuario_plataforma, plataformas } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
+import { PLATAFORMA_IDS } from "@/lib/plataforma";
+import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
+import { crearNotificacion } from "@/lib/notif";
+
+async function getPlataformaActiva(): Promise<number> {
+  const session = await auth();
+  if (!session?.user) return PLATAFORMA_IDS.general;
+  return (await getPlataformaActivaId(session.user.id_usuario, session.user.rol)) ?? PLATAFORMA_IDS.general;
+}
 
 // ── Guard de gestión (dueño o admin/líder) ────────────────────────────────────
 
@@ -36,10 +45,13 @@ export async function crearPlaylist(formData: FormData): Promise<void> {
   const nombre = (formData.get("nombre") as string | null)?.trim();
   if (!nombre) throw new Error("El nombre de la lista es obligatorio.");
 
+  const id_plataforma = await getPlataformaActiva();
+
   const [inserted] = await db
     .insert(playlists)
     .values({
       id_usuario:       session.user.id_usuario,
+      id_plataforma,
       nombre,
       tipo:             "PRESET",
       estado:           null,
@@ -67,7 +79,7 @@ export async function avanzarEstadoPlaylist(
   }
 
   const [playlist] = await db
-    .select({ id_usuario: playlists.id_usuario, tipo: playlists.tipo })
+    .select({ id_usuario: playlists.id_usuario, tipo: playlists.tipo, id_plataforma: playlists.id_plataforma })
     .from(playlists)
     .where(eq(playlists.id_playlist, id_playlist));
 
@@ -90,10 +102,15 @@ export async function avanzarEstadoPlaylist(
   // Volver hacia atrás (PREPARACION) o archivar (MAZO) no está restringido, así
   // el ministro siempre puede corregir una lista que publicó por error.
   if (nuevoEstado === "ENSAYO" || nuevoEstado === "DEFINITIVA") {
+    // El director activo se busca dentro de la misma plataforma de la lista,
+    // para no cruzar la restricción entre Remanentes y Plataforma General.
     const [directorActivo] = await db
       .select({ id_usuario: cronograma.id_usuario })
       .from(cronograma)
-      .where(eq(cronograma.estado_turno, "ACTIVO"))
+      .where(and(
+        eq(cronograma.estado_turno, "ACTIVO"),
+        eq(cronograma.id_plataforma, playlist.id_plataforma),
+      ))
       .limit(1);
 
     if (!directorActivo) {
@@ -113,6 +130,29 @@ export async function avanzarEstadoPlaylist(
 
   revalidatePath(`/playlists/${id_playlist}`);
   revalidatePath("/playlists");
+
+  // Notificar a todos los usuarios de la plataforma cuando la lista se publica
+  if (nuevoEstado === "ENSAYO" || nuevoEstado === "DEFINITIVA") {
+    const [playlistNombre, plataformaNombre, usuarios] = await Promise.all([
+      db.select({ nombre: playlists.nombre }).from(playlists).where(eq(playlists.id_playlist, id_playlist)).limit(1).then((r) => r[0]?.nombre ?? ""),
+      db.select({ nombre: plataformas.nombre }).from(plataformas).where(eq(plataformas.id_plataforma, playlist.id_plataforma)).limit(1).then((r) => r[0]?.nombre ?? ""),
+      db.select({ id_usuario: usuario_plataforma.id_usuario }).from(usuario_plataforma).where(eq(usuario_plataforma.id_plataforma, playlist.id_plataforma)),
+    ]);
+
+    const etiqueta = nuevoEstado === "ENSAYO" ? "en ensayo" : "definitiva";
+    const promesas = usuarios
+      .filter((u) => u.id_usuario !== session.user.id_usuario)
+      .map((u) =>
+        crearNotificacion(
+          u.id_usuario,
+          "LISTA_PUBLICADA",
+          `Lista ${etiqueta} — ${plataformaNombre}`,
+          `"${playlistNombre}" ya está disponible.`,
+        ).catch(() => {}),
+      );
+
+    Promise.all(promesas).catch(() => {});
+  }
 }
 
 // ── renombrarPlaylist ─────────────────────────────────────────────────────────
@@ -182,6 +222,7 @@ export async function instanciarPreset(id_preset: number): Promise<void> {
       .insert(playlists)
       .values({
         id_usuario:       session.user.id_usuario,
+        id_plataforma:    preset.id_plataforma,
         nombre:           `Servicio - ${preset.nombre}`,
         tipo:             "EVENTO",
         estado:           "PREPARACION",
@@ -235,6 +276,7 @@ export async function clonarMazo(
       .insert(playlists)
       .values({
         id_usuario:       id_usuario_ejecutor,
+        id_plataforma:    original.id_plataforma,
         nombre:           original.nombre,
         tipo:             esReutilizacionPropia ? "EVENTO"      : "PRESET",
         estado:           esReutilizacionPropia ? "PREPARACION" : null,

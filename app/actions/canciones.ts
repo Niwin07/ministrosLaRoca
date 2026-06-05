@@ -3,6 +3,7 @@
 import { db } from "@/db";
 import { canciones } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { crearNotificacion } from "@/lib/notif";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -27,16 +28,19 @@ interface SugerirCancionInput {
 export async function sugerirCancion(
   input: SugerirCancionInput
 ): Promise<{ id_cancion: number }> {
+  const session = await auth();
+
   const [inserted] = await db
     .insert(canciones)
     .values({
-      nombre:            input.nombre,
-      artista:           input.artista,
-      bpm:               input.bpm     ?? null,
-      metrica:           input.metrica ?? null,
-      letra:             input.letra   ?? null,
-      charts:            input.charts  ?? null,
-      estado_aprobacion: "PENDIENTE",
+      nombre:               input.nombre,
+      artista:              input.artista,
+      bpm:                  input.bpm     ?? null,
+      metrica:              input.metrica ?? null,
+      letra:                input.letra   ?? null,
+      charts:               input.charts  ?? null,
+      estado_aprobacion:    "PENDIENTE",
+      id_usuario_sugeridor: session?.user?.id_usuario ?? null,
     })
     .$returningId();
 
@@ -121,12 +125,12 @@ export async function resolverSugerencia(formData: FormData): Promise<void> {
     const letra  = normalize(formData.get("letra"));
     const charts = normalize(formData.get("charts"));
 
-    const [cancion] = await db
-      .select({ id_cancion: canciones.id_cancion })
+    const [cancionCompleta] = await db
+      .select({ id_cancion: canciones.id_cancion, nombre: canciones.nombre, id_usuario_sugeridor: canciones.id_usuario_sugeridor })
       .from(canciones)
       .where(eq(canciones.id_cancion, id_cancion));
 
-    if (!cancion) throw new Error(`Canción ${id_cancion} no encontrada.`);
+    if (!cancionCompleta) throw new Error(`Canción ${id_cancion} no encontrada.`);
 
     if (decision === "APROBADA") {
       await db
@@ -148,6 +152,17 @@ export async function resolverSugerencia(formData: FormData): Promise<void> {
           motivo_rechazo:    "No cumple los criterios del ministerio.",
         })
         .where(eq(canciones.id_cancion, id_cancion));
+    }
+
+    // Notificar al sugeridor si existe
+    if (cancionCompleta.id_usuario_sugeridor) {
+      const aprobada = decision === "APROBADA";
+      crearNotificacion(
+        cancionCompleta.id_usuario_sugeridor,
+        aprobada ? "CANCION_APROBADA" : "CANCION_RECHAZADA",
+        aprobada ? "Canción aprobada" : "Canción no aprobada",
+        `"${cancionCompleta.nombre}" fue ${aprobada ? "agregada al catálogo" : "rechazada por el liderazgo"}.`,
+      ).catch(() => {});
     }
 
     revalidatePath("/canciones");

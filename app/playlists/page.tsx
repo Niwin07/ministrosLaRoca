@@ -6,6 +6,7 @@ import { ESTADO_LABEL } from "@/lib/estados";
 import { db } from "@/db";
 import { canciones, cronograma, lista_canciones, playlists, usuarios } from "@/db/schema";
 import { auth } from "@/auth";
+import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
 import { crearPlaylist, instanciarPreset, clonarMazo, renombrarPlaylist, eliminarPlaylist } from "@/app/actions/playlists";
 import { HistorialListas } from "@/components/HistorialListas";
 import { ErrorBanner } from "@/components/ErrorBanner";
@@ -26,14 +27,19 @@ export default async function PlaylistsPage(props: {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const { id_usuario } = session.user;
+  const { id_usuario, rol } = session.user;
   const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
 
-  // El director de la semana = único turno ACTIVO en el cronograma.
+  const plaId = await getPlataformaActivaId(id_usuario, rol);
+
+  // El director de la semana = único turno ACTIVO en el cronograma (filtrado por plataforma).
   const [directorActivo] = await db
     .select({ id_usuario: cronograma.id_usuario })
     .from(cronograma)
-    .where(eq(cronograma.estado_turno, "ACTIVO"))
+    .where(and(
+      eq(cronograma.estado_turno, "ACTIVO"),
+      ...(plaId ? [eq(cronograma.id_plataforma, plaId)] : []),
+    ))
     .limit(1);
 
   const [estaSemana, enPreparacion, plantillas, historial] = await Promise.all([
@@ -54,6 +60,7 @@ export default async function PlaylistsPage(props: {
               eq(playlists.tipo, "EVENTO"),
               or(eq(playlists.estado, "ENSAYO"), eq(playlists.estado, "DEFINITIVA")),
               eq(playlists.id_usuario, directorActivo.id_usuario),
+              ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
             ),
           )
           .orderBy(desc(playlists.actualizadoEn))
@@ -68,22 +75,26 @@ export default async function PlaylistsPage(props: {
           eq(playlists.tipo, "EVENTO"),
           eq(playlists.estado, "PREPARACION"),
           eq(playlists.id_usuario, id_usuario),
+          ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
         ),
       )
       .orderBy(desc(playlists.id_playlist)),
 
-    // PLANTILLAS — moldes reutilizables PROPIOS (cada usuario ve solo las suyas).
+    // PLANTILLAS — moldes reutilizables PROPIOS.
     db
       .select({
         id_playlist: playlists.id_playlist,
         nombre:      playlists.nombre,
       })
       .from(playlists)
-      .where(and(eq(playlists.tipo, "PRESET"), eq(playlists.id_usuario, id_usuario)))
+      .where(and(
+        eq(playlists.tipo, "PRESET"),
+        eq(playlists.id_usuario, id_usuario),
+        ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
+      ))
       .orderBy(playlists.nombre),
 
-    // HISTORIAL — servicios archivados, clonables. Con cantidad de temas y
-    // fecha de archivado (actualizadoEn) para darle contexto a cada entrada.
+    // HISTORIAL — servicios archivados, clonables.
     db
       .select({
         id_playlist:    playlists.id_playlist,
@@ -95,7 +106,11 @@ export default async function PlaylistsPage(props: {
       .from(playlists)
       .innerJoin(usuarios, eq(playlists.id_usuario, usuarios.id_usuario))
       .leftJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
-      .where(and(eq(playlists.tipo, "EVENTO"), eq(playlists.estado, "MAZO")))
+      .where(and(
+        eq(playlists.tipo, "EVENTO"),
+        eq(playlists.estado, "MAZO"),
+        ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
+      ))
       .groupBy(playlists.id_playlist, playlists.nombre, usuarios.nombre, playlists.actualizadoEn)
       .orderBy(desc(playlists.actualizadoEn)),
   ]);
