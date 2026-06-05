@@ -35,8 +35,9 @@ export function ActivarNotifBanner() {
   async function activar() {
     setEstado("ocupado");
     try {
-      const reg = await navigator.serviceWorker.register("/sw.js");
-      await navigator.serviceWorker.ready;
+      await navigator.serviceWorker.register("/sw.js");
+      // Usar el SW activo (ready), no el resultado de register() que puede estar instalando
+      const reg = await navigator.serviceWorker.ready;
 
       const perm = await Notification.requestPermission();
       if (perm !== "granted") { setEstado("bloqueado"); return; }
@@ -44,10 +45,14 @@ export function ActivarNotifBanner() {
       const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!publicKey) { setEstado("invisible"); return; }
 
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly:      true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
-      });
+      // Reusar suscripción existente para evitar error por cambio de VAPID key
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly:      true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        });
+      }
 
       await fetch("/api/push", {
         method:  "POST",
@@ -57,7 +62,7 @@ export function ActivarNotifBanner() {
 
       setEstado("invisible");
     } catch {
-      setEstado("mostrar");
+      setEstado("invisible"); // No rebotar al "mostrar" — el usuario ya intentó
     }
   }
 
