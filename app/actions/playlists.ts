@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { db } from "@/db";
 import { cronograma, lista_canciones, playlists } from "@/db/schema";
 import { and, eq } from "drizzle-orm";

@@ -78,7 +78,7 @@ export default async function RootLayout({
 
     // Resolver plataforma activa: cookie → principal → primera → general
     const cookieId = resolverPlataforma(jar.get("plataforma_activa")?.value);
-    const cookieValida = !!(cookieId && misPlataformas.some((p) => p.id === cookieId));
+    cookieValida = !!(cookieId && misPlataformas.some((p) => p.id === cookieId));
 
     if (cookieValida) {
       plataformaActivaId = cookieId!;

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { usuarios, plataformas, usuario_plataforma } from "@/db/schema";
+import { usuarios, usuario_plataforma } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { actualizarUsuario, actualizarPlataformasUsuario } from "@/app/actions/usuarios";
 import { Button } from "@/components/Button";
