@@ -21,11 +21,15 @@ export function ActivarNotifBanner() {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
     if (Notification.permission === "denied") { setEstado("bloqueado"); return; }
 
-    navigator.serviceWorker.ready.then((reg) =>
-      reg.pushManager.getSubscription().then((sub) => {
-        if (!sub) setEstado("mostrar");
-      }),
-    );
+    // Si no hay ningún SW registrado, ready nunca resuelve → verificar primero
+    navigator.serviceWorker.getRegistrations().then((regs) => {
+      if (regs.length === 0) { setEstado("mostrar"); return; }
+      navigator.serviceWorker.ready.then((reg) =>
+        reg.pushManager.getSubscription().then((sub) => {
+          if (!sub) setEstado("mostrar");
+        })
+      );
+    });
   }, []);
 
   async function activar() {

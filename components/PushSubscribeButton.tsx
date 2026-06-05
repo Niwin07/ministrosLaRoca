@@ -29,11 +29,14 @@ export function PushSubscribeButton() {
     const perm = Notification.permission;
     if (perm === "denied") { setEstado("bloqueado"); return; }
 
-    // Verificar si ya hay una suscripción activa
-    navigator.serviceWorker.ready.then((reg) => {
-      reg.pushManager.getSubscription().then((sub) => {
-        setEstado(sub ? "activo" : "inactivo");
-      });
+    // Si no hay ningún SW registrado, ready nunca resuelve → verificar primero
+    navigator.serviceWorker.getRegistrations().then((regs) => {
+      if (regs.length === 0) { setEstado("inactivo"); return; }
+      navigator.serviceWorker.ready.then((reg) =>
+        reg.pushManager.getSubscription().then((sub) => {
+          setEstado(sub ? "activo" : "inactivo");
+        })
+      );
     });
   }, []);
 
