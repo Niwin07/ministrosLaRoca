@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { ChevronRight, Music2, Plus, Tv2, Mic2 } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -8,6 +9,7 @@ import { eq, desc, and, or, sql } from "drizzle-orm";
 import { HeroCard } from "@/components/HeroCard";
 import { Avatar } from "@/components/Avatar";
 import { ESTADO_LABEL } from "@/lib/estados";
+import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
 
 function formatFecha(d: Date | null): string {
   if (!d) return "Sin fecha";
@@ -20,8 +22,13 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const { id_usuario } = session.user;
+  const { id_usuario, rol } = session.user;
   const primerNombre = (session.user.name ?? "").split(" ")[0];
+
+  const jar = await cookies();
+  const cookieId = resolverPlataforma(jar.get("plataforma_activa")?.value);
+  // Admins ven todo; los demás ven solo su plataforma activa.
+  const plaId = rol === "ADMINISTRADOR" ? undefined : (cookieId ?? PLATAFORMA_IDS.general);
 
   const [esMiTurno, listaActiva, misListas, miFoto] = await Promise.all([
 
@@ -31,6 +38,7 @@ export default async function DashboardPage() {
       .where(and(
         eq(cronograma.id_usuario, id_usuario),
         eq(cronograma.estado_turno, "ACTIVO"),
+        ...(plaId ? [eq(cronograma.id_plataforma, plaId)] : []),
       ))
       .limit(1)
       .then((r) => !!r[0]),
@@ -47,7 +55,8 @@ export default async function DashboardPage() {
       .where(
         and(
           eq(playlists.tipo, "EVENTO"),
-          or(eq(playlists.estado, "ENSAYO"), eq(playlists.estado, "DEFINITIVA"))
+          or(eq(playlists.estado, "ENSAYO"), eq(playlists.estado, "DEFINITIVA")),
+          ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
         )
       )
       .groupBy(playlists.id_playlist, playlists.nombre, playlists.estado)
@@ -66,7 +75,10 @@ export default async function DashboardPage() {
       })
       .from(playlists)
       .leftJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
-      .where(eq(playlists.id_usuario, id_usuario))
+      .where(and(
+        eq(playlists.id_usuario, id_usuario),
+        ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
+      ))
       .groupBy(playlists.id_playlist, playlists.nombre, playlists.tipo, playlists.estado, playlists.fecha_programada)
       .orderBy(desc(playlists.id_playlist))
       .limit(4),

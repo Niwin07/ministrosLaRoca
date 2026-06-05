@@ -3,10 +3,11 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { usuarios } from "@/db/schema";
+import { usuarios, plataformas, usuario_plataforma } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { actualizarUsuario } from "@/app/actions/usuarios";
+import { actualizarUsuario, actualizarPlataformasUsuario } from "@/app/actions/usuarios";
 import { Button } from "@/components/Button";
+import { PLATAFORMAS_LIST } from "@/lib/plataforma";
 
 export default async function EditarUsuarioPage(props: {
   params: Promise<{ id: string }>;
@@ -19,18 +20,22 @@ export default async function EditarUsuarioPage(props: {
   const id = Number(params.id);
   if (!id) redirect("/admin/usuarios");
 
-  const [usuario] = await db
-    .select({
-      id_usuario: usuarios.id_usuario,
-      nombre:     usuarios.nombre,
-      email:      usuarios.email,
-      rol:        usuarios.rol,
-    })
-    .from(usuarios)
-    .where(eq(usuarios.id_usuario, id))
-    .limit(1);
+  const [[usuario], plataformasUsuario] = await Promise.all([
+    db
+      .select({ id_usuario: usuarios.id_usuario, nombre: usuarios.nombre, email: usuarios.email, rol: usuarios.rol })
+      .from(usuarios)
+      .where(eq(usuarios.id_usuario, id))
+      .limit(1),
+    db
+      .select({ id_plataforma: usuario_plataforma.id_plataforma, es_principal: usuario_plataforma.es_principal })
+      .from(usuario_plataforma)
+      .where(eq(usuario_plataforma.id_usuario, id)),
+  ]);
 
   if (!usuario) redirect("/admin/usuarios");
+
+  const plataformasActivas = new Set(plataformasUsuario.map((p) => p.id_plataforma));
+  const principalId = plataformasUsuario.find((p) => p.es_principal)?.id_plataforma ?? null;
 
   return (
     <main className="px-4 pt-8 pb-6 space-y-6">
@@ -143,6 +148,59 @@ export default async function EditarUsuarioPage(props: {
             </Link>
           </div>
 
+        </form>
+      </div>
+
+      {/* ── Plataformas ──────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-mid">Plataformas</p>
+        <p className="mb-4 text-[11px] text-lo">En cuáles participa este ministro. La principal determina su vista por defecto.</p>
+
+        <form action={actualizarPlataformasUsuario} className="flex flex-col gap-4">
+          <input type="hidden" name="id_usuario" value={usuario.id_usuario} />
+
+          <div className="flex flex-col gap-3">
+            {PLATAFORMAS_LIST.map((pla) => {
+              const activa = plataformasActivas.has(pla.id);
+              return (
+                <label key={pla.id} className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="plataformas"
+                    value={pla.id}
+                    defaultChecked={activa}
+                    className="h-4 w-4 rounded border-mark accent-violet-600"
+                  />
+                  <span className="text-sm text-hi">{pla.nombre}</span>
+                  {activa && principalId === pla.id && (
+                    <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-600">
+                      Principal
+                    </span>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wider text-lo">
+              Plataforma principal
+            </label>
+            <select
+              name="principal"
+              defaultValue={principalId ?? ""}
+              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
+            >
+              <option value="">— Sin definir —</option>
+              {PLATAFORMAS_LIST.map((pla) => (
+                <option key={pla.id} value={pla.id}>{pla.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          <Button type="submit" variant="secondary">
+            Guardar plataformas
+          </Button>
         </form>
       </div>
 

@@ -1,14 +1,20 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { db } from "@/db";
 import { cronograma, usuarios } from "@/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and } from "drizzle-orm";
 import { auth } from "@/auth";
 import { Mic2, Clock } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
+import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
 
 export default async function TurnosPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+
+  const jar = await cookies();
+  const cookieId = resolverPlataforma(jar.get("plataforma_activa")?.value);
+  const plaId = session.user.rol === "ADMINISTRADOR" ? undefined : (cookieId ?? PLATAFORMA_IDS.general);
 
   const [turnoActivo] = await db
     .select({
@@ -18,7 +24,10 @@ export default async function TurnosPage() {
     })
     .from(cronograma)
     .innerJoin(usuarios, eq(cronograma.id_usuario, usuarios.id_usuario))
-    .where(eq(cronograma.estado_turno, "ACTIVO"))
+    .where(and(
+      eq(cronograma.estado_turno, "ACTIVO"),
+      ...(plaId ? [eq(cronograma.id_plataforma, plaId)] : []),
+    ))
     .limit(1);
 
   const cola = await db
@@ -29,7 +38,10 @@ export default async function TurnosPage() {
     })
     .from(cronograma)
     .innerJoin(usuarios, eq(cronograma.id_usuario, usuarios.id_usuario))
-    .where(eq(cronograma.estado_turno, "EN_ESPERA"))
+    .where(and(
+      eq(cronograma.estado_turno, "EN_ESPERA"),
+      ...(plaId ? [eq(cronograma.id_plataforma, plaId)] : []),
+    ))
     .orderBy(asc(cronograma.orden));
 
   const hayDatos = !!turnoActivo || cola.length > 0;

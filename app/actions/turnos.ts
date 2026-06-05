@@ -1,11 +1,13 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { db } from "@/db";
 import { cronograma } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
 
 // Solo ADMINISTRADOR o LÍDER gestionan la cola.
 async function assertGestor(): Promise<void> {
@@ -35,13 +37,18 @@ export async function agregarACola(formData: FormData) {
     const id_usuario = Number(formData.get("id_usuario"));
     if (!id_usuario) return;
 
-    // Se agrega al final de la cola.
+    const jar = await cookies();
+    const id_plataforma = resolverPlataforma(jar.get("plataforma_activa")?.value) ?? PLATAFORMA_IDS.general;
+
+    // Se agrega al final de la cola de esa plataforma.
     const [{ max } = { max: 0 }] = await db
       .select({ max: sql<number>`COALESCE(MAX(${cronograma.orden}), 0)` })
-      .from(cronograma);
+      .from(cronograma)
+      .where(eq(cronograma.id_plataforma, id_plataforma));
 
     await db.insert(cronograma).values({
       id_usuario,
+      id_plataforma,
       estado_turno: "EN_ESPERA",
       orden: Number(max) + 1,
     });

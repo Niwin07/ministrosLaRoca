@@ -2,10 +2,17 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { db } from "@/db";
 import { cronograma, lista_canciones, playlists } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
+import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
+
+async function getPlataformaActiva(): Promise<number> {
+  const jar = await cookies();
+  return resolverPlataforma(jar.get("plataforma_activa")?.value) ?? PLATAFORMA_IDS.general;
+}
 
 // ── Guard de gestión (dueño o admin/líder) ────────────────────────────────────
 
@@ -36,10 +43,13 @@ export async function crearPlaylist(formData: FormData): Promise<void> {
   const nombre = (formData.get("nombre") as string | null)?.trim();
   if (!nombre) throw new Error("El nombre de la lista es obligatorio.");
 
+  const id_plataforma = await getPlataformaActiva();
+
   const [inserted] = await db
     .insert(playlists)
     .values({
       id_usuario:       session.user.id_usuario,
+      id_plataforma,
       nombre,
       tipo:             "PRESET",
       estado:           null,
@@ -182,6 +192,7 @@ export async function instanciarPreset(id_preset: number): Promise<void> {
       .insert(playlists)
       .values({
         id_usuario:       session.user.id_usuario,
+        id_plataforma:    preset.id_plataforma,
         nombre:           `Servicio - ${preset.nombre}`,
         tipo:             "EVENTO",
         estado:           "PREPARACION",
@@ -235,6 +246,7 @@ export async function clonarMazo(
       .insert(playlists)
       .values({
         id_usuario:       id_usuario_ejecutor,
+        id_plataforma:    original.id_plataforma,
         nombre:           original.nombre,
         tipo:             esReutilizacionPropia ? "EVENTO"      : "PRESET",
         estado:           esReutilizacionPropia ? "PREPARACION" : null,
