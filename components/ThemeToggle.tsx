@@ -21,9 +21,9 @@ export function ThemeToggle({ tema }: { tema: "claro" | "oscuro" }) {
       onClick={toggle}
       disabled={pending}
       aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-      className="flex h-8 w-8 items-center justify-center rounded-full text-gone transition-colors hover:text-hi disabled:opacity-40"
+      className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors hover:text-hi disabled:opacity-40"
     >
-      {isDark ? <Sun size={15} /> : <Moon size={15} />}
+      {isDark ? <Sun size={20} /> : <Moon size={20} />}
     </button>
   );
 }
