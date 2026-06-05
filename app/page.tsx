@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { ChevronRight, Music2, Plus, Tv2, Mic2 } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -9,7 +8,7 @@ import { eq, desc, and, or, sql } from "drizzle-orm";
 import { HeroCard } from "@/components/HeroCard";
 import { Avatar } from "@/components/Avatar";
 import { ESTADO_LABEL } from "@/lib/estados";
-import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
+import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
 
 function formatFecha(d: Date | null): string {
   if (!d) return "Sin fecha";
@@ -25,10 +24,7 @@ export default async function DashboardPage() {
   const { id_usuario, rol } = session.user;
   const primerNombre = (session.user.name ?? "").split(" ")[0];
 
-  const jar = await cookies();
-  const cookieId = resolverPlataforma(jar.get("plataforma_activa")?.value);
-  // Admins ven todo; los demás ven solo su plataforma activa.
-  const plaId = rol === "ADMINISTRADOR" ? undefined : (cookieId ?? PLATAFORMA_IDS.general);
+  const plaId = await getPlataformaActivaId(id_usuario, rol);
 
   const [esMiTurno, listaActiva, misListas, miFoto] = await Promise.all([
 

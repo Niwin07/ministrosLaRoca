@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { ChevronRight, Plus, ListMusic, Mic2, Archive, Music2 } from "lucide-react";
 import { ESTADO_LABEL } from "@/lib/estados";
 import { db } from "@/db";
 import { canciones, cronograma, lista_canciones, playlists, usuarios } from "@/db/schema";
 import { auth } from "@/auth";
-import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
+import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
 import { crearPlaylist, instanciarPreset, clonarMazo, renombrarPlaylist, eliminarPlaylist } from "@/app/actions/playlists";
 import { HistorialListas } from "@/components/HistorialListas";
 import { ErrorBanner } from "@/components/ErrorBanner";
@@ -31,9 +30,7 @@ export default async function PlaylistsPage(props: {
   const { id_usuario, rol } = session.user;
   const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
 
-  const jar = await cookies();
-  const cookieId = resolverPlataforma(jar.get("plataforma_activa")?.value);
-  const plaId = rol === "ADMINISTRADOR" ? undefined : (cookieId ?? PLATAFORMA_IDS.general);
+  const plaId = await getPlataformaActivaId(id_usuario, rol);
 
   // El director de la semana = único turno ACTIVO en el cronograma (filtrado por plataforma).
   const [directorActivo] = await db

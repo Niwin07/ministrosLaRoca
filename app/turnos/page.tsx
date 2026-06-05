@@ -1,20 +1,17 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { db } from "@/db";
 import { cronograma, usuarios } from "@/db/schema";
 import { eq, asc, and } from "drizzle-orm";
 import { auth } from "@/auth";
 import { Mic2, Clock } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
-import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
+import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
 
 export default async function TurnosPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const jar = await cookies();
-  const cookieId = resolverPlataforma(jar.get("plataforma_activa")?.value);
-  const plaId = session.user.rol === "ADMINISTRADOR" ? undefined : (cookieId ?? PLATAFORMA_IDS.general);
+  const plaId = await getPlataformaActivaId(session.user.id_usuario, session.user.rol);
 
   const [turnoActivo] = await db
     .select({

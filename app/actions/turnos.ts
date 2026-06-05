@@ -1,6 +1,5 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { db } from "@/db";
 import { cronograma } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
@@ -8,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
+import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
 
 // Solo ADMINISTRADOR o LÍDER gestionan la cola.
 async function assertGestor(): Promise<void> {
@@ -37,11 +37,12 @@ export async function agregarACola(formData: FormData) {
     const id_usuario = Number(formData.get("id_usuario"));
     if (!id_usuario) return;
 
-    // El admin elige la plataforma explícitamente en el form.
-    // Si no viene (llamada programática), cae al valor de la cookie.
+    // El admin elige la plataforma en el form; si no viene, usa la del usuario.
     const fromForm = resolverPlataforma(formData.get("id_plataforma") as string | undefined);
-    const jar = await cookies();
-    const id_plataforma = fromForm ?? resolverPlataforma(jar.get("plataforma_activa")?.value) ?? PLATAFORMA_IDS.general;
+    const session2 = await auth();
+    const id_plataforma = fromForm
+      ?? (session2?.user ? await getPlataformaActivaId(session2.user.id_usuario, session2.user.rol) : undefined)
+      ?? PLATAFORMA_IDS.general;
 
     const [{ max } = { max: 0 }] = await db
       .select({ max: sql<number>`COALESCE(MAX(${cronograma.orden}), 0)` })

@@ -7,11 +7,13 @@ import { db } from "@/db";
 import { cronograma, lista_canciones, playlists } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
-import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
+import { PLATAFORMA_IDS } from "@/lib/plataforma";
+import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
 
 async function getPlataformaActiva(): Promise<number> {
-  const jar = await cookies();
-  return resolverPlataforma(jar.get("plataforma_activa")?.value) ?? PLATAFORMA_IDS.general;
+  const session = await auth();
+  if (!session?.user) return PLATAFORMA_IDS.general;
+  return (await getPlataformaActivaId(session.user.id_usuario, session.user.rol)) ?? PLATAFORMA_IDS.general;
 }
 
 // ── Guard de gestión (dueño o admin/líder) ────────────────────────────────────

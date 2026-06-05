@@ -6,10 +6,11 @@ import { Settings, LogOut } from "lucide-react";
 import { NavWrapper } from "@/components/NavWrapper";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
+import { PlataformaCookieSetter } from "@/components/PlataformaCookieSetter";
 import { auth, signOut } from "@/auth";
 import { db } from "@/db";
 import { usuarios, usuario_plataforma, plataformas } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
 import "./globals.css";
 
@@ -52,9 +53,9 @@ export default async function RootLayout({
   const tema = (jar.get("tema")?.value ?? "oscuro") as "claro" | "oscuro";
 
   let foto: string | null = null;
-  // plataformas a las que pertenece el usuario (máx 2 rows)
   let misPlataformas: { id: number; nombre: string }[] = [];
   let plataformaActivaId: number = PLATAFORMA_IDS.general;
+  let cookieValida = false;
 
   if (session?.user) {
     const [userFoto, userPlataformas] = await Promise.all([
@@ -77,12 +78,12 @@ export default async function RootLayout({
 
     // Resolver plataforma activa: cookie → principal → primera → general
     const cookieId = resolverPlataforma(jar.get("plataforma_activa")?.value);
-    const cookieValida = cookieId && misPlataformas.some((p) => p.id === cookieId);
+    const cookieValida = !!(cookieId && misPlataformas.some((p) => p.id === cookieId));
 
     if (cookieValida) {
       plataformaActivaId = cookieId!;
     } else {
-      const principal = userPlataformas.find((p) => p.es_principal);
+      const principal = userPlataformas.find((p) => p.es_principal === 1);
       plataformaActivaId = principal?.id_plataforma ?? misPlataformas[0]?.id ?? PLATAFORMA_IDS.general;
     }
   }
@@ -152,6 +153,11 @@ export default async function RootLayout({
         </div>
 
         {session?.user && <NavWrapper rol={session.user.rol} />}
+
+        {/* Persiste la plataforma resuelta a la cookie si estaba ausente/inválida */}
+        {session?.user && !cookieValida && (
+          <PlataformaCookieSetter id={plataformaActivaId} />
+        )}
       </body>
     </html>
   );
