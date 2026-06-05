@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { db } from "@/db";
 import { cronograma, lista_canciones, playlists } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
 
@@ -77,7 +77,7 @@ export async function avanzarEstadoPlaylist(
   }
 
   const [playlist] = await db
-    .select({ id_usuario: playlists.id_usuario, tipo: playlists.tipo })
+    .select({ id_usuario: playlists.id_usuario, tipo: playlists.tipo, id_plataforma: playlists.id_plataforma })
     .from(playlists)
     .where(eq(playlists.id_playlist, id_playlist));
 
@@ -100,10 +100,15 @@ export async function avanzarEstadoPlaylist(
   // Volver hacia atrás (PREPARACION) o archivar (MAZO) no está restringido, así
   // el ministro siempre puede corregir una lista que publicó por error.
   if (nuevoEstado === "ENSAYO" || nuevoEstado === "DEFINITIVA") {
+    // El director activo se busca dentro de la misma plataforma de la lista,
+    // para no cruzar la restricción entre Remanentes y Plataforma General.
     const [directorActivo] = await db
       .select({ id_usuario: cronograma.id_usuario })
       .from(cronograma)
-      .where(eq(cronograma.estado_turno, "ACTIVO"))
+      .where(and(
+        eq(cronograma.estado_turno, "ACTIVO"),
+        eq(cronograma.id_plataforma, playlist.id_plataforma),
+      ))
       .limit(1);
 
     if (!directorActivo) {

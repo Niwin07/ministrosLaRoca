@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { db } from "@/db";
 import { cronograma } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -66,13 +66,22 @@ export async function marcarActivo(formData: FormData) {
     const id_turno = Number(formData.get("id_turno"));
     if (!id_turno) return;
 
-    // Atómico: el activo actual pasa a COMPLETADO y recién después se activa el
-    // nuevo, para no violar nunca el índice único `uq_un_solo_activo`.
+    // Leer la plataforma del turno que se va a activar para no tocar el activo
+    // de la otra plataforma (cada plataforma tiene su propio activo independiente).
+    const [turno] = await db
+      .select({ id_plataforma: cronograma.id_plataforma })
+      .from(cronograma)
+      .where(eq(cronograma.id_turno, id_turno));
+    if (!turno) return;
+
     await db.transaction(async (tx) => {
       await tx
         .update(cronograma)
         .set({ estado_turno: "COMPLETADO" })
-        .where(eq(cronograma.estado_turno, "ACTIVO"));
+        .where(and(
+          eq(cronograma.estado_turno, "ACTIVO"),
+          eq(cronograma.id_plataforma, turno.id_plataforma),
+        ));
 
       await tx
         .update(cronograma)
@@ -87,22 +96,32 @@ export async function marcarActivo(formData: FormData) {
   redirect("/admin/turnos?success=activo");
 }
 
-/** Saca al director activo y lo devuelve al frente de la cola (para corregir). */
-export async function desactivarActivo() {
+/** Saca al director activo y lo devuelve al frente de la cola (para corregir).
+ *  Recibe el id_turno del activo a desactivar para ser platform-aware. */
+export async function desactivarActivo(formData: FormData) {
   try {
     await assertGestor();
+    const id_turno = Number(formData.get("id_turno"));
+    if (!id_turno) return;
 
     const [activo] = await db
-      .select({ id_turno: cronograma.id_turno })
+      .select({ id_turno: cronograma.id_turno, id_plataforma: cronograma.id_plataforma })
       .from(cronograma)
-      .where(eq(cronograma.estado_turno, "ACTIVO"))
+      .where(and(
+        eq(cronograma.id_turno, id_turno),
+        eq(cronograma.estado_turno, "ACTIVO"),
+      ))
       .limit(1);
     if (!activo) return;
 
+    // El orden mínimo de la cola de ESA plataforma (para poner al frente).
     const [{ min } = { min: 1 }] = await db
       .select({ min: sql<number>`COALESCE(MIN(${cronograma.orden}), 1)` })
       .from(cronograma)
-      .where(eq(cronograma.estado_turno, "EN_ESPERA"));
+      .where(and(
+        eq(cronograma.estado_turno, "EN_ESPERA"),
+        eq(cronograma.id_plataforma, activo.id_plataforma),
+      ));
 
     await db
       .update(cronograma)

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
 import { db } from "@/db";
-import { cronograma, usuarios } from "@/db/schema";
+import { cronograma, usuarios, plataformas } from "@/db/schema";
 import { auth } from "@/auth";
 import { eq, asc } from "drizzle-orm";
 import { agregarACola, marcarActivo, desactivarActivo, quitarTurno, reordenarCola } from "@/app/actions/turnos";
@@ -36,16 +36,18 @@ export default async function AdminTurnosPage(props: {
     .from(usuarios)
     .orderBy(asc(usuarios.nombre));
 
-  const [turnoActivo] = await db
+  // Admin ve TODOS los activos — puede haber uno por plataforma simultáneamente.
+  const turnosActivos = await db
     .select({
-      id_turno:       cronograma.id_turno,
-      nombre_usuario: usuarios.nombre,
-      foto:           usuarios.foto,
+      id_turno:        cronograma.id_turno,
+      nombre_usuario:  usuarios.nombre,
+      foto:            usuarios.foto,
+      nombre_plataforma: plataformas.nombre,
     })
     .from(cronograma)
-    .innerJoin(usuarios, eq(cronograma.id_usuario, usuarios.id_usuario))
-    .where(eq(cronograma.estado_turno, "ACTIVO"))
-    .limit(1);
+    .innerJoin(usuarios,    eq(cronograma.id_usuario,    usuarios.id_usuario))
+    .innerJoin(plataformas, eq(cronograma.id_plataforma, plataformas.id_plataforma))
+    .where(eq(cronograma.estado_turno, "ACTIVO"));
 
   const cola = await db
     .select({
@@ -110,32 +112,37 @@ export default async function AdminTurnosPage(props: {
       {/* ── En Servicio Ahora ─────────────────────────────────────────── */}
       <section className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-mid">En Servicio Ahora</h2>
-        {turnoActivo ? (
-          <div className="flex items-center gap-4 rounded-2xl border border-violet-500/30 bg-violet-500/[0.08] px-5 py-4">
-            <Avatar foto={turnoActivo.foto} nombre={turnoActivo.nombre_usuario} size={40} />
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-medium uppercase tracking-widest text-violet-600">
-                Activo
-              </p>
-              <p className="truncate text-base font-bold text-hi">{turnoActivo.nombre_usuario}</p>
-            </div>
-            <form action={desactivarActivo}>
-              <Button
-                type="submit"
-                variant="secondary"
-                size="sm"
-                className="shrink-0"
-                icon={<X size={12} />}
-                title="Sacar de servicio y devolver a la cola"
-              >
-                Desactivar
-              </Button>
-            </form>
-          </div>
-        ) : (
+        {turnosActivos.length === 0 ? (
           <p className="rounded-2xl border border-line bg-card px-5 py-4 text-sm text-lo">
             Nadie está activo en este momento.
           </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {turnosActivos.map((t) => (
+              <div key={t.id_turno} className="flex items-center gap-4 rounded-2xl border border-violet-500/30 bg-violet-500/[0.08] px-5 py-4">
+                <Avatar foto={t.foto} nombre={t.nombre_usuario} size={40} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-medium uppercase tracking-widest text-violet-600">
+                    {t.nombre_plataforma}
+                  </p>
+                  <p className="truncate text-base font-bold text-hi">{t.nombre_usuario}</p>
+                </div>
+                <form action={desactivarActivo}>
+                  <input type="hidden" name="id_turno" value={t.id_turno} />
+                  <Button
+                    type="submit"
+                    variant="secondary"
+                    size="sm"
+                    className="shrink-0"
+                    icon={<X size={12} />}
+                    title="Sacar de servicio y devolver a la cola"
+                  >
+                    Desactivar
+                  </Button>
+                </form>
+              </div>
+            ))}
+          </div>
         )}
       </section>
 
