@@ -4,12 +4,13 @@ import { ArrowLeft, X } from "lucide-react";
 import { db } from "@/db";
 import { cronograma, usuarios, plataformas } from "@/db/schema";
 import { auth } from "@/auth";
-import { eq, asc } from "drizzle-orm";
+import { and, eq, asc } from "drizzle-orm";
 import { agregarACola, marcarActivo, desactivarActivo, quitarTurno, reordenarCola } from "@/app/actions/turnos";
 import { ColaTurnos } from "@/components/ColaTurnos";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
 import { Avatar } from "@/components/Avatar";
+import { PLATAFORMAS_LIST } from "@/lib/plataforma";
 
 const FEEDBACK: Record<string, string> = {
   agregado:    "Usuario agregado a la cola.",
@@ -39,9 +40,9 @@ export default async function AdminTurnosPage(props: {
   // Admin ve TODOS los activos — puede haber uno por plataforma simultáneamente.
   const turnosActivos = await db
     .select({
-      id_turno:        cronograma.id_turno,
-      nombre_usuario:  usuarios.nombre,
-      foto:            usuarios.foto,
+      id_turno:          cronograma.id_turno,
+      nombre_usuario:    usuarios.nombre,
+      foto:              usuarios.foto,
       nombre_plataforma: plataformas.nombre,
     })
     .from(cronograma)
@@ -49,17 +50,30 @@ export default async function AdminTurnosPage(props: {
     .innerJoin(plataformas, eq(cronograma.id_plataforma, plataformas.id_plataforma))
     .where(eq(cronograma.estado_turno, "ACTIVO"));
 
-  const cola = await db
-    .select({
-      id_turno:       cronograma.id_turno,
-      nombre_usuario: usuarios.nombre,
-      orden:          cronograma.orden,
-      foto:           usuarios.foto,
-    })
-    .from(cronograma)
-    .innerJoin(usuarios, eq(cronograma.id_usuario, usuarios.id_usuario))
-    .where(eq(cronograma.estado_turno, "EN_ESPERA"))
-    .orderBy(asc(cronograma.orden));
+  // Cola separada por plataforma — el drag-and-drop no mezcla plataformas.
+  const colasPromises = PLATAFORMAS_LIST.map((pla) =>
+    db
+      .select({
+        id_turno:       cronograma.id_turno,
+        nombre_usuario: usuarios.nombre,
+        orden:          cronograma.orden,
+        foto:           usuarios.foto,
+      })
+      .from(cronograma)
+      .innerJoin(usuarios, eq(cronograma.id_usuario, usuarios.id_usuario))
+      .where(and(
+        eq(cronograma.estado_turno, "EN_ESPERA"),
+        eq(cronograma.id_plataforma, pla.id),
+      ))
+      .orderBy(asc(cronograma.orden))
+  );
+
+  const [colaJoven, colaGeneral] = await Promise.all(colasPromises);
+
+  const colas = [
+    { plataforma: PLATAFORMAS_LIST[0], items: colaJoven   },
+    { plataforma: PLATAFORMAS_LIST[1], items: colaGeneral },
+  ];
 
   return (
     <main className="space-y-6 px-4 pt-8 pb-6">
@@ -90,22 +104,40 @@ export default async function AdminTurnosPage(props: {
         <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-mid">
           Agregar a la cola
         </p>
-        <form action={agregarACola} className="flex gap-3">
-          <select
-            name="id_usuario"
-            required
-            className="flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
-          >
-            <option value="">— Seleccionar ministro —</option>
-            {listaUsuarios.map((u) => (
-              <option key={u.id_usuario} value={u.id_usuario}>
-                {u.nombre}
-              </option>
+        <form action={agregarACola} className="flex flex-col gap-3">
+          {/* Selector de plataforma */}
+          <div className="flex gap-2">
+            {PLATAFORMAS_LIST.map((pla, i) => (
+              <label key={pla.id} className="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-mark bg-input px-4 py-3 text-sm has-[:checked]:border-violet-500 has-[:checked]:bg-violet-500/10 has-[:checked]:text-violet-600">
+                <input
+                  type="radio"
+                  name="id_plataforma"
+                  value={pla.id}
+                  defaultChecked={i === 0}
+                  className="accent-violet-600"
+                />
+                {pla.nombre}
+              </label>
             ))}
-          </select>
-          <Button type="submit" className="shrink-0">
-            Agregar
-          </Button>
+          </div>
+
+          <div className="flex gap-3">
+            <select
+              name="id_usuario"
+              required
+              className="flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
+            >
+              <option value="">— Seleccionar ministro —</option>
+              {listaUsuarios.map((u) => (
+                <option key={u.id_usuario} value={u.id_usuario}>
+                  {u.nombre}
+                </option>
+              ))}
+            </select>
+            <Button type="submit" className="shrink-0">
+              Agregar
+            </Button>
+          </div>
         </form>
       </div>
 
@@ -146,17 +178,23 @@ export default async function AdminTurnosPage(props: {
         )}
       </section>
 
-      {/* ── Cola de espera ────────────────────────────────────────────── */}
-      <section className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-mid">Cola de Espera</h2>
-        <p className="-mt-1 text-[11px] text-lo">Arrastrá para reordenar quién sigue.</p>
-        <ColaTurnos
-          turnos={cola}
-          onReordenar={reordenarCola}
-          onActivar={marcarActivo}
-          onQuitar={quitarTurno}
-        />
-      </section>
+      {/* ── Colas por plataforma ──────────────────────────────────────── */}
+      {colas.map(({ plataforma, items }) => (
+        <section key={plataforma.id} className="space-y-3">
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-mid">
+              Cola — {plataforma.nombre}
+            </h2>
+            <p className="mt-0.5 text-[11px] text-lo">Arrastrá para reordenar quién sigue.</p>
+          </div>
+          <ColaTurnos
+            turnos={items}
+            onReordenar={reordenarCola}
+            onActivar={marcarActivo}
+            onQuitar={quitarTurno}
+          />
+        </section>
+      ))}
 
     </main>
   );

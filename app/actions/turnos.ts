@@ -37,14 +37,16 @@ export async function agregarACola(formData: FormData) {
     const id_usuario = Number(formData.get("id_usuario"));
     if (!id_usuario) return;
 
+    // El admin elige la plataforma explícitamente en el form.
+    // Si no viene (llamada programática), cae al valor de la cookie.
+    const fromForm = resolverPlataforma(formData.get("id_plataforma") as string | undefined);
     const jar = await cookies();
-    const id_plataforma = resolverPlataforma(jar.get("plataforma_activa")?.value) ?? PLATAFORMA_IDS.general;
+    const id_plataforma = fromForm ?? resolverPlataforma(jar.get("plataforma_activa")?.value) ?? PLATAFORMA_IDS.general;
 
-    // Se agrega al final de la cola de esa plataforma.
     const [{ max } = { max: 0 }] = await db
       .select({ max: sql<number>`COALESCE(MAX(${cronograma.orden}), 0)` })
       .from(cronograma)
-      .where(eq(cronograma.id_plataforma, id_plataforma));
+      .where(and(eq(cronograma.id_plataforma, id_plataforma), eq(cronograma.estado_turno, "EN_ESPERA")));
 
     await db.insert(cronograma).values({
       id_usuario,
