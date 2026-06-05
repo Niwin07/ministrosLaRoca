@@ -34,3 +34,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# claude code memory
+.claude/
+
+# material de referencia (PDFs de canciones)
+canciones/
+*.pdf

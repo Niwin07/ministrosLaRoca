@@ -9,6 +9,7 @@
     "lint": "next lint",
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
     "db:seed-canciones": "tsx --env-file=.env.local scripts/seed-canciones.ts",
+    "db:seed-canciones-esp": "tsx --env-file=.env.local scripts/seed-canciones-esp.ts",
     "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts"
   },
   "dependencies": {
