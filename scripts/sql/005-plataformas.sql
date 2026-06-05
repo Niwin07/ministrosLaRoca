@@ -1,11 +1,12 @@
 -- ============================================================================
 -- 005-plataformas.sql
 -- Divide la app en dos plataformas: Remanentes (joven) y Plataforma General.
--- Turnos y listas quedan scoped por plataforma; el catálogo de canciones y los
--- roles de usuario son globales (sin cambios).
+-- Turnos y listas quedan scoped por plataforma; catálogo y roles son globales.
 --
--- Idempotente: usa IF NOT EXISTS / IF EXISTS para tolerar re-ejecuciones
--- parciales. Probado contra MySQL 8.0 (Aiven).
+-- Nota: ADD COLUMN IF NOT EXISTS no existe en MySQL (solo en MariaDB).
+-- La idempotencia de re-ejecución la maneja el runner: si el archivo ya
+-- aplicó el ADD COLUMN, el segundo intento falla con ER_DUP_FIELDNAME y
+-- el runner lo saltea (ver scripts/migrate.ts).
 -- ============================================================================
 SET NAMES utf8mb4;
 
@@ -33,36 +34,35 @@ CREATE TABLE IF NOT EXISTS usuario_plataforma (
 );
 
 -- ── 3. Columna id_plataforma en playlists ────────────────────────────────────
--- Datos históricos se asignan a Plataforma General (id = 2).
+-- Datos históricos quedan en Plataforma General (id = 2).
 ALTER TABLE playlists
-  ADD COLUMN IF NOT EXISTS id_plataforma INT NOT NULL DEFAULT 2;
+  ADD COLUMN id_plataforma INT NOT NULL DEFAULT 2;
 
 ALTER TABLE playlists
-  ADD CONSTRAINT IF NOT EXISTS fk_playlists_plataforma
+  ADD CONSTRAINT fk_playlists_plataforma
     FOREIGN KEY (id_plataforma) REFERENCES plataformas(id_plataforma);
 
--- ── 4. Columna id_plataforma en cronograma ───────────────────────────────────
--- La columna virtual activo_unico debe rehacerse para garantizar un solo ACTIVO
--- POR PLATAFORMA (antes era uno solo global). Orden: drop índice → drop columna
--- virtual → agregar id_plataforma → recrear columna virtual con la nueva
--- expresión → recrear índice único.
-ALTER TABLE cronograma DROP INDEX  IF EXISTS uq_un_solo_activo;
-ALTER TABLE cronograma DROP COLUMN IF EXISTS activo_unico;
+-- ── 4. Rehacemos activo_unico en cronograma ───────────────────────────────────
+-- Antes garantizaba un único ACTIVO global; ahora debe ser uno por plataforma.
+-- Orden obligatorio: drop índice → drop columna virtual → agregar id_plataforma
+-- → recrear columna virtual con nueva expresión → recrear índice.
+ALTER TABLE cronograma DROP INDEX uq_un_solo_activo;
+ALTER TABLE cronograma DROP COLUMN activo_unico;
 
 ALTER TABLE cronograma
-  ADD COLUMN IF NOT EXISTS id_plataforma INT NOT NULL DEFAULT 2;
+  ADD COLUMN id_plataforma INT NOT NULL DEFAULT 2;
 
 ALTER TABLE cronograma
-  ADD CONSTRAINT IF NOT EXISTS fk_cronograma_plataforma
+  ADD CONSTRAINT fk_cronograma_plataforma
     FOREIGN KEY (id_plataforma) REFERENCES plataformas(id_plataforma);
 
--- Nueva expresión: NULL cuando no activo (múltiples NULLs ≠ duplicados en UNIQUE).
+-- NULL cuando no activo (múltiples NULLs ≠ duplicados en UNIQUE).
 -- id_plataforma cuando activo → un solo ACTIVO por plataforma.
 ALTER TABLE cronograma
-  ADD COLUMN IF NOT EXISTS activo_unico INT
+  ADD COLUMN activo_unico INT
     GENERATED ALWAYS AS (
       CASE WHEN `estado_turno` = 'ACTIVO' THEN `id_plataforma` ELSE NULL END
     ) VIRTUAL;
 
 ALTER TABLE cronograma
-  ADD UNIQUE INDEX IF NOT EXISTS uq_un_solo_activo (activo_unico);
+  ADD UNIQUE INDEX uq_un_solo_activo (activo_unico);
