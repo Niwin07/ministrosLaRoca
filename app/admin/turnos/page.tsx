@@ -6,6 +6,8 @@ import { cronograma, usuarios, plataformas } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq, asc } from "drizzle-orm";
 import { agregarACola, marcarActivo, desactivarActivo, quitarTurno, reordenarCola } from "@/app/actions/turnos";
+import { probarNotificacion } from "@/app/actions/notificaciones";
+import { Bell } from "lucide-react";
 import { ColaTurnos } from "@/components/ColaTurnos";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
@@ -17,6 +19,7 @@ const FEEDBACK: Record<string, string> = {
   activo:      "Usuario marcado como activo.",
   desactivado: "Director desactivado y devuelto a la cola.",
   quitado:     "Turno quitado de la cola.",
+  prueba:      "Notificación de prueba enviada.",
 };
 
 export default async function AdminTurnosPage(props: {
@@ -195,6 +198,35 @@ export default async function AdminTurnosPage(props: {
           />
         </section>
       ))}
+
+      {/* ── Test de notificaciones ───────────────────────────────────── */}
+      <section className="rounded-2xl border border-line bg-card p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Bell size={14} className="text-violet-500" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-mid">
+            Probar notificaciones
+          </p>
+        </div>
+        <p className="mb-4 text-[11px] text-lo">
+          Enviá una notificación de prueba a cualquier usuario para verificar que le llegue al dispositivo.
+        </p>
+        <form action={probarNotificacion} className="flex gap-3">
+          <select
+            name="id_usuario"
+            required
+            className="flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
+          >
+            {listaUsuarios.map((u) => (
+              <option key={u.id_usuario} value={u.id_usuario}>
+                {u.nombre}
+              </option>
+            ))}
+          </select>
+          <Button type="submit" variant="secondary" className="shrink-0" icon={<Bell size={13} />}>
+            Probar
+          </Button>
+        </form>
+      </section>
 
     </main>
   );

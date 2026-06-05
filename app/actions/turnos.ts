@@ -1,13 +1,14 @@
 "use server";
 
 import { db } from "@/db";
-import { cronograma } from "@/db/schema";
+import { cronograma, plataformas } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
 import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
+import { crearNotificacion } from "@/lib/notif";
 
 // Solo ADMINISTRADOR o LÍDER gestionan la cola.
 async function assertGestor(): Promise<void> {
@@ -57,6 +58,20 @@ export async function agregarACola(formData: FormData) {
     });
 
     revalidar();
+
+    // Notificar al ministro agregado (fire & forget)
+    const [plataforma] = await db
+      .select({ nombre: plataformas.nombre })
+      .from(plataformas)
+      .where(eq(plataformas.id_plataforma, id_plataforma))
+      .limit(1);
+
+    crearNotificacion(
+      id_usuario,
+      "TURNO_ASIGNADO",
+      "Te asignaron un turno",
+      `Estás en la cola de ${plataforma?.nombre ?? "la plataforma"}.`,
+    ).catch(() => {});
   } catch (e) {
     errorCola(e, "No se pudo agregar a la cola.");
   }

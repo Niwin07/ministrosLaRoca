@@ -79,15 +79,16 @@ export const cronograma = mysqlTable(
 // ─── Canciones ───────────────────────────────────────────────────────────────
 
 export const canciones = mysqlTable("canciones", {
-  id_cancion:         int("id_cancion").autoincrement().primaryKey(),
-  nombre:             varchar("nombre", { length: 255 }).notNull(),
-  artista:            varchar("artista", { length: 255 }).notNull(),
-  bpm:                int("bpm"),
-  metrica:            varchar("metrica", { length: 10 }),
-  estado_aprobacion:  mysqlEnum("estado_aprobacion", ["APROBADA", "PENDIENTE", "RECHAZADA"]).notNull().default("PENDIENTE"),
-  motivo_rechazo:     text("motivo_rechazo"),
-  letra:              text("letra"),
-  charts:             text("charts"),
+  id_cancion:              int("id_cancion").autoincrement().primaryKey(),
+  nombre:                  varchar("nombre", { length: 255 }).notNull(),
+  artista:                 varchar("artista", { length: 255 }).notNull(),
+  bpm:                     int("bpm"),
+  metrica:                 varchar("metrica", { length: 10 }),
+  estado_aprobacion:       mysqlEnum("estado_aprobacion", ["APROBADA", "PENDIENTE", "RECHAZADA"]).notNull().default("PENDIENTE"),
+  motivo_rechazo:          text("motivo_rechazo"),
+  letra:                   text("letra"),
+  charts:                  text("charts"),
+  id_usuario_sugeridor:    int("id_usuario_sugeridor").references(() => usuarios.id_usuario, { onDelete: "set null" }),
 });
 
 // ─── Playlists ───────────────────────────────────────────────────────────────
@@ -101,6 +102,29 @@ export const playlists = mysqlTable("playlists", {
   estado:             mysqlEnum("estado", ["PREPARACION", "ENSAYO", "DEFINITIVA", "MAZO"]),
   fecha_programada:   datetime("fecha_programada"),
   actualizadoEn:      timestamp("actualizado_en").defaultNow().onUpdateNow(),
+});
+
+// ─── Notificaciones personales ───────────────────────────────────────────────
+
+export const notificaciones = mysqlTable("notificaciones", {
+  id_notificacion: int("id_notificacion").autoincrement().primaryKey(),
+  id_usuario:      int("id_usuario").notNull().references(() => usuarios.id_usuario, { onDelete: "cascade" }),
+  tipo:            mysqlEnum("tipo", ["TURNO_ASIGNADO", "LISTA_PUBLICADA", "CANCION_APROBADA", "CANCION_RECHAZADA", "MENCION"]).notNull(),
+  titulo:          varchar("titulo", { length: 255 }).notNull(),
+  cuerpo:          text("cuerpo").notNull(),
+  leida:           tinyint("leida").notNull().default(0),
+  creadaEn:        timestamp("creada_en").defaultNow(),
+});
+
+// ─── Suscripciones Web Push ───────────────────────────────────────────────────
+
+export const push_suscripciones = mysqlTable("push_suscripciones", {
+  id_suscripcion: int("id_suscripcion").autoincrement().primaryKey(),
+  id_usuario:     int("id_usuario").notNull().references(() => usuarios.id_usuario, { onDelete: "cascade" }),
+  endpoint:       text("endpoint").notNull(),
+  p256dh:         text("p256dh").notNull(),
+  auth_key:       varchar("auth_key", { length: 255 }).notNull(),
+  creadaEn:       timestamp("creada_en").defaultNow(),
 });
 
 // ─── Lista Canciones (Detalle / Pivot) ───────────────────────────────────────

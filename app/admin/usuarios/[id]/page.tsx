@@ -6,13 +6,22 @@ import { db } from "@/db";
 import { usuarios, usuario_plataforma } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { actualizarUsuario, actualizarPlataformasUsuario } from "@/app/actions/usuarios";
+import { enviarMencion } from "@/app/actions/notificaciones";
+import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/Button";
 import { PLATAFORMAS_LIST } from "@/lib/plataforma";
+import { ErrorBanner } from "@/components/ErrorBanner";
+
+const SUCCESS_MSG: Record<string, string> = {
+  mencion: "Mención enviada.",
+};
 
 export default async function EditarUsuarioPage(props: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string; success?: string }>;
 }) {
   const params = await props.params;
+  const sp = await props.searchParams;
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.user.rol !== "ADMINISTRADOR") redirect("/");
@@ -37,6 +46,9 @@ export default async function EditarUsuarioPage(props: {
   const plataformasActivas = new Set(plataformasUsuario.map((p) => p.id_plataforma));
   const principalId = plataformasUsuario.find((p) => p.es_principal)?.id_plataforma ?? null;
 
+  const errorMsg   = typeof sp.error   === "string" ? sp.error   : null;
+  const successMsg = sp.success ? (SUCCESS_MSG[sp.success] ?? null) : null;
+
   return (
     <main className="px-4 pt-8 pb-6 space-y-6">
 
@@ -58,6 +70,13 @@ export default async function EditarUsuarioPage(props: {
           <span className="text-hi">{usuario.nombre}</span>.
         </p>
       </div>
+
+      <ErrorBanner message={errorMsg} />
+      {successMsg && (
+        <div className="rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+          {successMsg}
+        </div>
+      )}
 
       {/* ── Formulario ───────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
@@ -200,6 +219,39 @@ export default async function EditarUsuarioPage(props: {
 
           <Button type="submit" variant="secondary">
             Guardar plataformas
+          </Button>
+        </form>
+      </div>
+
+      {/* ── Enviar mención ───────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
+        <div className="mb-4 flex items-center gap-2">
+          <MessageSquare size={14} className="text-violet-500" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-mid">Enviar notificación</p>
+        </div>
+        <p className="mb-4 text-[11px] text-lo">
+          Enviá un mensaje personalizado al dispositivo de {usuario.nombre}.
+        </p>
+        <form action={enviarMencion} className="flex flex-col gap-3">
+          <input type="hidden" name="id_usuario" value={usuario.id_usuario} />
+          <input
+            name="titulo"
+            type="text"
+            required
+            maxLength={80}
+            placeholder="Título"
+            className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+          />
+          <textarea
+            name="cuerpo"
+            required
+            rows={3}
+            maxLength={300}
+            placeholder="Mensaje…"
+            className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 resize-none"
+          />
+          <Button type="submit" variant="secondary" icon={<MessageSquare size={13} />} className="w-fit">
+            Enviar
           </Button>
         </form>
       </div>

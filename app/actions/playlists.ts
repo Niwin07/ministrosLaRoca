@@ -3,11 +3,12 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { cronograma, lista_canciones, playlists } from "@/db/schema";
+import { cronograma, lista_canciones, playlists, usuario_plataforma, plataformas } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { PLATAFORMA_IDS } from "@/lib/plataforma";
 import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
+import { crearNotificacion } from "@/lib/notif";
 
 async function getPlataformaActiva(): Promise<number> {
   const session = await auth();
@@ -129,6 +130,29 @@ export async function avanzarEstadoPlaylist(
 
   revalidatePath(`/playlists/${id_playlist}`);
   revalidatePath("/playlists");
+
+  // Notificar a todos los usuarios de la plataforma cuando la lista se publica
+  if (nuevoEstado === "ENSAYO" || nuevoEstado === "DEFINITIVA") {
+    const [playlistNombre, plataformaNombre, usuarios] = await Promise.all([
+      db.select({ nombre: playlists.nombre }).from(playlists).where(eq(playlists.id_playlist, id_playlist)).limit(1).then((r) => r[0]?.nombre ?? ""),
+      db.select({ nombre: plataformas.nombre }).from(plataformas).where(eq(plataformas.id_plataforma, playlist.id_plataforma)).limit(1).then((r) => r[0]?.nombre ?? ""),
+      db.select({ id_usuario: usuario_plataforma.id_usuario }).from(usuario_plataforma).where(eq(usuario_plataforma.id_plataforma, playlist.id_plataforma)),
+    ]);
+
+    const etiqueta = nuevoEstado === "ENSAYO" ? "en ensayo" : "definitiva";
+    const promesas = usuarios
+      .filter((u) => u.id_usuario !== session.user.id_usuario)
+      .map((u) =>
+        crearNotificacion(
+          u.id_usuario,
+          "LISTA_PUBLICADA",
+          `Lista ${etiqueta} — ${plataformaNombre}`,
+          `"${playlistNombre}" ya está disponible.`,
+        ).catch(() => {}),
+      );
+
+    Promise.all(promesas).catch(() => {});
+  }
 }
 
 // ── renombrarPlaylist ─────────────────────────────────────────────────────────

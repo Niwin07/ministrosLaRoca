@@ -7,6 +7,7 @@ import { cronograma, playlists, lista_canciones, canciones, usuarios } from "@/d
 import { eq, desc, and, or, sql } from "drizzle-orm";
 import { HeroCard } from "@/components/HeroCard";
 import { Avatar } from "@/components/Avatar";
+import { ActivarNotifBanner } from "@/components/ActivarNotifBanner";
 import { ESTADO_LABEL } from "@/lib/estados";
 import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
 
@@ -112,6 +113,9 @@ export default async function DashboardPage() {
           Hola, {primerNombre}
         </h1>
       </div>
+
+      {/* ── ACTIVAR NOTIF (solo visible si no están activas) ──────── */}
+      <ActivarNotifBanner />
 
       {/* ── HERO ──────────────────────────────────────────────────── */}
       <HeroCard listaActiva={listaActiva} primerNombre={primerNombre} />

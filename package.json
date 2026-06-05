@@ -22,13 +22,15 @@
     "next-auth": "^5.0.0-beta.31",
     "pdfjs-dist": "^6.0.227",
     "react": "^19",
-    "react-dom": "^19"
+    "react-dom": "^19",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.31.10",
     "eslint": "^8",
     "eslint-config-next": "15.5.19",

@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { Settings, LogOut } from "lucide-react";
 import { NavWrapper } from "@/components/NavWrapper";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotifBell } from "@/components/NotifBell";
 import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
 import { PlataformaCookieSetter } from "@/components/PlataformaCookieSetter";
 import { auth, signOut } from "@/auth";
@@ -124,6 +125,7 @@ export default async function RootLayout({
 
             {/* Acciones */}
             <div className="flex items-center">
+              <NotifBell />
               <ThemeToggle tema={tema} />
               {session.user.rol === "ADMINISTRADOR" && (
                 <Link

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, User, KeyRound, Mail, ShieldCheck } from "lucide-react";
+import { ArrowLeft, User, KeyRound, Mail, ShieldCheck, Bell } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { usuarios } from "@/db/schema";
@@ -9,6 +9,7 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
 import { FotoPerfil } from "@/components/FotoPerfil";
 import { actualizarMiNombre, cambiarMiPassword, actualizarMiFoto } from "@/app/actions/perfil";
+import { PushSubscribeButton } from "@/components/PushSubscribeButton";
 
 const ROL_LABEL: Record<string, string> = {
   ADMINISTRADOR: "Administrador",
@@ -20,6 +21,7 @@ const SUCCESS_MSG: Record<string, string> = {
   perfil:   "Perfil actualizado.",
   password: "Contraseña actualizada.",
   foto:     "Foto actualizada.",
+  mencion:  "Mención enviada.",
 };
 
 const inputCls =
@@ -119,6 +121,18 @@ export default async function PerfilPage(props: {
             Guardar nombre
           </Button>
         </form>
+      </section>
+
+      {/* ── Notificaciones push ─────────────────────────────────────── */}
+      <section className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
+        <div className="mb-4 flex items-center gap-2">
+          <Bell size={14} className="text-violet-500" />
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Notificaciones</h2>
+        </div>
+        <p className="mb-4 text-xs text-lo">
+          Recibí alertas en este dispositivo cuando te asignen un turno, se publique una lista o moderen tus canciones.
+        </p>
+        <PushSubscribeButton />
       </section>
 
       {/* ── Cambiar contraseña ───────────────────────────────────────── */}
