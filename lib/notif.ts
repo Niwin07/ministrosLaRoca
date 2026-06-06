@@ -5,7 +5,10 @@ import { eq } from "drizzle-orm";
 
 export type TipoNotif =
   | "TURNO_ASIGNADO"
+  | "TURNO_PROXIMO"
   | "LISTA_PUBLICADA"
+  | "LISTA_RETIRADA"
+  | "CANCION_AGREGADA"
   | "CANCION_APROBADA"
   | "CANCION_RECHAZADA"
   | "MENCION";

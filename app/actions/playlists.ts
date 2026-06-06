@@ -79,7 +79,7 @@ export async function avanzarEstadoPlaylist(
   }
 
   const [playlist] = await db
-    .select({ id_usuario: playlists.id_usuario, tipo: playlists.tipo, id_plataforma: playlists.id_plataforma })
+    .select({ id_usuario: playlists.id_usuario, tipo: playlists.tipo, id_plataforma: playlists.id_plataforma, estado: playlists.estado, nombre: playlists.nombre })
     .from(playlists)
     .where(eq(playlists.id_playlist, id_playlist));
 
@@ -149,6 +149,27 @@ export async function avanzarEstadoPlaylist(
           `Lista ${etiqueta} — ${plataformaNombre}`,
           `"${playlistNombre}" ya está disponible.`,
         ).catch(() => {}),
+      );
+
+    Promise.all(promesas).catch(() => {});
+  }
+
+  // Notificar al equipo cuando la lista vuelve a preparación desde un estado público
+  if (nuevoEstado === "PREPARACION" && (playlist.estado === "ENSAYO" || playlist.estado === "DEFINITIVA")) {
+    const [plataformaNombre, miembros] = await Promise.all([
+      db.select({ nombre: plataformas.nombre }).from(plataformas).where(eq(plataformas.id_plataforma, playlist.id_plataforma)).limit(1).then((r) => r[0]?.nombre ?? ""),
+      db.select({ id_usuario: usuario_plataforma.id_usuario }).from(usuario_plataforma).where(eq(usuario_plataforma.id_plataforma, playlist.id_plataforma)),
+    ]);
+
+    const promesas = miembros
+      .filter((u) => u.id_usuario !== session.user.id_usuario)
+      .map((u) =>
+        crearNotificacion(
+          u.id_usuario,
+          "LISTA_RETIRADA",
+          `Lista en preparación — ${plataformaNombre}`,
+          `"${playlist.nombre}" volvió a preparación.`,
+        ).catch(() => {})
       );
 
     Promise.all(promesas).catch(() => {});

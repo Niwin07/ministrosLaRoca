@@ -171,7 +171,7 @@ export default async function DashboardPage() {
               </Link>
             </div>
             <ul className="divide-y divide-line">
-              {cancionesActivas.map((c) => (
+              {cancionesActivas.map((c, i) => (
                 <li key={c.id_lista_cancion} className="flex items-center gap-3 px-4 py-3">
                   <span className="w-5 shrink-0 text-right text-[11px] font-medium tabular-nums text-gone">
                     {String(c.orden).padStart(2, "0")}
@@ -183,6 +183,15 @@ export default async function DashboardPage() {
                   {c.nota && (
                     <span className="shrink-0 text-sm font-semibold text-violet-600">{c.nota}</span>
                   )}
+                  <Link
+                    href={`/escenario/mazo/${listaActiva.id_playlist}?presentar=${i}`}
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-violet-300 text-violet-600 transition-colors hover:bg-violet-50 active:scale-[0.97] dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950"
+                    title={`Presentar "${c.nombre}"`}
+                  >
+                    <svg className="h-2.5 w-2.5 fill-current" viewBox="0 0 16 16">
+                      <path d="M3 2.5l11 5.5-11 5.5V2.5z" />
+                    </svg>
+                  </Link>
                 </li>
               ))}
             </ul>

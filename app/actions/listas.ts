@@ -1,9 +1,10 @@
 "use server";
 
 import { db } from "@/db";
-import { lista_canciones, playlists } from "@/db/schema";
+import { canciones, lista_canciones, playlists, usuario_plataforma } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { auth } from "@/auth";
+import { crearNotificacion } from "@/lib/notif";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ export async function agregarCancionALista(
 ): Promise<{ id_lista_cancion: number; orden: number }> {
   await assertEditable(id_playlist);
 
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const filas = await tx
       .select({ orden: lista_canciones.orden })
       .from(lista_canciones)
@@ -118,6 +119,44 @@ export async function agregarCancionALista(
 
     return { id_lista_cancion: inserted.id_lista_cancion, orden };
   });
+
+  // Notificar al equipo si la lista ya está publicada (fire & forget)
+  notificarCancionAgregada(id_playlist, id_cancion).catch(() => {});
+
+  return result;
+}
+
+async function notificarCancionAgregada(id_playlist: number, id_cancion: number) {
+  const session = await auth();
+  if (!session?.user) return;
+
+  const [[lista], [cancion]] = await Promise.all([
+    db.select({ estado: playlists.estado, id_plataforma: playlists.id_plataforma, nombre: playlists.nombre })
+      .from(playlists).where(eq(playlists.id_playlist, id_playlist)),
+    db.select({ nombre: canciones.nombre })
+      .from(canciones).where(eq(canciones.id_cancion, id_cancion)),
+  ]);
+
+  if (!lista || (lista.estado !== "ENSAYO" && lista.estado !== "DEFINITIVA")) return;
+  if (!cancion) return;
+
+  const miembros = await db
+    .select({ id_usuario: usuario_plataforma.id_usuario })
+    .from(usuario_plataforma)
+    .where(eq(usuario_plataforma.id_plataforma, lista.id_plataforma));
+
+  await Promise.all(
+    miembros
+      .filter((u) => u.id_usuario !== session.user.id_usuario)
+      .map((u) =>
+        crearNotificacion(
+          u.id_usuario,
+          "CANCION_AGREGADA",
+          "Nueva canción en el setlist",
+          `Se agregó "${cancion.nombre}" a "${lista.nombre}".`,
+        ).catch(() => {})
+      )
+  );
 }
 
 /**
