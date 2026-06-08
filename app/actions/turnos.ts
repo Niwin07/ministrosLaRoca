@@ -108,6 +108,32 @@ export async function marcarActivo(formData: FormData) {
     });
 
     revalidar();
+
+    // Notificar al siguiente en la cola (fire & forget)
+    const [siguiente] = await db
+      .select({ id_usuario: cronograma.id_usuario })
+      .from(cronograma)
+      .where(and(
+        eq(cronograma.estado_turno, "EN_ESPERA"),
+        eq(cronograma.id_plataforma, turno.id_plataforma),
+      ))
+      .orderBy(cronograma.orden)
+      .limit(1);
+
+    if (siguiente) {
+      const [plat] = await db
+        .select({ nombre: plataformas.nombre })
+        .from(plataformas)
+        .where(eq(plataformas.id_plataforma, turno.id_plataforma))
+        .limit(1);
+
+      crearNotificacion(
+        siguiente.id_usuario,
+        "TURNO_PROXIMO",
+        "Tu turno se acerca",
+        `Sos el próximo en la cola de ${plat?.nombre ?? "la plataforma"}.`,
+      ).catch(() => {});
+    }
   } catch (e) {
     errorCola(e, "No se pudo marcar al ministro como activo.");
   }

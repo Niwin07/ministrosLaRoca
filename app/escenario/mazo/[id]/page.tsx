@@ -7,13 +7,18 @@ import { LectorEscenario } from "@/components/LectorEscenario";
 
 export default async function EscenarioMazoPage(props: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ presentar?: string }>;
 }) {
-  const params = await props.params;
+  const [params, searchParams] = await Promise.all([props.params, props.searchParams]);
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const id = Number(params.id);
   if (isNaN(id)) notFound();
+
+  const indiceInicial = searchParams.presentar !== undefined
+    ? Math.max(0, Number(searchParams.presentar) || 0)
+    : undefined;
 
   const rows = await db
     .select({
@@ -46,10 +51,15 @@ export default async function EscenarioMazoPage(props: {
       charts:           r.charts,
     }));
 
+  const indiceSeguro = indiceInicial !== undefined
+    ? Math.min(indiceInicial, items.length - 1)
+    : undefined;
+
   return (
     <LectorEscenario
       nombre_lista={rows[0].nombre_lista}
       canciones={items}
+      indiceInicial={indiceSeguro}
     />
   );
 }

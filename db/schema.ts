@@ -109,7 +109,7 @@ export const playlists = mysqlTable("playlists", {
 export const notificaciones = mysqlTable("notificaciones", {
   id_notificacion: int("id_notificacion").autoincrement().primaryKey(),
   id_usuario:      int("id_usuario").notNull().references(() => usuarios.id_usuario, { onDelete: "cascade" }),
-  tipo:            mysqlEnum("tipo", ["TURNO_ASIGNADO", "LISTA_PUBLICADA", "CANCION_APROBADA", "CANCION_RECHAZADA", "MENCION"]).notNull(),
+  tipo:            mysqlEnum("tipo", ["TURNO_ASIGNADO", "TURNO_PROXIMO", "LISTA_PUBLICADA", "LISTA_RETIRADA", "CANCION_AGREGADA", "CANCION_APROBADA", "CANCION_RECHAZADA", "MENCION"]).notNull(),
   titulo:          varchar("titulo", { length: 255 }).notNull(),
   cuerpo:          text("cuerpo").notNull(),
   leida:           tinyint("leida").notNull().default(0),

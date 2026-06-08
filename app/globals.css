@@ -47,6 +47,10 @@ details > summary::-webkit-details-marker {
   display: none;
 }
 
+/* ── Scrollbar oculta (scroll funciona, barra invisible) ─────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* ── Accesibilidad: respeta la preferencia de menos movimiento ─── */
 @media (prefers-reduced-motion: reduce) {
   *,

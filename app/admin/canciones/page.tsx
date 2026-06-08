@@ -30,13 +30,21 @@ export default async function AdminCancionesPage(props: {
   return (
     <main className="flex flex-col gap-6 px-4 pt-8 pb-6">
 
-      <Link
-        href="/canciones"
-        className="inline-flex items-center gap-1.5 text-xs text-lo transition-colors hover:text-hi"
-      >
-        <ArrowLeft size={13} />
-        Catálogo
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link
+          href="/canciones"
+          className="inline-flex items-center gap-1.5 text-xs text-lo transition-colors hover:text-hi"
+        >
+          <ArrowLeft size={13} />
+          Catálogo
+        </Link>
+        <Link
+          href="/admin/estadisticas"
+          className="inline-flex items-center gap-1.5 text-xs text-violet-600/70 transition-colors hover:text-violet-600"
+        >
+          Estadísticas →
+        </Link>
+      </div>
 
       <div className="flex items-center gap-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/10">
