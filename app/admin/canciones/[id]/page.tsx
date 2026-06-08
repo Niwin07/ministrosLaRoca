@@ -7,9 +7,10 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { CargarCancion } from "@/components/CargarCancion";
 import { ErrorBanner } from "@/components/ErrorBanner";
-import { actualizarCancion, eliminarCancion } from "@/app/actions/canciones";
+import { actualizarCancion } from "@/app/actions/canciones";
 import { METRICAS } from "@/lib/metricas";
 import { Button } from "@/components/Button";
+import { EliminarCancionButton } from "@/components/EliminarCancionButton";
 
 export default async function EditarCancionPage(props: {
   params: Promise<{ id: string }>;
@@ -92,20 +93,7 @@ export default async function EditarCancionPage(props: {
           <p className="mt-1 text-xs text-lo">
             Eliminar borra la canción permanentemente. Solo es posible si no está en ninguna lista.
           </p>
-          <form action={eliminarCancion} className="mt-3">
-            <input type="hidden" name="id_cancion" value={c.id_cancion} />
-            <button
-              type="submit"
-              onClick={(e) => {
-                if (!confirm(`¿Eliminar "${c.nombre}" del catálogo? Esta acción no se puede deshacer.`)) {
-                  e.preventDefault();
-                }
-              }}
-              className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-500/20 dark:text-red-400"
-            >
-              Eliminar canción
-            </button>
-          </form>
+          <EliminarCancionButton id={c.id_cancion} nombre={c.nombre} />
         </div>
       )}
     </main>
