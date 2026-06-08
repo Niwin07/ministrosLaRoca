@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { canciones } from "@/db/schema";
+import { canciones, lista_canciones } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { crearNotificacion } from "@/lib/notif";
 import { revalidatePath } from "next/cache";
@@ -94,6 +94,41 @@ export async function actualizarCancion(formData: FormData): Promise<void> {
     );
   }
   redirect("/canciones?editada=1");
+}
+
+/**
+ * Elimina una canción del catálogo. Solo ADMINISTRADOR.
+ * Falla si la canción está incluida en alguna lista.
+ */
+export async function eliminarCancion(formData: FormData): Promise<void> {
+  const id_cancion = Number(formData.get("id_cancion"));
+  try {
+    const session = await auth();
+    if (!session?.user) throw new Error("No autenticado.");
+    if (session.user.rol !== "ADMINISTRADOR") throw new Error("Sin permisos para eliminar canciones.");
+    if (!id_cancion) throw new Error("ID de canción inválido.");
+
+    const usos = await db
+      .select({ id: lista_canciones.id_lista_cancion })
+      .from(lista_canciones)
+      .where(eq(lista_canciones.id_cancion, id_cancion))
+      .limit(1);
+
+    if (usos.length > 0) {
+      throw new Error("No se puede eliminar: la canción está en una o más listas. Quitála de todas las listas primero.");
+    }
+
+    await db.delete(canciones).where(eq(canciones.id_cancion, id_cancion));
+    revalidatePath("/canciones");
+    revalidatePath("/admin/canciones");
+  } catch (e) {
+    redirect(
+      `/admin/canciones/${id_cancion}?error=${encodeURIComponent(
+        e instanceof Error ? e.message : "No se pudo eliminar la canción."
+      )}`
+    );
+  }
+  redirect("/admin/canciones?eliminada=1");
 }
 
 /**

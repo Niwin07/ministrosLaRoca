@@ -11,14 +11,15 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
 
 export default async function AdminCancionesPage(props: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; eliminada?: string }>;
 }) {
   const searchParams = await props.searchParams;
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.user.rol !== "ADMINISTRADOR" && session.user.rol !== "LIDER") redirect("/");
 
-  const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
+  const errorMsg   = typeof searchParams.error    === "string" ? searchParams.error    : null;
+  const eliminada  = searchParams.eliminada === "1";
 
   const pendientes = await db
     .select()
@@ -59,6 +60,12 @@ export default async function AdminCancionesPage(props: {
       </div>
 
       <ErrorBanner message={errorMsg} />
+      {eliminada && (
+        <div className="flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3">
+          <Check size={13} className="text-green-600 dark:text-green-400" />
+          <span className="text-xs font-medium text-green-700 dark:text-green-400">Canción eliminada correctamente.</span>
+        </div>
+      )}
 
       {pendientes.length === 0 ? (
         <p className="rounded-2xl border border-line bg-card px-5 py-10 text-center text-sm text-lo">
