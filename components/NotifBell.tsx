@@ -93,7 +93,7 @@ export function NotifBell() {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref}>
       <button
         onClick={abrir}
         aria-label={`Notificaciones${noLeidas > 0 ? ` (${noLeidas} nuevas)` : ""}`}
