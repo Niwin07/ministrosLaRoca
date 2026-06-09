@@ -124,7 +124,7 @@ export default async function RootLayout({
             )}
 
             {/* Acciones */}
-            <div className="flex items-center">
+            <div className="relative flex items-center">
               <NotifBell />
               <ThemeToggle tema={tema} />
               {session.user.rol === "ADMINISTRADOR" && (
