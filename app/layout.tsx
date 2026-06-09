@@ -100,7 +100,7 @@ export default async function RootLayout({
 
         {/* ── Header ───────────────────────────────────────────────────── */}
         {session?.user && (
-          <header className="sticky top-0 z-50 mx-auto flex w-full max-w-md items-center justify-between border-b border-line/60 bg-base/95 px-4 py-2 backdrop-blur-xl animate-fade-in-down" style={{ paddingLeft: "max(1rem, env(safe-area-inset-left))", paddingRight: "max(1rem, env(safe-area-inset-right))" }}>
+          <header className="sticky top-0 z-50 mx-auto flex w-full max-w-md items-center justify-between border-b border-line/60 bg-base/95 px-4 py-2 backdrop-blur-xl animate-fade-in-down" style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "max(1rem, env(safe-area-inset-left))", paddingRight: "max(1rem, env(safe-area-inset-right))" }}>
 
             {/* Avatar — enlace al perfil */}
             <Link
