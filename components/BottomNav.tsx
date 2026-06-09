@@ -45,7 +45,8 @@ export function BottomNav({ rol }: { rol?: string }) {
     <div className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2">
       <nav
         aria-label="Navegación principal"
-        className="flex items-center justify-around border-t-[1.5px] border-line bg-base/95 px-4 pb-5 pt-2 backdrop-blur-xl"
+        style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
+        className="flex items-center justify-around border-t-[1.5px] border-line bg-base/95 px-4 pt-2 backdrop-blur-xl"
       >
         {items.map((item) => {
           const isActive =
