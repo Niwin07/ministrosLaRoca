@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { Search, Music2, ChevronDown, X, Pencil, SlidersHorizontal } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, Music2, ChevronDown, ChevronLeft, ChevronRight, X, Pencil, SlidersHorizontal } from "lucide-react";
 import { ChartViewerInteractivo } from "@/components/ChartViewerInteractivo";
 import { LyricViewer } from "@/components/LyricViewer";
 
@@ -30,6 +30,9 @@ export function CatalogoCanciones({
   const [metrica, setMetrica]           = useState("");
   const [contenido, setContenido]       = useState<FiltroContenido>(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [pagina, setPagina]             = useState(1);
+
+  const POR_PAGINA = 15;
 
   const artistas = useMemo(
     () => [...new Set(canciones.map((c) => c.artista))].sort(),
@@ -68,6 +71,12 @@ export function CatalogoCanciones({
 
     return lista;
   }, [canciones, q, artista, metrica, contenido]);
+
+  // Resetear a página 1 cada vez que cambien los filtros
+  useEffect(() => { setPagina(1); }, [q, artista, metrica, contenido]);
+
+  const totalPaginas = Math.ceil(filtradas.length / POR_PAGINA);
+  const paginadas    = filtradas.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   const botonEditar = (id: number) =>
     puedeEditar ? (
@@ -222,7 +231,7 @@ export function CatalogoCanciones({
         </p>
       ) : (
         <ul className="flex flex-col gap-1.5">
-          {filtradas.map((c) => {
+          {paginadas.map((c) => {
             const tieneDetalle = Boolean(c.letra || c.charts);
             const meta = (
               <div className="flex shrink-0 items-center gap-1.5">
@@ -296,6 +305,33 @@ export function CatalogoCanciones({
             );
           })}
         </ul>
+      )}
+
+      {/* ── Paginación ──────────────────────────────────────────────── */}
+      {totalPaginas > 1 && (
+        <div className="flex items-center justify-center gap-4 pt-1">
+          <button
+            type="button"
+            disabled={pagina === 1}
+            onClick={() => setPagina((p) => p - 1)}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-card text-lo transition-colors hover:border-mark hover:text-hi disabled:pointer-events-none disabled:opacity-30"
+            aria-label="Página anterior"
+          >
+            <ChevronLeft size={15} />
+          </button>
+          <span className="text-xs tabular-nums text-lo">
+            {pagina} <span className="text-gone">/</span> {totalPaginas}
+          </span>
+          <button
+            type="button"
+            disabled={pagina === totalPaginas}
+            onClick={() => setPagina((p) => p + 1)}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-card text-lo transition-colors hover:border-mark hover:text-hi disabled:pointer-events-none disabled:opacity-30"
+            aria-label="Página siguiente"
+          >
+            <ChevronRight size={15} />
+          </button>
+        </div>
       )}
     </div>
   );
