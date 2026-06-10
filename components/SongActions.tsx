@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { MoreVertical, Trash2, Music2 } from "lucide-react";
-import { NOTAS } from "@/lib/notas";
+import { TonoSelect } from "@/components/TonoSelect";
 import { Button } from "@/components/Button";
 
 interface SongActionsProps {
@@ -58,18 +58,8 @@ export function SongActions({
               className="px-3 py-3"
             >
               <input type="hidden" name="id_lista_cancion" value={item.id_lista_cancion} />
-              <select
-                name="nota"
-                defaultValue={item.nota ?? ""}
-                autoFocus
-                className="mb-2 w-full rounded-lg border border-mark bg-input px-3 py-1.5 text-sm text-hi outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 [&>option]:bg-card"
-              >
-                <option value="">Sin tono</option>
-                {NOTAS.map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
-              <Button type="submit" size="sm" shape="block" fullWidth>
+              <TonoSelect name="nota" defaultValue={item.nota} />
+              <Button type="submit" size="sm" shape="block" fullWidth className="mt-2">
                 Guardar
               </Button>
             </form>
