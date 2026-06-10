@@ -8,14 +8,11 @@ import type { CancionImportada } from "@/lib/importar-cancion";
 interface Props {
   defaultLetra?:  string;
   defaultCharts?: string;
+  nombre?:        string;
+  artista?:       string;
 }
 
-/**
- * Une el importador (pegar / archivo / PDF) con los dos editores guiados.
- * Los <textarea> internos llevan name="letra" y name="charts", así el form
- * server-side recibe el contenido al enviar.
- */
-export function CargarCancion({ defaultLetra = "", defaultCharts = "" }: Props) {
+export function CargarCancion({ defaultLetra = "", defaultCharts = "", nombre = "", artista = "" }: Props) {
   const [letra, setLetra]   = useState(defaultLetra);
   const [charts, setCharts] = useState(defaultCharts);
 
@@ -26,7 +23,7 @@ export function CargarCancion({ defaultLetra = "", defaultCharts = "" }: Props) 
 
   return (
     <div className="flex flex-col gap-4">
-      <ImportadorCancion onImport={handleImport} />
+      <ImportadorCancion onImport={handleImport} nombre={nombre} artista={artista} />
 
       <EditorContenido
         name="letra"
@@ -42,7 +39,7 @@ export function CargarCancion({ defaultLetra = "", defaultCharts = "" }: Props) 
         label="Acordes / charts"
         value={charts}
         onChange={setCharts}
-        placeholder="Cifra Nashville: 1  4  5  6m …"
+        placeholder="Acordes reales (G  Am  F  C) o Nashville (1  4  6m  5)…"
       />
     </div>
   );
