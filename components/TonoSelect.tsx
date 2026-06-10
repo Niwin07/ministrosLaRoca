@@ -75,7 +75,7 @@ export function TonoSelect({ name, defaultValue, placeholder = "Tono (opcional)â
             </div>
 
             {/* Contenido scrolleable */}
-            <div className="overflow-y-auto px-5 pb-10">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-10">
               {/* Sin tono */}
               <button
                 type="button"
