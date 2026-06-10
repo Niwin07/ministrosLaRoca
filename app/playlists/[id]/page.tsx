@@ -8,6 +8,7 @@ import { SortableSongList } from "@/components/SortableSongList";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
 import { StepperPill } from "@/components/StepperPill";
+import { TonoSelect } from "@/components/TonoSelect";
 import { auth } from "@/auth";
 import {
   agregarCancionALista,
@@ -17,7 +18,6 @@ import {
 } from "@/app/actions/listas";
 import { clonarMazo, avanzarEstadoPlaylist } from "@/app/actions/playlists";
 import { ESTADO_LABEL, ESTADO_DESC, ESTADO_NEXT_HINT } from "@/lib/estados";
-import { NOTAS } from "@/lib/notas";
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
@@ -441,18 +441,8 @@ export default async function PlaylistDetailPage(props: {
               </select>
 
               <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Music2 size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 z-10 text-lo" />
-                  <select
-                    name="nota"
-                    defaultValue=""
-                    className="w-full rounded-xl border border-mark bg-input pl-8 pr-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
-                  >
-                    <option value="">Tono (opcional)…</option>
-                    {NOTAS.map((n) => (
-                      <option key={n} value={n}>{n}</option>
-                    ))}
-                  </select>
+                <div className="flex-1">
+                  <TonoSelect name="nota" />
                 </div>
                 <input
                   name="orden"
