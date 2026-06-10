@@ -136,10 +136,10 @@ function SortableRow({
       }}
       whileDrag={{ scale: 1.02 }}
       transition={{ type: "spring", stiffness: 600, damping: 40 }}
-      className={`overflow-hidden rounded-2xl border bg-card ${
+      className={`overflow-hidden rounded-2xl border bg-card transition-shadow ${
         arrastrando
           ? "z-10 border-violet-500/50 shadow-xl shadow-black/25 dark:shadow-black/60"
-          : "border-line shadow-card dark:shadow-none"
+          : "border-line border-l-[3px] border-l-violet-500/35 shadow-card dark:shadow-none"
       }`}
     >
       {/* Fila principal */}
@@ -160,7 +160,7 @@ function SortableRow({
             <GripVertical size={16} />
           </button>
         )}
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-input text-[10px] font-bold text-violet-600">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-500/[.12] text-[10px] font-bold text-violet-600 dark:text-violet-400">
           {String(posicion).padStart(2, "0")}
         </span>
         <div className="min-w-0 flex-1">
@@ -168,7 +168,9 @@ function SortableRow({
           <p className="mt-0.5 truncate text-xs text-lo">{item.artista}</p>
         </div>
         {item.nota && (
-          <span className="shrink-0 text-sm font-semibold text-violet-600">{item.nota}</span>
+          <span className="shrink-0 rounded-md border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[11px] font-bold tracking-wide text-violet-600 dark:text-violet-400">
+            {item.nota}
+          </span>
         )}
         {puedeEditar && (
           <SongActions

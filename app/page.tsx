@@ -181,7 +181,9 @@ export default async function DashboardPage() {
                     <p className="text-[11px] text-lo">{c.artista}</p>
                   </div>
                   {c.nota && (
-                    <span className="shrink-0 text-sm font-semibold text-violet-600">{c.nota}</span>
+                    <span className="shrink-0 rounded-md border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[11px] font-bold tracking-wide text-violet-600 dark:text-violet-400">
+                      {c.nota}
+                    </span>
                   )}
                   <Link
                     href={`/escenario/mazo/${listaActiva.id_playlist}?presentar=${i}`}
