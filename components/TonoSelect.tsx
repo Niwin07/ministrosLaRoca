@@ -58,11 +58,12 @@ export function TonoSelect({ name, defaultValue, placeholder = "Tono (opcional)‚
           onMouseDown={() => setOpen(false)}
         >
           <div
-            className="mx-auto w-full max-w-md rounded-t-3xl border-t border-line bg-base px-5 pb-10 pt-5 shadow-2xl"
+            className="mx-auto flex w-full max-w-md flex-col rounded-t-3xl border-t border-line bg-base shadow-2xl"
+            style={{ maxHeight: "85dvh" }}
             onMouseDown={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="mb-4 flex items-center justify-between">
+            {/* Header fijo */}
+            <div className="flex shrink-0 items-center justify-between px-5 pb-4 pt-5">
               <p className="text-sm font-semibold text-hi">Eleg√≠ el tono</p>
               <button
                 type="button"
@@ -73,34 +74,37 @@ export function TonoSelect({ name, defaultValue, placeholder = "Tono (opcional)‚
               </button>
             </div>
 
-            {/* Sin tono */}
-            <button
-              type="button"
-              onClick={() => elegir("")}
-              className={`mb-4 w-full rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
-                !selected
-                  ? "border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-400"
-                  : "border-line bg-card text-lo hover:bg-input"
-              }`}
-            >
-              Sin tono
-            </button>
+            {/* Contenido scrolleable */}
+            <div className="overflow-y-auto px-5 pb-10">
+              {/* Sin tono */}
+              <button
+                type="button"
+                onClick={() => elegir("")}
+                className={`mb-4 w-full rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
+                  !selected
+                    ? "border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                    : "border-line bg-card text-lo hover:bg-input"
+                }`}
+              >
+                Sin tono
+              </button>
 
-            {/* Grupos de notas */}
-            {GRUPOS.map(({ label, notas }) => (
-              <div key={label} className="mb-4">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gone">
-                  {label}
-                </p>
-                <div className="grid grid-cols-4 gap-2">
-                  {notas.map((nota) => (
-                    <button key={nota} type="button" onClick={() => elegir(nota)} className={pillCls(nota)}>
-                      {nota}
-                    </button>
-                  ))}
+              {/* Grupos de notas */}
+              {GRUPOS.map(({ label, notas }) => (
+                <div key={label} className="mb-4">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gone">
+                    {label}
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {notas.map((nota) => (
+                      <button key={nota} type="button" onClick={() => elegir(nota)} className={pillCls(nota)}>
+                        {nota}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}
