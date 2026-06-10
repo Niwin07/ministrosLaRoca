@@ -47,6 +47,9 @@ CONVENCIONES DEL SISTEMA:
 - En "letra": encabezado [Sección] seguido de las estrofas
 - Separar secciones con línea en blanco
 - No incluir metadatos (CCLI, copyright, autores, URLs)
+- IMPORTANTE — repeticiones: la PRIMERA vez que aparece una sección escribís el contenido completo.
+  Si esa misma sección se repite después, escribís SOLO el encabezado (ej: [Coro]) sin repetir el texto.
+  Esto aplica tanto a letra como a charts.
 
 ${seccionLetra}
 
