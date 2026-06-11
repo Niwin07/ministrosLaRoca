@@ -1,10 +1,12 @@
 import { notFound, redirect } from "next/navigation";
-import { and, desc, eq, isNotNull, ne } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { and, asc, desc, eq, isNotNull, ne } from "drizzle-orm";
 import { ArrowLeft, Music2, PlusCircle, Copy, Tv2 } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/db";
-import { canciones, cronograma, lista_canciones, playlists } from "@/db/schema";
+import { canciones, cronograma, lista_canciones, lista_comentarios, playlists, usuarios } from "@/db/schema";
 import { SortableSongList } from "@/components/SortableSongList";
+import type { Comentario } from "@/components/ComentariosCancion";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
 import { StepperPill } from "@/components/StepperPill";
@@ -15,6 +17,8 @@ import {
   eliminarCancionDeLista,
   actualizarNotaCancion,
   reordenarLista,
+  agregarComentario,
+  eliminarComentario,
 } from "@/app/actions/listas";
 import { clonarMazo, avanzarEstadoPlaylist } from "@/app/actions/playlists";
 import { ESTADO_LABEL, ESTADO_DESC, ESTADO_NEXT_HINT } from "@/lib/estados";
@@ -53,6 +57,37 @@ async function getCatalogoAprobado() {
     .from(canciones)
     .where(eq(canciones.estado_aprobacion, "APROBADA"))
     .orderBy(canciones.nombre);
+}
+
+/** Comentarios de todas las canciones de la lista, agrupados por fila. */
+async function getComentarios(id_playlist: number): Promise<Record<number, Comentario[]>> {
+  const rows = await db
+    .select({
+      id_comentario:    lista_comentarios.id_comentario,
+      id_lista_cancion: lista_comentarios.id_lista_cancion,
+      id_usuario:       lista_comentarios.id_usuario,
+      texto:            lista_comentarios.texto,
+      creadoEn:         lista_comentarios.creadoEn,
+      nombre_usuario:   usuarios.nombre,
+    })
+    .from(lista_comentarios)
+    .innerJoin(usuarios, eq(lista_comentarios.id_usuario, usuarios.id_usuario))
+    .innerJoin(lista_canciones, eq(lista_comentarios.id_lista_cancion, lista_canciones.id_lista_cancion))
+    .where(eq(lista_canciones.id_playlist, id_playlist))
+    .orderBy(asc(lista_comentarios.creadoEn));
+
+  const map: Record<number, Comentario[]> = {};
+  for (const r of rows) {
+    (map[r.id_lista_cancion] ??= []).push({
+      id_comentario:    r.id_comentario,
+      id_lista_cancion: r.id_lista_cancion,
+      id_usuario:       r.id_usuario,
+      nombre_usuario:   r.nombre_usuario,
+      texto:            r.texto,
+      creadoEn:         r.creadoEn ? r.creadoEn.toISOString() : null,
+    });
+  }
+  return map;
 }
 
 /** Último tono usado por canción en otras listas EVENTO (la más reciente gana).
@@ -132,10 +167,11 @@ export default async function PlaylistDetailPage(props: {
 
   // Primero traemos la playlist para conocer su id_plataforma, luego buscamos
   // el director activo en ESA plataforma (cada plataforma tiene el suyo).
-  const [rows, catalogo, historialTonos] = await Promise.all([
+  const [rows, catalogo, historialTonos, comentarios] = await Promise.all([
     getPlaylistConCanciones(id),
     getCatalogoAprobado(),
     getHistorialTonos(id),
+    getComentarios(id),
   ]);
 
   if (rows.length === 0) notFound();
@@ -257,6 +293,32 @@ export default async function PlaylistDetailPage(props: {
     } catch (e) {
       redirect(urlError(id, e instanceof Error ? e.message : "No se pudo reordenar la lista."));
     }
+  }
+
+  async function handleComentar(formData: FormData) {
+    "use server";
+    try {
+      const idListaCancion = Number(formData.get("id_lista_cancion"));
+      const texto          = (formData.get("texto") as string) ?? "";
+      await agregarComentario(idListaCancion, texto);
+      // Sin redirect en éxito: revalidamos para que el comentario aparezca y
+      // el cliente pueda resetear el input sin perder el foco de la sección.
+      revalidatePath(`/playlists/${id}`);
+    } catch (e) {
+      redirect(urlError(id, e instanceof Error ? e.message : "No se pudo agregar el comentario."));
+    }
+  }
+
+  async function handleEliminarComentario(formData: FormData) {
+    "use server";
+    let destino = `/playlists/${id}`;
+    try {
+      const idComentario = Number(formData.get("id_comentario"));
+      await eliminarComentario(idComentario);
+    } catch (e) {
+      destino = urlError(id, e instanceof Error ? e.message : "No se pudo borrar el comentario.");
+    }
+    redirect(destino);
   }
 
   async function handleClonar() {
@@ -456,6 +518,11 @@ export default async function PlaylistDetailPage(props: {
               onReordenar={handleReordenar}
               onEliminar={handleEliminar}
               onActualizarNota={handleActualizarNota}
+              comentarios={comentarios}
+              usuarioActualId={id_usuario}
+              puedeModerar={rol === "ADMINISTRADOR" || rol === "LIDER"}
+              onComentar={handleComentar}
+              onEliminarComentario={handleEliminarComentario}
             />
           )}
 

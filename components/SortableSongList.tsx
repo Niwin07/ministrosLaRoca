@@ -6,6 +6,7 @@ import { GripVertical, ChevronDown, Play } from "lucide-react";
 import { ChartViewerInteractivo } from "@/components/ChartViewerInteractivo";
 import { LyricViewer } from "@/components/LyricViewer";
 import { SongActions } from "@/components/SongActions";
+import { ComentariosCancion, type Comentario } from "@/components/ComentariosCancion";
 
 interface SongItem {
   id_lista_cancion: number;
@@ -25,6 +26,12 @@ interface SortableSongListProps {
   onReordenar:      (formData: FormData) => Promise<void>;
   onEliminar:       (formData: FormData) => Promise<void>;
   onActualizarNota: (formData: FormData) => Promise<void>;
+  /** Comentarios agrupados por id_lista_cancion (opcional). */
+  comentarios?:          Record<number, Comentario[]>;
+  usuarioActualId?:      number;
+  puedeModerar?:         boolean;
+  onComentar?:           (formData: FormData) => Promise<void>;
+  onEliminarComentario?: (formData: FormData) => Promise<void>;
 }
 
 export function SortableSongList({
@@ -33,6 +40,11 @@ export function SortableSongList({
   onReordenar,
   onEliminar,
   onActualizarNota,
+  comentarios,
+  usuarioActualId,
+  puedeModerar = false,
+  onComentar,
+  onEliminarComentario,
 }: SortableSongListProps) {
   const [orden, setOrden] = useState<SongItem[]>(items);
   const [guardando, startTransition] = useTransition();
@@ -94,6 +106,11 @@ export function SortableSongList({
           onDragEnd={handleDragEnd}
           onEliminar={onEliminar}
           onActualizarNota={onActualizarNota}
+          comentarios={comentarios?.[item.id_lista_cancion] ?? []}
+          usuarioActualId={usuarioActualId}
+          puedeModerar={puedeModerar}
+          onComentar={onComentar}
+          onEliminarComentario={onEliminarComentario}
         />
       ))}
     </Reorder.Group>
@@ -108,6 +125,11 @@ interface SortableRowProps {
   onDragEnd: () => void;
   onEliminar:       (formData: FormData) => Promise<void>;
   onActualizarNota: (formData: FormData) => Promise<void>;
+  comentarios:           Comentario[];
+  usuarioActualId?:      number;
+  puedeModerar:          boolean;
+  onComentar?:           (formData: FormData) => Promise<void>;
+  onEliminarComentario?: (formData: FormData) => Promise<void>;
 }
 
 function SortableRow({
@@ -118,6 +140,11 @@ function SortableRow({
   onDragEnd,
   onEliminar,
   onActualizarNota,
+  comentarios,
+  usuarioActualId,
+  puedeModerar,
+  onComentar,
+  onEliminarComentario,
 }: SortableRowProps) {
   const controls = useDragControls();
   const [arrastrando, setArrastrando] = useState(false);
@@ -218,6 +245,18 @@ function SortableRow({
             <LyricViewer letra={item.letra} />
           </div>
         </details>
+      )}
+
+      {/* Comentarios colapsables */}
+      {onComentar && onEliminarComentario && usuarioActualId !== undefined && (
+        <ComentariosCancion
+          id_lista_cancion={item.id_lista_cancion}
+          comentarios={comentarios}
+          usuarioActualId={usuarioActualId}
+          puedeModerar={puedeModerar}
+          onComentar={onComentar}
+          onEliminarComentario={onEliminarComentario}
+        />
       )}
     </Reorder.Item>
   );

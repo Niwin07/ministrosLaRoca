@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { canciones, lista_canciones, playlists, usuario_plataforma } from "@/db/schema";
+import { canciones, lista_canciones, lista_comentarios, playlists, usuario_plataforma } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { crearNotificacion } from "@/lib/notif";
@@ -317,4 +317,70 @@ export async function eliminarCancionDeLista(
     "Canción quitada del setlist",
     (lista) => `Se quitó "${registro.nombre_cancion}" de "${lista}".`,
   ).catch(() => {});
+}
+
+// ── Comentarios por canción ───────────────────────────────────────────────────
+// Acuerdos del ensayo ("la arrancamos a capela"). Cualquier usuario autenticado
+// puede comentar; borrar puede el autor o un ADMINISTRADOR/LÍDER.
+
+export async function agregarComentario(
+  id_lista_cancion: number,
+  texto: string
+): Promise<void> {
+  const user = await getUsuario();
+
+  const limpio = texto.trim().slice(0, 500);
+  if (!limpio) throw new Error("El comentario no puede estar vacío.");
+
+  const [registro] = await db
+    .select({
+      id_playlist:    lista_canciones.id_playlist,
+      nombre_cancion: canciones.nombre,
+      owner:          playlists.id_usuario,
+      nombre_lista:   playlists.nombre,
+    })
+    .from(lista_canciones)
+    .innerJoin(playlists, eq(lista_canciones.id_playlist, playlists.id_playlist))
+    .innerJoin(canciones, eq(lista_canciones.id_cancion, canciones.id_cancion))
+    .where(eq(lista_canciones.id_lista_cancion, id_lista_cancion));
+
+  if (!registro) {
+    throw new Error(`Registro ${id_lista_cancion} no encontrado en ninguna lista.`);
+  }
+
+  await db.insert(lista_comentarios).values({
+    id_lista_cancion,
+    id_usuario: user.id_usuario,
+    texto: limpio,
+  });
+
+  // Avisar al dueño de la lista (no a todo el equipo) — fire & forget
+  if (registro.owner !== user.id_usuario) {
+    crearNotificacion(
+      registro.owner,
+      "COMENTARIO",
+      "Nuevo comentario",
+      `${user.name ?? "Alguien"} comentó "${registro.nombre_cancion}" en "${registro.nombre_lista}".`,
+    ).catch(() => {});
+  }
+}
+
+export async function eliminarComentario(id_comentario: number): Promise<void> {
+  const user = await getUsuario();
+
+  const [comentario] = await db
+    .select({ id_usuario: lista_comentarios.id_usuario })
+    .from(lista_comentarios)
+    .where(eq(lista_comentarios.id_comentario, id_comentario));
+
+  if (!comentario) return; // ya borrado — idempotente
+
+  const esAutor = comentario.id_usuario === user.id_usuario;
+  if (!esAutor && user.rol !== "ADMINISTRADOR" && user.rol !== "LIDER") {
+    throw new Error("Solo el autor o un líder pueden borrar este comentario.");
+  }
+
+  await db
+    .delete(lista_comentarios)
+    .where(eq(lista_comentarios.id_comentario, id_comentario));
 }
