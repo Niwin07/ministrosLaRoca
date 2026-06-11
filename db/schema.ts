@@ -88,6 +88,8 @@ export const canciones = mysqlTable("canciones", {
   motivo_rechazo:          text("motivo_rechazo"),
   letra:                   text("letra"),
   charts:                  text("charts"),
+  // URL de referencia (YouTube/Spotify) para ensayar con la versión correcta.
+  link_referencia:         varchar("link_referencia", { length: 500 }),
   id_usuario_sugeridor:    int("id_usuario_sugeridor").references(() => usuarios.id_usuario, { onDelete: "set null" }),
 });
 
@@ -109,7 +111,7 @@ export const playlists = mysqlTable("playlists", {
 export const notificaciones = mysqlTable("notificaciones", {
   id_notificacion: int("id_notificacion").autoincrement().primaryKey(),
   id_usuario:      int("id_usuario").notNull().references(() => usuarios.id_usuario, { onDelete: "cascade" }),
-  tipo:            mysqlEnum("tipo", ["TURNO_ASIGNADO", "TURNO_PROXIMO", "LISTA_PUBLICADA", "LISTA_RETIRADA", "CANCION_AGREGADA", "CANCION_APROBADA", "CANCION_RECHAZADA", "MENCION"]).notNull(),
+  tipo:            mysqlEnum("tipo", ["TURNO_ASIGNADO", "TURNO_PROXIMO", "LISTA_PUBLICADA", "LISTA_RETIRADA", "CANCION_AGREGADA", "CANCION_QUITADA", "TONO_CAMBIADO", "COMENTARIO", "CANCION_APROBADA", "CANCION_RECHAZADA", "MENCION"]).notNull(),
   titulo:          varchar("titulo", { length: 255 }).notNull(),
   cuerpo:          text("cuerpo").notNull(),
   leida:           tinyint("leida").notNull().default(0),
@@ -141,9 +143,50 @@ export const lista_canciones = mysqlTable(
     id_cancion:       int("id_cancion").notNull().references(() => canciones.id_cancion),
     orden:            int("orden").notNull(),
     nota:             varchar("nota", { length: 10 }),
+    // Timestamps para el indicador "qué cambió desde tu última visita".
+    // Se setean SIEMPRE explícitamente desde las actions (nunca ON UPDATE
+    // automático: reordenarLista actualiza todas las filas y las marcaría
+    // como modificadas). NULL = fila anterior a la feature, sin badge.
+    agregadoEn:          timestamp("agregado_en"),
+    notaActualizadaEn:   timestamp("nota_actualizada_en"),
   },
   (table) => ({
     uq_playlist_orden: uniqueIndex("uq_playlist_orden").on(table.id_playlist, table.orden),
     idx_playlist:      index("idx_playlist").on(table.id_playlist),
+  }),
+);
+
+// ─── Comentarios por canción dentro de una lista ─────────────────────────────
+// Acuerdos del ensayo ("la arrancamos a capela", "bajarla medio tono") que hoy
+// se pierden en WhatsApp. CASCADE hacia lista_canciones cubre tanto quitar la
+// canción como borrar la playlist (que borra sus lista_canciones).
+
+export const lista_comentarios = mysqlTable(
+  "lista_comentarios",
+  {
+    id_comentario:    int("id_comentario").autoincrement().primaryKey(),
+    id_lista_cancion: int("id_lista_cancion").notNull().references(() => lista_canciones.id_lista_cancion, { onDelete: "cascade" }),
+    id_usuario:       int("id_usuario").notNull().references(() => usuarios.id_usuario, { onDelete: "cascade" }),
+    texto:            varchar("texto", { length: 500 }).notNull(),
+    creadoEn:         timestamp("creado_en").defaultNow(),
+  },
+  (table) => ({
+    idx_lista_cancion: index("idx_comentario_lista_cancion").on(table.id_lista_cancion),
+  }),
+);
+
+// ─── Última visita de cada usuario a cada lista ──────────────────────────────
+// Permite calcular los badges "Nuevo"/"Tono cambiado" comparando los
+// timestamps de lista_canciones contra la visita anterior del usuario.
+
+export const playlist_visitas = mysqlTable(
+  "playlist_visitas",
+  {
+    id_usuario:    int("id_usuario").notNull().references(() => usuarios.id_usuario, { onDelete: "cascade" }),
+    id_playlist:   int("id_playlist").notNull().references(() => playlists.id_playlist, { onDelete: "cascade" }),
+    ultima_visita: timestamp("ultima_visita").defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: uniqueIndex("pk_playlist_visitas").on(table.id_usuario, table.id_playlist),
   }),
 );
