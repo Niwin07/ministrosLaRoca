@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull, ne } from "drizzle-orm";
 import { ArrowLeft, Music2, PlusCircle, Copy, Tv2 } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/db";
@@ -8,8 +8,7 @@ import { SortableSongList } from "@/components/SortableSongList";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
 import { StepperPill } from "@/components/StepperPill";
-import { TonoSelect } from "@/components/TonoSelect";
-import { CancionSelect } from "@/components/CancionSelect";
+import { AgregarCancionForm } from "@/components/AgregarCancionForm";
 import { auth } from "@/auth";
 import {
   agregarCancionALista,
@@ -54,6 +53,30 @@ async function getCatalogoAprobado() {
     .from(canciones)
     .where(eq(canciones.estado_aprobacion, "APROBADA"))
     .orderBy(canciones.nombre);
+}
+
+/** Último tono usado por canción en otras listas EVENTO (la más reciente gana).
+ *  Se usa para pre-seleccionar el tono al agregar una canción a esta lista. */
+async function getHistorialTonos(id_playlist_actual: number): Promise<Record<number, string>> {
+  const rows = await db
+    .select({
+      id_cancion: lista_canciones.id_cancion,
+      nota:       lista_canciones.nota,
+    })
+    .from(lista_canciones)
+    .innerJoin(playlists, eq(lista_canciones.id_playlist, playlists.id_playlist))
+    .where(and(
+      eq(playlists.tipo, "EVENTO"),
+      ne(playlists.id_playlist, id_playlist_actual),
+      isNotNull(lista_canciones.nota),
+    ))
+    .orderBy(desc(playlists.actualizadoEn));
+
+  const map: Record<number, string> = {};
+  for (const r of rows) {
+    if (r.nota && !(r.id_cancion in map)) map[r.id_cancion] = r.nota;
+  }
+  return map;
 }
 
 /** Id del ministro con el turno ACTIVO en la plataforma de esta lista (o null).
@@ -109,9 +132,10 @@ export default async function PlaylistDetailPage(props: {
 
   // Primero traemos la playlist para conocer su id_plataforma, luego buscamos
   // el director activo en ESA plataforma (cada plataforma tiene el suyo).
-  const [rows, catalogo] = await Promise.all([
+  const [rows, catalogo, historialTonos] = await Promise.all([
     getPlaylistConCanciones(id),
     getCatalogoAprobado(),
+    getHistorialTonos(id),
   ]);
 
   if (rows.length === 0) notFound();
@@ -369,25 +393,13 @@ export default async function PlaylistDetailPage(props: {
             <PlusCircle size={14} className="text-lo" />
             <h2 className="text-xs font-semibold uppercase tracking-widest text-lo">Agregar canción</h2>
           </div>
-          <form key={`add-desktop-${items.length}`} action={handleAgregar} className="flex flex-col gap-3">
-            <CancionSelect name="id_cancion" canciones={catalogo} />
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <TonoSelect name="nota" />
-              </div>
-              <input
-                name="orden"
-                type="number"
-                min={1}
-                defaultValue={nextOrden}
-                required
-                className="w-20 rounded-xl border border-mark bg-input px-3 py-3 text-center text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-              />
-            </div>
-            <Button type="submit" shape="block" size="lg" fullWidth icon={<PlusCircle size={15} />}>
-              Agregar
-            </Button>
-          </form>
+          <AgregarCancionForm
+            key={`add-desktop-${items.length}`}
+            canciones={catalogo}
+            historialTonos={historialTonos}
+            nextOrden={nextOrden}
+            onAgregar={handleAgregar}
+          />
         </div>
       )}
     </div>
@@ -459,25 +471,13 @@ export default async function PlaylistDetailPage(props: {
               {catalogo.length === 0 ? (
                 <p className="text-xs text-lo">Sin canciones aprobadas en el catálogo.</p>
               ) : (
-                <form key={`add-${items.length}`} action={handleAgregar} className="flex flex-col gap-3">
-                  <CancionSelect name="id_cancion" canciones={catalogo} />
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <TonoSelect name="nota" />
-                    </div>
-                    <input
-                      name="orden"
-                      type="number"
-                      min={1}
-                      defaultValue={nextOrden}
-                      required
-                      className="w-20 rounded-xl border border-mark bg-input px-3 py-3 text-center text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-                    />
-                  </div>
-                  <Button type="submit" shape="block" size="lg" fullWidth icon={<PlusCircle size={15} />}>
-                    Agregar
-                  </Button>
-                </form>
+                <AgregarCancionForm
+                  key={`add-${items.length}`}
+                  canciones={catalogo}
+                  historialTonos={historialTonos}
+                  nextOrden={nextOrden}
+                  onAgregar={handleAgregar}
+                />
               )}
             </div>
           )}

@@ -14,11 +14,12 @@ interface Props {
   name:         string;
   canciones:    Cancion[];
   placeholder?: string;
+  onChange?:    (cancion: Cancion | null) => void;
 }
 
 const PANEL_MAX_H = 300;
 
-export function CancionSelect({ name, canciones, placeholder = "Elegí una canción…" }: Props) {
+export function CancionSelect({ name, canciones, placeholder = "Elegí una canción…", onChange }: Props) {
   const [selected, setSelected] = useState<Cancion | null>(null);
   const [open, setOpen]         = useState(false);
   const [q, setQ]               = useState("");
@@ -76,6 +77,7 @@ export function CancionSelect({ name, canciones, placeholder = "Elegí una canci
     setSelected(c);
     setOpen(false);
     setQ("");
+    onChange?.(c);
   }
 
   const panel = open
@@ -150,7 +152,7 @@ export function CancionSelect({ name, canciones, placeholder = "Elegí una canci
         {selected ? (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); setSelected(null); }}
+            onClick={(e) => { e.stopPropagation(); setSelected(null); onChange?.(null); }}
             aria-label="Quitar selección"
             className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-lo transition-colors hover:text-hi"
           >
