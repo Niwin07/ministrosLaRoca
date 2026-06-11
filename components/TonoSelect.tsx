@@ -58,12 +58,12 @@ export function TonoSelect({ name, defaultValue, placeholder = "Tono (opcional)‚
           onMouseDown={() => setOpen(false)}
         >
           <div
-            className="mx-auto flex w-full max-w-md flex-col rounded-t-3xl border-t border-line bg-base shadow-2xl"
-            style={{ maxHeight: "85dvh" }}
+            className="mx-auto w-full max-w-md overflow-y-auto rounded-t-3xl border-t border-line bg-base shadow-2xl"
+            style={{ maxHeight: "85vh" }}
             onMouseDown={(e) => e.stopPropagation()}
           >
-            {/* Header fijo */}
-            <div className="flex shrink-0 items-center justify-between px-5 pb-4 pt-5">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pb-4 pt-5">
               <p className="text-sm font-semibold text-hi">Eleg√≠ el tono</p>
               <button
                 type="button"
@@ -74,8 +74,8 @@ export function TonoSelect({ name, defaultValue, placeholder = "Tono (opcional)‚
               </button>
             </div>
 
-            {/* Contenido scrolleable */}
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-10">
+            {/* Contenido */}
+            <div className="px-5 pb-10">
               {/* Sin tono */}
               <button
                 type="button"
