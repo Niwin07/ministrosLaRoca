@@ -62,8 +62,6 @@ export function CancionSelect({ name, canciones, placeholder = "Elegí una canci
       );
     }
 
-    setTimeout(() => searchRef.current?.focus(), 0);
-
     function onMouseDown(e: MouseEvent) {
       const t = e.target as Node;
       if (triggerRef.current?.contains(t) || panelRef.current?.contains(t)) return;
