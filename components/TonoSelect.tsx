@@ -1,33 +1,73 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Music2, ChevronDown } from "lucide-react";
 
 const MAYORES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const;
 const MENORES = ["Cm", "C#m", "Dm", "D#m", "Em", "Fm", "F#m", "Gm", "G#m", "Am", "A#m", "Bm"] as const;
 const GRUPOS  = [{ label: "Mayores", notas: MAYORES }, { label: "Menores", notas: MENORES }];
 
+const PANEL_WIDTH = 288;
+
 interface Props {
-  name:          string;
+  // Form mode
+  name?:         string;
   defaultValue?: string | null;
+  // Controlled mode (e.g. ChartViewerInteractivo)
+  value?:        string;
+  onChange?:     (nota: string) => void;
+  // Customisation
   placeholder?:  string;
+  notas?:        readonly string[];
+  showSinTono?:  boolean;
+  compact?:      boolean;
 }
 
-export function TonoSelect({ name, defaultValue, placeholder = "Tono (opcional)…" }: Props) {
-  const [selected, setSelected] = useState(defaultValue ?? "");
+export function TonoSelect({
+  name,
+  defaultValue,
+  value: valueProp,
+  onChange,
+  placeholder = "Tono (opcional)…",
+  notas: notasProp,
+  showSinTono = true,
+  compact = false,
+}: Props) {
+  const [internal, setInternal] = useState(defaultValue ?? "");
   const [open, setOpen]         = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [style, setStyle]       = useState<React.CSSProperties>({});
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef   = useRef<HTMLDivElement>(null);
+
+  const selected = valueProp !== undefined ? valueProp : internal;
 
   useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    if (!open) return;
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (rect) {
+      let right = window.innerWidth - rect.right;
+      if (right < 8) right = 8;
+      setStyle({
+        position: "fixed",
+        bottom:   window.innerHeight - rect.top + 8,
+        right,
+        width:    PANEL_WIDTH,
+        zIndex:   9999,
+      });
     }
-    if (open) document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    function onMouseDown(e: MouseEvent) {
+      const t = e.target as Node;
+      if (triggerRef.current?.contains(t) || panelRef.current?.contains(t)) return;
+      setOpen(false);
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
   }, [open]);
 
   function elegir(nota: string) {
-    setSelected(nota);
+    if (valueProp === undefined) setInternal(nota);
+    onChange?.(nota);
     setOpen(false);
   }
 
@@ -38,12 +78,82 @@ export function TonoSelect({ name, defaultValue, placeholder = "Tono (opcional)�
         : "border-line bg-card text-hi hover:border-violet-500/30 hover:bg-violet-500/5"
     }`;
 
-  return (
-    <div ref={ref}>
-      <input type="hidden" name={name} value={selected} />
+  const panel = open
+    ? createPortal(
+        <div
+          ref={panelRef}
+          style={style}
+          className="rounded-2xl border border-line bg-card p-4 shadow-xl dark:shadow-black/40"
+        >
+          {showSinTono && (
+            <button
+              type="button"
+              onClick={() => elegir("")}
+              className={`mb-3 w-full rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
+                !selected
+                  ? "border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                  : "border-line bg-input text-lo hover:bg-card"
+              }`}
+            >
+              Sin tono
+            </button>
+          )}
 
-      {/* Trigger */}
+          {notasProp ? (
+            <div className="grid grid-cols-4 gap-1.5">
+              {notasProp.map((nota) => (
+                <button key={nota} type="button" onClick={() => elegir(nota)} className={pillCls(nota)}>
+                  {nota}
+                </button>
+              ))}
+            </div>
+          ) : (
+            GRUPOS.map(({ label, notas }) => (
+              <div key={label} className="mb-3 last:mb-0">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gone">{label}</p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {notas.map((nota) => (
+                    <button key={nota} type="button" onClick={() => elegir(nota)} className={pillCls(nota)}>
+                      {nota}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>,
+        document.body,
+      )
+    : null;
+
+  if (compact) {
+    return (
+      <>
+        {name && <input type="hidden" name={name} value={selected} />}
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold outline-none transition-colors focus:border-violet-500 ${
+            selected
+              ? "border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-400"
+              : "border-mark bg-input text-hi"
+          }`}
+        >
+          {selected || "–"}
+          <ChevronDown size={10} className={`text-lo transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        </button>
+        {panel}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {name && <input type="hidden" name={name} value={selected} />}
+
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center gap-2.5 rounded-xl border border-mark bg-input px-3 py-3 text-sm outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
@@ -61,35 +171,7 @@ export function TonoSelect({ name, defaultValue, placeholder = "Tono (opcional)�
         )}
       </button>
 
-      {/* Panel inline — sin fixed, el scroll lo maneja la página */}
-      {open && (
-        <div className="mt-2 rounded-2xl border border-line bg-card p-4 shadow-xl dark:shadow-black/40">
-          <button
-            type="button"
-            onClick={() => elegir("")}
-            className={`mb-3 w-full rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
-              !selected
-                ? "border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-400"
-                : "border-line bg-input text-lo hover:bg-card"
-            }`}
-          >
-            Sin tono
-          </button>
-
-          {GRUPOS.map(({ label, notas }) => (
-            <div key={label} className="mb-3">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gone">{label}</p>
-              <div className="grid grid-cols-4 gap-1.5">
-                {notas.map((nota) => (
-                  <button key={nota} type="button" onClick={() => elegir(nota)} className={pillCls(nota)}>
-                    {nota}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+      {panel}
+    </>
   );
 }

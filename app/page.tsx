@@ -104,7 +104,10 @@ export default async function DashboardPage() {
     : [];
 
   return (
-    <div className="flex flex-col gap-7 px-4 pt-7 pb-4">
+    <div className="px-4 pt-7 pb-4 flex flex-col gap-7 lg:grid lg:grid-cols-[3fr_2fr] lg:items-start lg:gap-6">
+
+      {/* ── COLUMNA IZQUIERDA (mobile: todo; desktop: greeting+hero+semana) ── */}
+      <div className="flex flex-col gap-7 lg:gap-6">
 
       {/* ── GREETING ──────────────────────────────────────────────── */}
       <div className="pb-1 animate-fade-in-down">
@@ -215,6 +218,11 @@ export default async function DashboardPage() {
         )}
       </section>
 
+      </div>{/* fin columna izquierda */}
+
+      {/* ── COLUMNA DERECHA (desktop: mis listas) ─────────────────── */}
+      <div className="flex flex-col gap-6">
+
       {/* ── MIS LISTAS ────────────────────────────────────────────── */}
       <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:240ms]">
 
@@ -267,6 +275,8 @@ export default async function DashboardPage() {
         )}
 
       </section>
+
+      </div>{/* fin columna derecha */}
     </div>
   );
 }
