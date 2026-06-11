@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { Settings, LogOut } from "lucide-react";
 import { NavWrapper } from "@/components/NavWrapper";
+import { SideNav } from "@/components/SideNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotifBell } from "@/components/NotifBell";
 import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
@@ -98,60 +99,69 @@ export default async function RootLayout({
     <html lang="es" className={tema === "oscuro" ? "dark" : ""}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
 
+        {/* ── Sidebar (desktop) ────────────────────────────────────────── */}
+        {session?.user && <SideNav rol={session.user.rol} />}
+
         {/* ── Header ───────────────────────────────────────────────────── */}
         {session?.user && (
-          <header className="sticky top-0 z-50 mx-auto flex w-full max-w-md items-center justify-between border-b border-line/60 bg-base/95 px-4 py-2 backdrop-blur-xl animate-fade-in-down" style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "max(1rem, env(safe-area-inset-left))", paddingRight: "max(1rem, env(safe-area-inset-right))" }}>
-
-            {/* Avatar — enlace al perfil */}
-            <Link
-              href="/perfil"
-              aria-label="Mi perfil"
-              className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-600 transition-opacity hover:opacity-80"
+          <header className="sticky top-0 z-50 w-full border-b border-line/60 bg-base/95 backdrop-blur-xl animate-fade-in-down">
+            <div
+              className="mx-auto flex max-w-md items-center justify-between px-4 py-2 md:ml-64 md:max-w-none"
+              style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "max(1rem, env(safe-area-inset-left))", paddingRight: "max(1rem, env(safe-area-inset-right))" }}
             >
-              {foto ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={foto} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-xs font-semibold text-white">
-                  {session.user.name?.charAt(0).toUpperCase()}
-                </span>
-              )}
-            </Link>
+              {/* Avatar — enlace al perfil */}
+              <Link
+                href="/perfil"
+                aria-label="Mi perfil"
+                className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-600 transition-opacity hover:opacity-80"
+              >
+                {foto ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={foto} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-xs font-semibold text-white">
+                    {session.user.name?.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </Link>
 
-            {/* Switcher de plataforma — solo visible si el usuario está en ambas */}
-            {misPlataformas.length >= 2 && (
-              <PlataformaSwitcher plataformas={misPlataformas} activaId={plataformaActivaId} />
-            )}
-
-            {/* Acciones */}
-            <div className="relative flex items-center">
-              <NotifBell />
-              <ThemeToggle tema={tema} />
-              {session.user.rol === "ADMINISTRADOR" && (
-                <Link
-                  href="/admin/usuarios"
-                  aria-label="Gestión de usuarios"
-                  className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
-                >
-                  <Settings size={20} />
-                </Link>
+              {/* Switcher de plataforma — solo visible si el usuario está en ambas */}
+              {misPlataformas.length >= 2 && (
+                <PlataformaSwitcher plataformas={misPlataformas} activaId={plataformaActivaId} />
               )}
-              <form action={logoutAction}>
-                <button
-                  type="submit"
-                  aria-label="Cerrar sesión"
-                  className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
-                >
-                  <LogOut size={20} />
-                </button>
-              </form>
+
+              {/* Acciones */}
+              <div className="relative flex items-center">
+                <NotifBell />
+                <ThemeToggle tema={tema} />
+                {session.user.rol === "ADMINISTRADOR" && (
+                  <Link
+                    href="/admin/usuarios"
+                    aria-label="Gestión de usuarios"
+                    className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
+                  >
+                    <Settings size={20} />
+                  </Link>
+                )}
+                <form action={logoutAction}>
+                  <button
+                    type="submit"
+                    aria-label="Cerrar sesión"
+                    className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
+                  >
+                    <LogOut size={20} />
+                  </button>
+                </form>
+              </div>
             </div>
           </header>
         )}
 
         {/* ── Contenido principal ──────────────────────────────────────── */}
-        <div className="relative mx-auto min-h-dvh max-w-md pb-28">
-          {children}
+        <div className="md:pl-64">
+          <div className="relative mx-auto min-h-dvh max-w-md pb-28 md:max-w-2xl md:pb-10">
+            {children}
+          </div>
         </div>
 
         {session?.user && <NavWrapper rol={session.user.rol} />}

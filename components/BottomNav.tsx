@@ -42,7 +42,7 @@ export function BottomNav({ rol }: { rol?: string }) {
 
   return (
     // Anchored tab bar — both modes. Centered on the max-w-md content column.
-    <div className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2">
+    <div className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 md:hidden">
       <nav
         aria-label="Navegación principal"
         style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
