@@ -166,7 +166,7 @@ export default async function RootLayout({
 
         {/* ── Contenido principal ──────────────────────────────────────── */}
         <div className={session?.user ? "md:pl-64" : ""}>
-          <div className="relative mx-auto min-h-dvh max-w-md pb-28 md:max-w-none md:pb-0 md:px-8 md:pt-8">
+          <div className="relative mx-auto min-h-dvh max-w-md pb-28 md:max-w-none md:pb-0 md:px-8 md:pt-8 xl:max-w-[1400px]">
             {children}
           </div>
         </div>
