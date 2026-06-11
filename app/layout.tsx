@@ -100,20 +100,30 @@ export default async function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
 
         {/* ── Sidebar (desktop) ────────────────────────────────────────── */}
-        {session?.user && <SideNav rol={session.user.rol} />}
+        {session?.user && (
+          <SideNav
+            rol={session.user.rol}
+            nombre={session.user.name ?? ""}
+            foto={foto}
+            tema={tema}
+            logoutAction={logoutAction}
+            misPlataformas={misPlataformas}
+            plataformaActivaId={plataformaActivaId}
+          />
+        )}
 
         {/* ── Header ───────────────────────────────────────────────────── */}
         {session?.user && (
-          <header className="sticky top-0 z-50 w-full border-b border-line/60 bg-base/95 backdrop-blur-xl animate-fade-in-down">
+          <header className="sticky top-0 z-50 border-b border-line/60 bg-base/95 backdrop-blur-xl animate-fade-in-down w-full md:ml-64 md:w-[calc(100%-16rem)]">
             <div
-              className="mx-auto flex max-w-md items-center justify-between px-4 py-2 md:ml-64 md:max-w-none"
+              className="mx-auto flex max-w-md items-center justify-between px-4 py-2 md:max-w-none"
               style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "max(1rem, env(safe-area-inset-left))", paddingRight: "max(1rem, env(safe-area-inset-right))" }}
             >
-              {/* Avatar — enlace al perfil */}
+              {/* Avatar — solo en móvil (en desktop va en sidebar) */}
               <Link
                 href="/perfil"
                 aria-label="Mi perfil"
-                className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-600 transition-opacity hover:opacity-80"
+                className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-600 transition-opacity hover:opacity-80 md:hidden"
               >
                 {foto ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -125,40 +135,45 @@ export default async function RootLayout({
                 )}
               </Link>
 
-              {/* Switcher de plataforma — solo visible si el usuario está en ambas */}
+              {/* Switcher de plataforma — solo en móvil (en desktop va en sidebar) */}
               {misPlataformas.length >= 2 && (
-                <PlataformaSwitcher plataformas={misPlataformas} activaId={plataformaActivaId} />
+                <div className="md:hidden">
+                  <PlataformaSwitcher plataformas={misPlataformas} activaId={plataformaActivaId} />
+                </div>
               )}
 
               {/* Acciones */}
-              <div className="relative flex items-center">
+              <div className="relative flex items-center md:ml-auto">
                 <NotifBell />
-                <ThemeToggle tema={tema} />
-                {session.user.rol === "ADMINISTRADOR" && (
-                  <Link
-                    href="/admin/usuarios"
-                    aria-label="Gestión de usuarios"
-                    className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
-                  >
-                    <Settings size={20} />
-                  </Link>
-                )}
-                <form action={logoutAction}>
-                  <button
-                    type="submit"
-                    aria-label="Cerrar sesión"
-                    className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
-                  >
-                    <LogOut size={20} />
-                  </button>
-                </form>
+                {/* Tema, Settings, Logout — solo en móvil (en desktop van en sidebar) */}
+                <div className="contents md:hidden">
+                  <ThemeToggle tema={tema} />
+                  {session.user.rol === "ADMINISTRADOR" && (
+                    <Link
+                      href="/admin/usuarios"
+                      aria-label="Gestión de usuarios"
+                      className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
+                    >
+                      <Settings size={20} />
+                    </Link>
+                  )}
+                  <form action={logoutAction}>
+                    <button
+                      type="submit"
+                      aria-label="Cerrar sesión"
+                      className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
+                    >
+                      <LogOut size={20} />
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
           </header>
         )}
 
         {/* ── Contenido principal ──────────────────────────────────────── */}
-        <div className="md:pl-64">
+        <div className={session?.user ? "md:pl-64" : ""}>
           <div className="relative mx-auto min-h-dvh max-w-md pb-28 md:max-w-2xl md:pb-10">
             {children}
           </div>

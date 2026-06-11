@@ -69,33 +69,37 @@ export default async function CancionesPage(props: {
   }
 
   return (
-    <main className="flex flex-col gap-8 px-4 pt-8 pb-6">
+    <main className="px-4 pt-8 pb-6 flex flex-col gap-8 lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-6">
 
-      <ErrorBanner message={errorMsg} />
+      {/* ── COLUMNA IZQUIERDA: Catálogo ───────────────────────────────── */}
+      <div className="flex flex-col gap-4">
+        <ErrorBanner message={errorMsg} />
 
-      {editadaOk && (
-        <div className="flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
-          <CheckCircle2 size={15} className="shrink-0" />
-          Cambios guardados.
-        </div>
-      )}
-
-      {/* ── Catálogo ──────────────────────────────────────────────────── */}
-      <section className="flex flex-col gap-4 animate-fade-in-up">
-        <div>
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-hi">Catálogo</h1>
-            <span className="text-xs text-lo">{aprobadas.length} canciones</span>
+        {editadaOk && (
+          <div className="flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+            <CheckCircle2 size={15} className="shrink-0" />
+            Cambios guardados.
           </div>
-          <p className="mt-1 text-sm text-lo">Buscá una canción y mirá su letra y acordes.</p>
-        </div>
+        )}
 
-        <CatalogoCanciones canciones={aprobadas} puedeEditar={puedeEditar} />
-      </section>
+        {/* ── Catálogo ──────────────────────────────────────────────────── */}
+        <section className="flex flex-col gap-4 animate-fade-in-up">
+          <div>
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-hi">Catálogo</h1>
+              <span className="text-xs text-lo">{aprobadas.length} canciones</span>
+            </div>
+            <p className="mt-1 text-sm text-lo">Buscá una canción y mirá su letra y acordes.</p>
+          </div>
 
-      {/* ── Sugerir (colapsable) ──────────────────────────────────────── */}
-      <details className="group overflow-hidden rounded-2xl border border-line bg-card shadow-card animate-fade-in-up [animation-delay:120ms] dark:shadow-none" open={sugeridaOk}>
-        <summary className="flex cursor-pointer select-none list-none items-center justify-between px-5 py-4 [&::-webkit-details-marker]:hidden">
+          <CatalogoCanciones canciones={aprobadas} puedeEditar={puedeEditar} />
+        </section>
+      </div>
+
+      {/* ── COLUMNA DERECHA: Sugerir ──────────────────────────────────── */}
+      {/* Mobile: colapsable. Desktop: siempre visible como panel lateral */}
+      <details className="group overflow-hidden rounded-2xl border border-line bg-card shadow-card animate-fade-in-up [animation-delay:120ms] dark:shadow-none lg:block lg:[&[open]]:block" open={sugeridaOk}>
+        <summary className="flex cursor-pointer select-none list-none items-center justify-between px-5 py-4 [&::-webkit-details-marker]:hidden lg:hidden">
           <div className="flex items-center gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/10">
               <Sparkles size={16} className="text-violet-600" />
@@ -111,7 +115,18 @@ export default async function CancionesPage(props: {
           />
         </summary>
 
-        <div className="border-t border-line px-5 pb-5 pt-4">
+        {/* Header del panel (solo visible en desktop) */}
+        <div className="hidden lg:flex items-center gap-3 border-b border-line px-5 py-4">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/10">
+            <Sparkles size={16} className="text-violet-600" />
+          </span>
+          <div>
+            <h2 className="text-sm font-semibold text-hi">Sugerir canción</h2>
+            <p className="mt-0.5 text-[11px] text-lo">Queda pendiente de aprobación.</p>
+          </div>
+        </div>
+
+        <div className="border-t border-line px-5 pb-5 pt-4 lg:border-t-0">
           {sugeridaOk && (
             <div className="mb-4 flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
               <CheckCircle2 size={15} className="shrink-0" />
