@@ -5,9 +5,10 @@ import { ChartViewer } from "@/components/ChartViewer";
 import { nashvilleAAcordes } from "@/lib/nashville";
 import { pareceNashville } from "@/lib/acordes";
 import { NOTAS } from "@/lib/notas";
+import { TonoSelect } from "@/components/TonoSelect";
 
 // Solo tonos mayores para la traducción de números.
-const TONOS = NOTAS.slice(0, 12);
+const TONOS = NOTAS.slice(0, 12) as readonly string[];
 
 interface Props {
   charts: string;
@@ -55,15 +56,13 @@ export function ChartViewerInteractivo({ charts, notaInicial }: Props) {
         {modo === "acordes" && (
           <label className="flex items-center gap-1.5 text-[11px] text-lo">
             Tono
-            <select
+            <TonoSelect
               value={tono}
-              onChange={(e) => setTono(e.target.value)}
-              className="rounded-md border border-mark bg-input px-2 py-1 text-xs text-hi outline-none focus:border-violet-500 [&>option]:bg-card"
-            >
-              {TONOS.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+              onChange={setTono}
+              notas={TONOS}
+              showSinTono={false}
+              compact
+            />
           </label>
         )}
       </div>
