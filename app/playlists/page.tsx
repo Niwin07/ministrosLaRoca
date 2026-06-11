@@ -196,16 +196,22 @@ export default async function PlaylistsPage(props: {
   }
 
   return (
-    <div className="flex flex-col gap-8 px-4 pt-8 pb-6">
+    <div className="px-4 pt-8 pb-6 flex flex-col gap-8 lg:gap-0">
 
       {/* Encabezado */}
-      <div className="animate-fade-in-down">
+      <div className="animate-fade-in-down lg:mb-6">
         <h1 className="text-2xl font-bold text-hi">Listas</h1>
         <p className="mt-1 text-sm text-lo">El servicio de la semana, lo que estás armando y tus plantillas.</p>
       </div>
 
       {/* Banner de error (p. ej. clonado fallido) */}
       <ErrorBanner message={errorMsg} />
+
+      {/* ── GRID desktop ────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+
+      {/* ── COLUMNA IZQUIERDA: Esta semana + En preparación ───────── */}
+      <div className="flex flex-col gap-8">
 
       {/* ══ ESTA SEMANA ════════════════════════════════════════════════ */}
       <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:80ms]">
@@ -276,6 +282,11 @@ export default async function PlaylistsPage(props: {
         )}
       </section>
 
+      </div>{/* fin columna izquierda */}
+
+      {/* ── COLUMNA DERECHA: Plantillas + Historial ───────────────── */}
+      <div className="flex flex-col gap-8">
+
       {/* ══ PLANTILLAS ═════════════════════════════════════════════════ */}
       <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:240ms]">
         <div className="flex items-center gap-2">
@@ -345,6 +356,8 @@ export default async function PlaylistsPage(props: {
         <HistorialListas listas={historialData} onClonar={handleClonarMazo} />
       </section>
 
+      </div>{/* fin columna derecha */}
+      </div>{/* fin grid */}
     </div>
   );
 }
