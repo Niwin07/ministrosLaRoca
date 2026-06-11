@@ -28,7 +28,7 @@ export default async function AdminCancionesPage(props: {
     .orderBy(canciones.nombre);
 
   return (
-    <main className="flex flex-col gap-6 px-4 pt-8 pb-6">
+    <main className="flex flex-col gap-6 px-4 pt-8 pb-6 md:max-w-3xl md:mx-auto">
 
       <div className="flex items-center justify-between">
         <Link

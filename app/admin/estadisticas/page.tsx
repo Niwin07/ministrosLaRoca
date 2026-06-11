@@ -112,133 +112,128 @@ export default async function EstadisticasPage(props: {
         </div>
       </div>
 
-      {/* ── Cards resumen ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="flex flex-col gap-1 rounded-2xl border border-line bg-card p-4 shadow-card dark:shadow-none">
-          <Music2 size={16} className="text-violet-500" />
-          <p className="text-2xl font-black text-hi">{total}</p>
-          <p className="text-[11px] text-lo leading-tight">Canciones aprobadas</p>
-        </div>
-        <div className="flex flex-col gap-1 rounded-2xl border border-line bg-card p-4 shadow-card dark:shadow-none">
-          <Flame size={16} className="text-orange-500" />
-          <p className="text-2xl font-black text-hi">{usadas}</p>
-          <p className="text-[11px] text-lo leading-tight">Usadas en listas</p>
-        </div>
-        <div className="flex flex-col gap-1 rounded-2xl border border-line bg-card p-4 shadow-card dark:shadow-none">
-          <Clock size={16} className="text-gone" />
-          <p className="text-2xl font-black text-hi">{sinUsar}</p>
-          <p className="text-[11px] text-lo leading-tight">Sin usar aún</p>
-        </div>
-      </div>
+      {/* ── Layout 2-col en desktop ───────────────────────────────────── */}
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[1fr_300px] lg:items-start lg:gap-6">
 
-      {/* ── Canción más tocada ─────────────────────────────────────── */}
-      {top && maxUsos > 0 && (
-        <div className="flex items-center gap-3 rounded-2xl border border-orange-500/20 bg-orange-500/[0.06] px-4 py-3.5">
-          <Flame size={18} className="shrink-0 text-orange-500" />
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-orange-600">
-              Más tocada
-            </p>
-            <p className="truncate text-sm font-bold text-hi">{top.nombre}</p>
-            <p className="text-[11px] text-lo">{top.artista} · {maxUsos} veces</p>
-          </div>
-        </div>
-      )}
+        {/* Col izquierda: lista ordenable */}
+        <div className="flex flex-col gap-4">
 
-      {/* ── Ordenar ─────────────────────────────────────────────────── */}
-      <div className="flex gap-2 overflow-x-auto pb-0.5 no-scrollbar">
-        {ORDENES.map((o) => (
-          <Link
-            key={o.key}
-            href={`/admin/estadisticas?orden=${o.key}`}
-            className={`shrink-0 rounded-full border px-4 py-2 text-xs font-medium transition-colors ${
-              orden === o.key
-                ? "border-violet-500/40 bg-violet-500/10 text-violet-600"
-                : "border-mark bg-input text-mid hover:border-line hover:text-hi"
-            }`}
-          >
-            {o.label}
-            {o.key === "sin-usar" && sinUsar > 0 && (
-              <span className="ml-1.5 rounded-full bg-gone/30 px-1.5 text-[10px]">{sinUsar}</span>
-            )}
-          </Link>
-        ))}
-      </div>
-
-      {/* ── Lista ───────────────────────────────────────────────────── */}
-      <p className="text-xs text-lo">{lista.length} canciones</p>
-
-      {lista.length === 0 ? (
-        <p className="rounded-2xl border border-line bg-card px-4 py-8 text-center text-sm text-lo">
-          Todas las canciones han sido usadas al menos una vez.
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {lista.map((c, i) => {
-            const usos = Number(c.veces_usada);
-            return (
-              <li
-                key={c.id_cancion}
-                className="overflow-hidden rounded-2xl border border-line bg-card shadow-card dark:shadow-none"
+          {/* Ordenar */}
+          <div className="flex gap-2 overflow-x-auto pb-0.5 no-scrollbar">
+            {ORDENES.map((o) => (
+              <Link
+                key={o.key}
+                href={`/admin/estadisticas?orden=${o.key}`}
+                className={`shrink-0 rounded-full border px-4 py-2 text-xs font-medium transition-colors ${
+                  orden === o.key
+                    ? "border-violet-500/40 bg-violet-500/10 text-violet-600"
+                    : "border-mark bg-input text-mid hover:border-line hover:text-hi"
+                }`}
               >
-                <div className="flex items-start gap-3 px-4 py-4">
-                  {/* Ranking */}
-                  {orden === "mas-usadas" && (
-                    <span className={`mt-0.5 w-5 shrink-0 text-right text-xs font-bold tabular-nums ${
-                      i === 0 ? "text-orange-500" : i === 1 ? "text-zinc-400" : i === 2 ? "text-amber-600" : "text-gone"
-                    }`}>
-                      {i + 1}
-                    </span>
-                  )}
+                {o.label}
+                {o.key === "sin-usar" && sinUsar > 0 && (
+                  <span className="ml-1.5 rounded-full bg-gone/30 px-1.5 text-[10px]">{sinUsar}</span>
+                )}
+              </Link>
+            ))}
+          </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-semibold text-hi">{c.nombre}</p>
-                      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                        usos === 0
-                          ? "bg-input text-gone"
-                          : usos >= 5
-                          ? "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
-                          : "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
-                      }`}>
-                        {usos === 0 ? "Sin usar" : `${usos}×`}
-                      </span>
-                    </div>
+          <p className="text-xs text-lo">{lista.length} canciones</p>
 
-                    <p className="mt-0.5 text-xs text-lo">{c.artista}</p>
-
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                      {c.metrica && (
-                        <span className="text-[11px] text-mid">{c.metrica}</span>
-                      )}
-                      {c.bpm && (
-                        <span className="text-[11px] text-mid">{c.bpm} BPM</span>
-                      )}
-                      <span className="flex items-center gap-1 text-[11px] text-lo">
-                        <Clock size={10} />
-                        {formatFecha(c.ultima_vez)}
-                      </span>
-                      {c.sugeridor && (
-                        <span className="flex items-center gap-1 text-[11px] text-lo">
-                          <UserCircle2 size={10} />
-                          {c.sugeridor}
+          {lista.length === 0 ? (
+            <p className="rounded-2xl border border-line bg-card px-4 py-8 text-center text-sm text-lo">
+              Todas las canciones han sido usadas al menos una vez.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {lista.map((c, i) => {
+                const usos = Number(c.veces_usada);
+                return (
+                  <li key={c.id_cancion} className="overflow-hidden rounded-2xl border border-line bg-card shadow-card dark:shadow-none">
+                    <div className="flex items-start gap-3 px-4 py-4">
+                      {orden === "mas-usadas" && (
+                        <span className={`mt-0.5 w-5 shrink-0 text-right text-xs font-bold tabular-nums ${
+                          i === 0 ? "text-orange-500" : i === 1 ? "text-zinc-400" : i === 2 ? "text-amber-600" : "text-gone"
+                        }`}>
+                          {i + 1}
                         </span>
                       )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-sm font-semibold text-hi">{c.nombre}</p>
+                          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                            usos === 0
+                              ? "bg-input text-gone"
+                              : usos >= 5
+                              ? "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
+                              : "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
+                          }`}>
+                            {usos === 0 ? "Sin usar" : `${usos}×`}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-xs text-lo">{c.artista}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          {c.metrica && <span className="text-[11px] text-mid">{c.metrica}</span>}
+                          {c.bpm && <span className="text-[11px] text-mid">{c.bpm} BPM</span>}
+                          <span className="flex items-center gap-1 text-[11px] text-lo">
+                            <Clock size={10} />
+                            {formatFecha(c.ultima_vez)}
+                          </span>
+                          {c.sugeridor && (
+                            <span className="flex items-center gap-1 text-[11px] text-lo">
+                              <UserCircle2 size={10} />
+                              {c.sugeridor}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <Link href={`/admin/canciones/${c.id_cancion}`} className="mt-0.5 shrink-0 text-[11px] text-violet-600/60 transition-colors hover:text-violet-600">
+                        Editar
+                      </Link>
                     </div>
-                  </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
 
-                  <Link
-                    href={`/admin/canciones/${c.id_cancion}`}
-                    className="mt-0.5 shrink-0 text-[11px] text-violet-600/60 transition-colors hover:text-violet-600"
-                  >
-                    Editar
-                  </Link>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+        {/* Col derecha: resumen + más tocada (sticky) */}
+        <div className="flex flex-col gap-4 lg:sticky lg:top-8">
+
+          {/* Cards resumen */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-3">
+            <div className="flex flex-col gap-1 rounded-2xl border border-line bg-card p-4 shadow-card dark:shadow-none">
+              <Music2 size={16} className="text-violet-500" />
+              <p className="text-2xl font-black text-hi">{total}</p>
+              <p className="text-[11px] text-lo leading-tight">Canciones aprobadas</p>
+            </div>
+            <div className="flex flex-col gap-1 rounded-2xl border border-line bg-card p-4 shadow-card dark:shadow-none">
+              <Flame size={16} className="text-orange-500" />
+              <p className="text-2xl font-black text-hi">{usadas}</p>
+              <p className="text-[11px] text-lo leading-tight">Usadas en listas</p>
+            </div>
+            <div className="flex flex-col gap-1 rounded-2xl border border-line bg-card p-4 shadow-card dark:shadow-none">
+              <Clock size={16} className="text-gone" />
+              <p className="text-2xl font-black text-hi">{sinUsar}</p>
+              <p className="text-[11px] text-lo leading-tight">Sin usar aún</p>
+            </div>
+          </div>
+
+          {/* Canción más tocada */}
+          {top && maxUsos > 0 && (
+            <div className="flex items-center gap-3 rounded-2xl border border-orange-500/20 bg-orange-500/[0.06] px-4 py-3.5">
+              <Flame size={18} className="shrink-0 text-orange-500" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-orange-600">Más tocada</p>
+                <p className="truncate text-sm font-bold text-hi">{top.nombre}</p>
+                <p className="text-[11px] text-lo">{top.artista} · {maxUsos} veces</p>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
 
     </main>
   );

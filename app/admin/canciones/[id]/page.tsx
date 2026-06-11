@@ -34,7 +34,7 @@ export default async function EditarCancionPage(props: {
     "w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30";
 
   return (
-    <main className="flex flex-col gap-5 px-4 pt-8 pb-10">
+    <main className="flex flex-col gap-5 px-4 pt-8 pb-10 md:max-w-2xl md:mx-auto">
 
       <Link
         href="/canciones"

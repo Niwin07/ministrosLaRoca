@@ -50,7 +50,7 @@ export default async function EditarUsuarioPage(props: {
   const successMsg = sp.success ? (SUCCESS_MSG[sp.success] ?? null) : null;
 
   return (
-    <main className="px-4 pt-8 pb-6 space-y-6">
+    <main className="px-4 pt-8 pb-6 space-y-6 md:max-w-3xl md:mx-auto">
 
       {/* ── Cabecera ─────────────────────────────────────────────────── */}
       <Link
@@ -62,12 +62,9 @@ export default async function EditarUsuarioPage(props: {
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-hi">
-          Editar Usuario
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight text-hi">Editar Usuario</h1>
         <p className="mt-1 text-sm text-lo">
-          Modificá los datos de{" "}
-          <span className="text-hi">{usuario.nombre}</span>.
+          Modificá los datos de <span className="text-hi">{usuario.nombre}</span>.
         </p>
       </div>
 
@@ -78,182 +75,121 @@ export default async function EditarUsuarioPage(props: {
         </div>
       )}
 
-      {/* ── Formulario ───────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
-        <form action={actualizarUsuario} className="flex flex-col gap-4">
+      {/* ── Layout 2-col en desktop ───────────────────────────────────── */}
+      <div className="flex flex-col gap-6 md:grid md:grid-cols-[1fr_260px] md:items-start md:gap-6">
 
-          <input type="hidden" name="id_usuario" value={usuario.id_usuario} />
-
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="nombre"
-              className="text-xs font-medium uppercase tracking-wider text-lo"
-            >
-              Nombre
-            </label>
-            <input
-              id="nombre"
-              name="nombre"
-              type="text"
-              required
-              defaultValue={usuario.nombre}
-              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="email"
-              className="text-xs font-medium uppercase tracking-wider text-lo"
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              defaultValue={usuario.email}
-              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="password"
-              className="text-xs font-medium uppercase tracking-wider text-lo"
-            >
-              Contraseña
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              minLength={6}
-              placeholder="Dejar en blanco para mantener actual"
-              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="rol"
-              className="text-xs font-medium uppercase tracking-wider text-lo"
-            >
-              Rol
-            </label>
-            <select
-              id="rol"
-              name="rol"
-              required
-              defaultValue={usuario.rol}
-              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
-            >
-              <option value="ADMINISTRADOR">Administrador</option>
-              <option value="LIDER">Líder</option>
-              <option value="MINISTRO">Ministro</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-3 pt-1">
-            <Button type="submit">
-              Guardar cambios
-            </Button>
-            <Link
-              href="/admin/usuarios"
-              className="rounded-full border border-mark px-5 py-2.5 text-sm font-medium text-mid transition-colors hover:border-line hover:text-hi"
-            >
-              Cancelar
-            </Link>
-          </div>
-
-        </form>
-      </div>
-
-      {/* ── Plataformas ──────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-mid">Plataformas</p>
-        <p className="mb-4 text-[11px] text-lo">En cuáles participa este ministro. La principal determina su vista por defecto.</p>
-
-        <form action={actualizarPlataformasUsuario} className="flex flex-col gap-4">
-          <input type="hidden" name="id_usuario" value={usuario.id_usuario} />
-
-          <div className="flex flex-col gap-3">
-            {PLATAFORMAS_LIST.map((pla) => {
-              const activa = plataformasActivas.has(pla.id);
-              return (
-                <label key={pla.id} className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="plataformas"
-                    value={pla.id}
-                    defaultChecked={activa}
-                    className="h-4 w-4 rounded border-mark accent-violet-600"
-                  />
-                  <span className="text-sm text-hi">{pla.nombre}</span>
-                  {activa && principalId === pla.id && (
-                    <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-600">
-                      Principal
-                    </span>
-                  )}
-                </label>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium uppercase tracking-wider text-lo">
-              Plataforma principal
-            </label>
-            <select
-              name="principal"
-              defaultValue={principalId ?? ""}
-              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
-            >
-              <option value="">— Sin definir —</option>
-              {PLATAFORMAS_LIST.map((pla) => (
-                <option key={pla.id} value={pla.id}>{pla.nombre}</option>
-              ))}
-            </select>
-          </div>
-
-          <Button type="submit" variant="secondary">
-            Guardar plataformas
-          </Button>
-        </form>
-      </div>
-
-      {/* ── Enviar mención ───────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
-        <div className="mb-4 flex items-center gap-2">
-          <MessageSquare size={14} className="text-violet-500" />
-          <p className="text-xs font-semibold uppercase tracking-wider text-mid">Enviar notificación</p>
+        {/* Col izquierda: datos básicos */}
+        <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
+          <form action={actualizarUsuario} className="flex flex-col gap-4">
+            <input type="hidden" name="id_usuario" value={usuario.id_usuario} />
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="nombre" className="text-xs font-medium uppercase tracking-wider text-lo">Nombre</label>
+              <input
+                id="nombre" name="nombre" type="text" required defaultValue={usuario.nombre}
+                className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="email" className="text-xs font-medium uppercase tracking-wider text-lo">Email</label>
+              <input
+                id="email" name="email" type="email" required defaultValue={usuario.email}
+                className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="password" className="text-xs font-medium uppercase tracking-wider text-lo">Contraseña</label>
+              <input
+                id="password" name="password" type="password" minLength={6} placeholder="Dejar en blanco para mantener actual"
+                className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="rol" className="text-xs font-medium uppercase tracking-wider text-lo">Rol</label>
+              <select
+                id="rol" name="rol" required defaultValue={usuario.rol}
+                className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
+              >
+                <option value="ADMINISTRADOR">Administrador</option>
+                <option value="LIDER">Líder</option>
+                <option value="MINISTRO">Ministro</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-3 pt-1">
+              <Button type="submit">Guardar cambios</Button>
+              <Link
+                href="/admin/usuarios"
+                className="rounded-full border border-mark px-5 py-2.5 text-sm font-medium text-mid transition-colors hover:border-line hover:text-hi"
+              >
+                Cancelar
+              </Link>
+            </div>
+          </form>
         </div>
-        <p className="mb-4 text-[11px] text-lo">
-          Enviá un mensaje personalizado al dispositivo de {usuario.nombre}.
-        </p>
-        <form action={enviarMencion} className="flex flex-col gap-3">
-          <input type="hidden" name="id_usuario" value={usuario.id_usuario} />
-          <input
-            name="titulo"
-            type="text"
-            required
-            maxLength={80}
-            placeholder="Título"
-            className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-          />
-          <textarea
-            name="cuerpo"
-            required
-            rows={3}
-            maxLength={300}
-            placeholder="Mensaje…"
-            className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 resize-none"
-          />
-          <Button type="submit" variant="secondary" icon={<MessageSquare size={13} />} className="w-fit">
-            Enviar
-          </Button>
-        </form>
+
+        {/* Col derecha: plataformas + notificación */}
+        <div className="flex flex-col gap-6">
+
+          {/* Plataformas */}
+          <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-mid">Plataformas</p>
+            <p className="mb-4 text-[11px] text-lo">En cuáles participa este ministro. La principal determina su vista por defecto.</p>
+            <form action={actualizarPlataformasUsuario} className="flex flex-col gap-4">
+              <input type="hidden" name="id_usuario" value={usuario.id_usuario} />
+              <div className="flex flex-col gap-3">
+                {PLATAFORMAS_LIST.map((pla) => {
+                  const activa = plataformasActivas.has(pla.id);
+                  return (
+                    <label key={pla.id} className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox" name="plataformas" value={pla.id} defaultChecked={activa}
+                        className="h-4 w-4 rounded border-mark accent-violet-600"
+                      />
+                      <span className="text-sm text-hi">{pla.nombre}</span>
+                      {activa && principalId === pla.id && (
+                        <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-600">Principal</span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium uppercase tracking-wider text-lo">Plataforma principal</label>
+                <select
+                  name="principal" defaultValue={principalId ?? ""}
+                  className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
+                >
+                  <option value="">— Sin definir —</option>
+                  {PLATAFORMAS_LIST.map((pla) => (
+                    <option key={pla.id} value={pla.id}>{pla.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              <Button type="submit" variant="secondary">Guardar plataformas</Button>
+            </form>
+          </div>
+
+          {/* Notificación */}
+          <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
+            <div className="mb-4 flex items-center gap-2">
+              <MessageSquare size={14} className="text-violet-500" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-mid">Enviar notificación</p>
+            </div>
+            <p className="mb-4 text-[11px] text-lo">Enviá un mensaje personalizado al dispositivo de {usuario.nombre}.</p>
+            <form action={enviarMencion} className="flex flex-col gap-3">
+              <input type="hidden" name="id_usuario" value={usuario.id_usuario} />
+              <input
+                name="titulo" type="text" required maxLength={80} placeholder="Título"
+                className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+              />
+              <textarea
+                name="cuerpo" required rows={3} maxLength={300} placeholder="Mensaje…"
+                className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 resize-none"
+              />
+              <Button type="submit" variant="secondary" icon={<MessageSquare size={13} />} className="w-fit">Enviar</Button>
+            </form>
+          </div>
+
+        </div>
       </div>
 
     </main>

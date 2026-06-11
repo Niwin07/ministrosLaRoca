@@ -52,7 +52,7 @@ export default async function PerfilPage(props: {
   const successMsg = searchParams.success ? (SUCCESS_MSG[searchParams.success] ?? null) : null;
 
   return (
-    <main className="space-y-6 px-4 pt-8 pb-6">
+    <main className="space-y-6 px-4 pt-8 pb-6 md:max-w-2xl md:mx-auto">
 
       {/* ── Cabecera ─────────────────────────────────────────────────── */}
       <Link

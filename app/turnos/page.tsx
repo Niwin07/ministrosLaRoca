@@ -55,7 +55,7 @@ export default async function TurnosPage() {
           <p className="text-sm text-lo">La cola de turnos está vacía.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
 
           {/* En Servicio */}
           {turnoActivo && (

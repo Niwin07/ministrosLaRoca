@@ -48,9 +48,9 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
 
       {tieneListaActiva ? (
         /* ── Estado activo: título + CTA ──────────────────────── */
-        <>
-          <div className="relative mb-7">
-            <h1 className="text-[1.85rem] font-bold leading-tight tracking-tight text-hi">
+        <div className="flex flex-col gap-6 md:flex-row md:items-center md:gap-8">
+          <div className="relative flex-1">
+            <h1 className="text-[1.85rem] font-bold leading-tight tracking-tight text-hi md:text-2xl">
               {listaActiva!.nombre}
             </h1>
             <p className="mt-2 text-sm text-mid">
@@ -59,11 +59,11 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
             </p>
           </div>
 
-          <Link href={`/escenario/mazo/${listaActiva!.id_playlist}`} className="block">
+          <Link href={`/escenario/mazo/${listaActiva!.id_playlist}`} className="block md:shrink-0">
             <motion.div
               whileTap={{ scale: 0.97 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-violet-600 py-4 transition-colors duration-200 hover:bg-violet-500 active:bg-violet-700"
+              className="flex items-center justify-center gap-3 rounded-2xl bg-violet-600 px-6 py-4 transition-colors duration-200 hover:bg-violet-500 active:bg-violet-700"
             >
               <Tv2 size={20} className="text-white" strokeWidth={2} />
               <span className="text-[15px] font-semibold tracking-wide text-white">
@@ -71,7 +71,7 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
               </span>
             </motion.div>
           </Link>
-        </>
+        </div>
       ) : (
         /* ── Estado vacío: guía de 3 pasos ───────────────────── */
         <>
@@ -84,18 +84,18 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
             </p>
           </div>
 
-          <div className="relative mb-6 flex flex-col gap-2">
+          <div className="relative mb-6 flex flex-col gap-2 md:flex-row md:gap-3">
             {PASOS.map((paso) => (
-              <Link key={paso.num} href={paso.href}>
-                <div className="flex items-center gap-3 rounded-2xl border border-line bg-input px-4 py-3 transition-all duration-200 hover:bg-mark/50 active:scale-[0.98]">
+              <Link key={paso.num} href={paso.href} className="flex-1">
+                <div className="flex items-center gap-3 rounded-2xl border border-line bg-input px-4 py-3 transition-all duration-200 hover:bg-mark/50 active:scale-[0.98] md:flex-col md:items-start md:gap-2 md:py-4">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-600/20 text-xs font-semibold text-violet-600">
                     {paso.num}
                   </span>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 md:flex-none">
                     <p className="text-sm font-medium text-hi">{paso.label}</p>
                     <p className="text-[11px] text-lo">{paso.sub}</p>
                   </div>
-                  <ArrowRight size={13} className="shrink-0 text-gone" />
+                  <ArrowRight size={13} className="shrink-0 text-gone md:hidden" />
                 </div>
               </Link>
             ))}

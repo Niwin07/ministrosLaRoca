@@ -259,24 +259,10 @@ export default async function PlaylistDetailPage(props: {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  return (
-    <div className="flex flex-col gap-4 px-4 pt-6 pb-8">
-
-      {/* ── Back ──────────────────────────────────────────────────────── */}
-      <Link
-        href="/playlists"
-        className="flex w-fit items-center gap-1.5 text-xs text-lo transition-colors hover:text-hi"
-      >
-        <ArrowLeft size={13} />
-        Mis Listas
-      </Link>
-
-      {/* ── Banner de error (acción que no se pudo completar) ─────────── */}
-      <ErrorBanner message={errorMsg} />
-
-      {/* ── Header ────────────────────────────────────────────────────── */}
+  // ── Panel de info + stepper (sidebar derecha en desktop) ─────────────────
+  const panelInfo = (
+    <div className="flex flex-col gap-4">
       <div className="rounded-2xl border border-line bg-card px-5 py-5 shadow-card dark:shadow-none">
-
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <span className="text-[10px] font-medium uppercase tracking-widest text-lo">
             {cabecera.tipo === "EVENTO" ? "Lista de evento" : cabecera.tipo === "PRESET" ? "Plantilla" : cabecera.tipo}
@@ -335,8 +321,6 @@ export default async function PlaylistDetailPage(props: {
                   );
                 }
 
-                // Pasar a ENSAYO/DEFINITIVA (publicar) requiere ser el director
-                // de turno activo. Si no, el botón queda deshabilitado.
                 const esPublicacion = estado === "ENSAYO" || estado === "DEFINITIVA";
                 const bloqueado     = esPublicacion && !puedePublicar;
 
@@ -354,8 +338,6 @@ export default async function PlaylistDetailPage(props: {
                   );
                 }
 
-                // Etapa anterior: retroceder (deshacer / corregir).
-                // Etapa posterior: avanzar.
                 return (
                   <form key={estado} action={handleAvanzarEstado}>
                     <input type="hidden" name="nuevoEstado" value={estado} />
@@ -364,13 +346,11 @@ export default async function PlaylistDetailPage(props: {
                 );
               })}
             </div>
-            {/* Hint contextual según etapa actual */}
             {cabecera.estado && ESTADO_NEXT_HINT[cabecera.estado] && (
               <p className="mt-3 text-[11px] leading-relaxed text-gone">
                 {ESTADO_NEXT_HINT[cabecera.estado]}
               </p>
             )}
-            {/* Aviso si no se puede publicar (etapas Ensayo/Definitiva bloqueadas) */}
             {!puedePublicar && (
               <p className="mt-2 text-[11px] leading-relaxed text-amber-600 dark:text-amber-400/80">
                 {motivoBloqueo} Las etapas de publicación quedan deshabilitadas.
@@ -380,14 +360,58 @@ export default async function PlaylistDetailPage(props: {
         )}
       </div>
 
-      {/* ── Solo lectura ──────────────────────────────────────────────── */}
+      {/* Agregar canción — solo en desktop sidebar */}
+      {puedeEditarContenido && catalogo.length > 0 && (
+        <div className="hidden lg:block rounded-2xl border border-line bg-card px-5 py-5 shadow-card dark:shadow-none">
+          <div className="mb-4 flex items-center gap-2">
+            <PlusCircle size={14} className="text-lo" />
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-lo">Agregar canción</h2>
+          </div>
+          <form key={`add-desktop-${items.length}`} action={handleAgregar} className="flex flex-col gap-3">
+            <CancionSelect name="id_cancion" canciones={catalogo} />
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <TonoSelect name="nota" />
+              </div>
+              <input
+                name="orden"
+                type="number"
+                min={1}
+                defaultValue={nextOrden}
+                required
+                className="w-20 rounded-xl border border-mark bg-input px-3 py-3 text-center text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+              />
+            </div>
+            <Button type="submit" shape="block" size="lg" fullWidth icon={<PlusCircle size={15} />}>
+              Agregar
+            </Button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-4 px-4 pt-6 pb-8">
+
+      {/* ── Back ──────────────────────────────────────────────────────── */}
+      <Link
+        href="/playlists"
+        className="flex w-fit items-center gap-1.5 text-xs text-lo transition-colors hover:text-hi"
+      >
+        <ArrowLeft size={13} />
+        Mis Listas
+      </Link>
+
+      {/* ── Banner de error ───────────────────────────────────────────── */}
+      <ErrorBanner message={errorMsg} />
+
+      {/* ── Alertas de estado ─────────────────────────────────────────── */}
       {!puedeEditar && (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-400">
           Solo lectura — no sos el creador de esta lista.
         </div>
       )}
-
-      {/* Lista bloqueada por su etapa: podés editarla, pero no en este estado */}
       {puedeEditar && !esEditable && (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-400">
           Lista {cabecera.estado === "MAZO" ? "archivada" : "marcada como definitiva"} — para
@@ -397,60 +421,72 @@ export default async function PlaylistDetailPage(props: {
         </div>
       )}
 
-      {/* ── Lista de canciones ────────────────────────────────────────── */}
-      {items.length === 0 ? (
-        <div className="rounded-2xl border border-line bg-card px-5 py-14 text-center shadow-card dark:shadow-none">
-          <Music2 size={28} className="mx-auto mb-3 text-gone" />
-          <p className="text-sm text-lo">La lista está vacía.</p>
-        </div>
-      ) : (
-        <SortableSongList
-          items={items}
-          puedeEditar={puedeEditarContenido}
-          onReordenar={handleReordenar}
-          onEliminar={handleEliminar}
-          onActualizarNota={handleActualizarNota}
-        />
-      )}
+      {/* ── Layout principal ──────────────────────────────────────────── */}
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
 
-      {/* ── Agregar canción ───────────────────────────────────────────── */}
-      {puedeEditarContenido && (
-        <div className="rounded-2xl border border-line bg-card px-5 py-5 shadow-card dark:shadow-none">
-          <div className="mb-4 flex items-center gap-2">
-            <PlusCircle size={14} className="text-lo" />
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-lo">
-              Agregar canción
-            </h2>
-          </div>
+        {/* Columna izquierda: canciones */}
+        <div className="flex flex-col gap-4">
+          {/* Header card — solo en mobile (en desktop va en la columna derecha) */}
+          <div className="lg:hidden">{panelInfo}</div>
 
-          {catalogo.length === 0 ? (
-            <p className="text-xs text-lo">Sin canciones aprobadas en el catálogo.</p>
+          {/* Lista de canciones */}
+          {items.length === 0 ? (
+            <div className="rounded-2xl border border-line bg-card px-5 py-14 text-center shadow-card dark:shadow-none">
+              <Music2 size={28} className="mx-auto mb-3 text-gone" />
+              <p className="text-sm text-lo">La lista está vacía.</p>
+            </div>
           ) : (
-            <form key={`add-${items.length}`} action={handleAgregar} className="flex flex-col gap-3">
-              <CancionSelect name="id_cancion" canciones={catalogo} />
+            <SortableSongList
+              items={items}
+              puedeEditar={puedeEditarContenido}
+              onReordenar={handleReordenar}
+              onEliminar={handleEliminar}
+              onActualizarNota={handleActualizarNota}
+            />
+          )}
 
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <TonoSelect name="nota" />
-                </div>
-                <input
-                  name="orden"
-                  type="number"
-                  min={1}
-                  defaultValue={nextOrden}
-                  required
-                  className="w-20 rounded-xl border border-mark bg-input px-3 py-3 text-center text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-                />
+          {/* Agregar canción — solo en mobile (en desktop va en el sidebar) */}
+          {puedeEditarContenido && (
+            <div className="lg:hidden rounded-2xl border border-line bg-card px-5 py-5 shadow-card dark:shadow-none">
+              <div className="mb-4 flex items-center gap-2">
+                <PlusCircle size={14} className="text-lo" />
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-lo">
+                  Agregar canción
+                </h2>
               </div>
-
-              <Button type="submit" shape="block" size="lg" fullWidth icon={<PlusCircle size={15} />}>
-                Agregar
-              </Button>
-            </form>
+              {catalogo.length === 0 ? (
+                <p className="text-xs text-lo">Sin canciones aprobadas en el catálogo.</p>
+              ) : (
+                <form key={`add-${items.length}`} action={handleAgregar} className="flex flex-col gap-3">
+                  <CancionSelect name="id_cancion" canciones={catalogo} />
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <TonoSelect name="nota" />
+                    </div>
+                    <input
+                      name="orden"
+                      type="number"
+                      min={1}
+                      defaultValue={nextOrden}
+                      required
+                      className="w-20 rounded-xl border border-mark bg-input px-3 py-3 text-center text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+                    />
+                  </div>
+                  <Button type="submit" shape="block" size="lg" fullWidth icon={<PlusCircle size={15} />}>
+                    Agregar
+                  </Button>
+                </form>
+              )}
+            </div>
           )}
         </div>
-      )}
 
+        {/* Columna derecha: info + stepper (solo desktop) */}
+        <div className="hidden lg:block lg:sticky lg:top-8">
+          {panelInfo}
+        </div>
+
+      </div>
     </div>
   );
 }
