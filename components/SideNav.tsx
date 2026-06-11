@@ -107,27 +107,21 @@ export function SideNav({
         })}
       </nav>
 
-      {/* Bottom: platform, theme, settings, user, logout */}
-      <div className="border-t border-line px-3 py-3 space-y-0.5">
+      {/* Bottom: notifications, platform, theme, settings, user, logout */}
+      <div className="border-t border-line py-2 space-y-0.5">
 
         {/* Notificaciones */}
-        <div className="flex items-center gap-3 rounded-xl px-3 py-1 relative">
-          <NotifBell />
-          <span className="text-sm text-lo">Notificaciones</span>
-        </div>
+        <NotifBell sidebar />
 
         {/* Platform switcher */}
         {misPlataformas.length >= 2 && (
-          <div className="px-1 py-2">
+          <div className="px-3 py-1.5">
             <PlataformaSwitcher plataformas={misPlataformas} activaId={plataformaActivaId} />
           </div>
         )}
 
         {/* Theme toggle */}
-        <div className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-lo">
-          <ThemeToggle tema={tema} />
-          <span className="text-sm text-lo">{tema === "oscuro" ? "Modo oscuro" : "Modo claro"}</span>
-        </div>
+        <ThemeToggle tema={tema} sidebar />
 
         {/* Admin settings */}
         {rol === "ADMINISTRADOR" && (

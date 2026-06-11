@@ -46,7 +46,7 @@ function timeAgo(iso: string | null): string {
   return `${Math.floor(h / 24)}d`;
 }
 
-export function NotifBell() {
+export function NotifBell({ sidebar }: { sidebar?: boolean } = {}) {
   const [abierto, setAbierto] = useState(false);
   const [notifs, setNotifs]   = useState<Notif[]>([]);
   const [cargando, setCargando] = useState(false);
@@ -92,23 +92,50 @@ export function NotifBell() {
     }
   }
 
+  const dropdownCls = sidebar
+    ? "absolute left-full top-0 z-50 ml-2 w-80 rounded-2xl border border-line bg-card shadow-xl dark:shadow-none"
+    : "absolute right-0 top-full z-50 mt-1 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-card shadow-xl dark:shadow-none";
+
   return (
-    <div ref={ref}>
-      <button
-        onClick={abrir}
-        aria-label={`Notificaciones${noLeidas > 0 ? ` (${noLeidas} nuevas)` : ""}`}
-        className="relative flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
-      >
-        <Bell size={20} />
-        {noLeidas > 0 && (
-          <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-            {noLeidas > 9 ? "9+" : noLeidas}
-          </span>
-        )}
-      </button>
+    <div ref={ref} className={sidebar ? "relative" : undefined}>
+      {sidebar ? (
+        <button
+          onClick={abrir}
+          aria-label={`Notificaciones${noLeidas > 0 ? ` (${noLeidas} nuevas)` : ""}`}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-lo transition-colors hover:bg-input hover:text-mid"
+        >
+          <div className="relative shrink-0">
+            <Bell size={17} strokeWidth={1.8} />
+            {noLeidas > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white">
+                {noLeidas > 9 ? "9+" : noLeidas}
+              </span>
+            )}
+          </div>
+          <span>Notificaciones</span>
+          {noLeidas > 0 && (
+            <span className="ml-auto rounded-full bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-500">
+              {noLeidas}
+            </span>
+          )}
+        </button>
+      ) : (
+        <button
+          onClick={abrir}
+          aria-label={`Notificaciones${noLeidas > 0 ? ` (${noLeidas} nuevas)` : ""}`}
+          className="relative flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
+        >
+          <Bell size={20} />
+          {noLeidas > 0 && (
+            <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+              {noLeidas > 9 ? "9+" : noLeidas}
+            </span>
+          )}
+        </button>
+      )}
 
       {abierto && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-card shadow-xl dark:shadow-none">
+        <div className={dropdownCls}>
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-mid">
               Notificaciones

@@ -4,16 +4,31 @@ import { useTransition } from "react";
 import { Sun, Moon } from "lucide-react";
 import { setTema } from "@/app/actions/tema";
 
-export function ThemeToggle({ tema }: { tema: "claro" | "oscuro" }) {
+export function ThemeToggle({ tema, sidebar }: { tema: "claro" | "oscuro"; sidebar?: boolean }) {
   const [pending, start] = useTransition();
   const isDark = tema === "oscuro";
 
   function toggle() {
     const next = isDark ? "claro" : "oscuro";
-    // Apply the class change immediately on the client for a flash-free transition.
     document.documentElement.classList.toggle("dark", next === "oscuro");
-    // Persist the preference via server action so it survives navigation and reload.
     start(() => setTema(next));
+  }
+
+  if (sidebar) {
+    return (
+      <button
+        onClick={toggle}
+        disabled={pending}
+        aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-lo transition-colors hover:bg-input hover:text-mid disabled:opacity-40"
+      >
+        {isDark
+          ? <Sun  size={17} strokeWidth={1.8} className="shrink-0" />
+          : <Moon size={17} strokeWidth={1.8} className="shrink-0" />
+        }
+        <span>{isDark ? "Modo oscuro" : "Modo claro"}</span>
+      </button>
+    );
   }
 
   return (
