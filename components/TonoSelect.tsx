@@ -11,27 +11,43 @@ const GRUPOS  = [{ label: "Mayores", notas: MAYORES }, { label: "Menores", notas
 const PANEL_WIDTH = 288;
 
 interface Props {
-  name:          string;
+  // Form mode
+  name?:         string;
   defaultValue?: string | null;
+  // Controlled mode (e.g. ChartViewerInteractivo)
+  value?:        string;
+  onChange?:     (nota: string) => void;
+  // Customisation
   placeholder?:  string;
+  notas?:        readonly string[];
+  showSinTono?:  boolean;
+  compact?:      boolean;
 }
 
-export function TonoSelect({ name, defaultValue, placeholder = "Tono (opcional)â€¦" }: Props) {
-  const [selected, setSelected] = useState(defaultValue ?? "");
+export function TonoSelect({
+  name,
+  defaultValue,
+  value: valueProp,
+  onChange,
+  placeholder = "Tono (opcional)â€¦",
+  notas: notasProp,
+  showSinTono = true,
+  compact = false,
+}: Props) {
+  const [internal, setInternal] = useState(defaultValue ?? "");
   const [open, setOpen]         = useState(false);
   const [style, setStyle]       = useState<React.CSSProperties>({});
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef   = useRef<HTMLDivElement>(null);
 
+  const selected = valueProp !== undefined ? valueProp : internal;
+
   useEffect(() => {
     if (!open) return;
-
     const rect = triggerRef.current?.getBoundingClientRect();
     if (rect) {
-      // Position panel above the trigger, right-aligned to trigger's right edge
       let right = window.innerWidth - rect.right;
       if (right < 8) right = 8;
-
       setStyle({
         position: "fixed",
         bottom:   window.innerHeight - rect.top + 8,
@@ -40,22 +56,18 @@ export function TonoSelect({ name, defaultValue, placeholder = "Tono (opcional)â
         zIndex:   9999,
       });
     }
-
     function onMouseDown(e: MouseEvent) {
       const t = e.target as Node;
-      if (
-        triggerRef.current?.contains(t) ||
-        panelRef.current?.contains(t)
-      ) return;
+      if (triggerRef.current?.contains(t) || panelRef.current?.contains(t)) return;
       setOpen(false);
     }
-
     document.addEventListener("mousedown", onMouseDown);
     return () => document.removeEventListener("mousedown", onMouseDown);
   }, [open]);
 
   function elegir(nota: string) {
-    setSelected(nota);
+    if (valueProp === undefined) setInternal(nota);
+    onChange?.(nota);
     setOpen(false);
   }
 
@@ -73,38 +85,72 @@ export function TonoSelect({ name, defaultValue, placeholder = "Tono (opcional)â
           style={style}
           className="rounded-2xl border border-line bg-card p-4 shadow-xl dark:shadow-black/40"
         >
-          <button
-            type="button"
-            onClick={() => elegir("")}
-            className={`mb-3 w-full rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
-              !selected
-                ? "border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-400"
-                : "border-line bg-input text-lo hover:bg-card"
-            }`}
-          >
-            Sin tono
-          </button>
+          {showSinTono && (
+            <button
+              type="button"
+              onClick={() => elegir("")}
+              className={`mb-3 w-full rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
+                !selected
+                  ? "border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                  : "border-line bg-input text-lo hover:bg-card"
+              }`}
+            >
+              Sin tono
+            </button>
+          )}
 
-          {GRUPOS.map(({ label, notas }) => (
-            <div key={label} className="mb-3 last:mb-0">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gone">{label}</p>
-              <div className="grid grid-cols-4 gap-1.5">
-                {notas.map((nota) => (
-                  <button key={nota} type="button" onClick={() => elegir(nota)} className={pillCls(nota)}>
-                    {nota}
-                  </button>
-                ))}
-              </div>
+          {notasProp ? (
+            <div className="grid grid-cols-4 gap-1.5">
+              {notasProp.map((nota) => (
+                <button key={nota} type="button" onClick={() => elegir(nota)} className={pillCls(nota)}>
+                  {nota}
+                </button>
+              ))}
             </div>
-          ))}
+          ) : (
+            GRUPOS.map(({ label, notas }) => (
+              <div key={label} className="mb-3 last:mb-0">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gone">{label}</p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {notas.map((nota) => (
+                    <button key={nota} type="button" onClick={() => elegir(nota)} className={pillCls(nota)}>
+                      {nota}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
         </div>,
         document.body,
       )
     : null;
 
+  if (compact) {
+    return (
+      <>
+        {name && <input type="hidden" name={name} value={selected} />}
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold outline-none transition-colors focus:border-violet-500 ${
+            selected
+              ? "border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-400"
+              : "border-mark bg-input text-hi"
+          }`}
+        >
+          {selected || "â€“"}
+          <ChevronDown size={10} className={`text-lo transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        </button>
+        {panel}
+      </>
+    );
+  }
+
   return (
     <>
-      <input type="hidden" name={name} value={selected} />
+      {name && <input type="hidden" name={name} value={selected} />}
 
       <button
         ref={triggerRef}
@@ -121,10 +167,7 @@ export function TonoSelect({ name, defaultValue, placeholder = "Tono (opcional)â
             {selected}
           </span>
         ) : (
-          <ChevronDown
-            size={13}
-            className={`shrink-0 text-lo transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-          />
+          <ChevronDown size={13} className={`shrink-0 text-lo transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
         )}
       </button>
 

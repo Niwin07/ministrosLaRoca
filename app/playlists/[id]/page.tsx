@@ -9,6 +9,7 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
 import { StepperPill } from "@/components/StepperPill";
 import { TonoSelect } from "@/components/TonoSelect";
+import { CancionSelect } from "@/components/CancionSelect";
 import { auth } from "@/auth";
 import {
   agregarCancionALista,
@@ -426,19 +427,7 @@ export default async function PlaylistDetailPage(props: {
             <p className="text-xs text-lo">Sin canciones aprobadas en el catálogo.</p>
           ) : (
             <form key={`add-${items.length}`} action={handleAgregar} className="flex flex-col gap-3">
-              <select
-                name="id_cancion"
-                required
-                defaultValue=""
-                className="w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
-              >
-                <option value="" disabled>Elegí una canción…</option>
-                {catalogo.map((c) => (
-                  <option key={c.id_cancion} value={c.id_cancion}>
-                    {c.nombre} — {c.artista}
-                  </option>
-                ))}
-              </select>
+              <CancionSelect name="id_cancion" canciones={catalogo} />
 
               <div className="flex gap-2">
                 <div className="flex-1">
