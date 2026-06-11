@@ -4,7 +4,7 @@ import { and, asc, desc, eq, isNotNull, ne } from "drizzle-orm";
 import { ArrowLeft, Music2, PlusCircle, Copy, Tv2 } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/db";
-import { canciones, cronograma, lista_canciones, lista_comentarios, playlists, usuarios } from "@/db/schema";
+import { canciones, cronograma, lista_canciones, lista_comentarios, playlists, playlist_visitas, usuarios } from "@/db/schema";
 import { SortableSongList } from "@/components/SortableSongList";
 import type { Comentario } from "@/components/ComentariosCancion";
 import { ErrorBanner } from "@/components/ErrorBanner";
@@ -37,6 +37,8 @@ async function getPlaylistConCanciones(id: number) {
       id_lista_cancion: lista_canciones.id_lista_cancion,
       orden:            lista_canciones.orden,
       nota:             lista_canciones.nota,
+      agregadoEn:       lista_canciones.agregadoEn,
+      notaActualizadaEn: lista_canciones.notaActualizadaEn,
       id_cancion:       canciones.id_cancion,
       nombre_cancion:   canciones.nombre,
       artista:          canciones.artista,
@@ -188,6 +190,24 @@ export default async function PlaylistDetailPage(props: {
   const directorActivoId = await getDirectorActivo(cabecera.id_plataforma);
 
   const { rol, id_usuario } = session.user;
+
+  // ── Última visita: badges "Nuevo" / "Tono cambiado" ───────────────────────
+  // Se lee la visita anterior ANTES de actualizarla, para comparar contra los
+  // timestamps de lista_canciones. Sin visita previa no se muestran badges.
+  const [visitaPrevia] = await db
+    .select({ ultima_visita: playlist_visitas.ultima_visita })
+    .from(playlist_visitas)
+    .where(and(
+      eq(playlist_visitas.id_usuario, id_usuario),
+      eq(playlist_visitas.id_playlist, id),
+    ));
+  const ultimaVisita = visitaPrevia?.ultima_visita ?? null;
+
+  // Registrar esta visita (upsert por PK usuario+playlist)
+  await db
+    .insert(playlist_visitas)
+    .values({ id_usuario, id_playlist: id, ultima_visita: new Date() })
+    .onDuplicateKeyUpdate({ set: { ultima_visita: new Date() } });
   const puedeEditar =
     id_usuario === cabecera.id_usuario ||
     rol === "ADMINISTRADOR" ||
@@ -221,17 +241,23 @@ export default async function PlaylistDetailPage(props: {
 
   const items = rows
     .filter((row) => row.id_lista_cancion !== null)
-    .map((row) => ({
-      id_lista_cancion: row.id_lista_cancion!,
-      orden:            row.orden!,
-      nota:             row.nota,
-      id_cancion:       row.id_cancion!,
-      nombre:           row.nombre_cancion!,
-      artista:          row.artista!,
-      charts:           row.charts,
-      letra:            row.letra,
-      link_referencia:  row.link_referencia,
-    }));
+    .map((row) => {
+      const esNueva = !!(ultimaVisita && row.agregadoEn && row.agregadoEn > ultimaVisita);
+      return {
+        id_lista_cancion: row.id_lista_cancion!,
+        orden:            row.orden!,
+        nota:             row.nota,
+        id_cancion:       row.id_cancion!,
+        nombre:           row.nombre_cancion!,
+        artista:          row.artista!,
+        charts:           row.charts,
+        letra:            row.letra,
+        link_referencia:  row.link_referencia,
+        esNueva,
+        // "Tono cambiado" solo si la canción no es nueva (el badge Nuevo ya la cubre)
+        tonoCambiado: !esNueva && !!(ultimaVisita && row.notaActualizadaEn && row.notaActualizadaEn > ultimaVisita),
+      };
+    });
 
   const nextOrden = items.length > 0 ? Math.max(...items.map((i) => i.orden)) + 1 : 1;
 

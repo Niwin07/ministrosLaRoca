@@ -114,6 +114,9 @@ export async function agregarCancionALista(
         id_cancion,
         orden,
         nota: nota ?? null,
+        // Timestamp explícito para el badge "Nuevo" (qué cambió desde tu
+        // última visita).
+        agregadoEn: new Date(),
       })
       .$returningId();
 
@@ -213,9 +216,11 @@ export async function actualizarNotaCancion(
   }
   assertPuedeModificar(user, registro.owner, registro.tipo_playlist, registro.estado_playlist);
 
+  // notaActualizadaEn explícito (nunca ON UPDATE automático: reordenar
+  // actualiza todas las filas y las marcaría como modificadas).
   await db
     .update(lista_canciones)
-    .set({ nota })
+    .set({ nota, notaActualizadaEn: new Date() })
     .where(eq(lista_canciones.id_lista_cancion, id_lista_cancion));
 
   // Notificar solo si el tono realmente cambió (fire & forget)

@@ -18,6 +18,10 @@ interface SongItem {
   charts: string | null;
   letra: string | null;
   link_referencia?: string | null;
+  /** Agregada después de la última visita del usuario. */
+  esNueva?: boolean;
+  /** Tono modificado después de la última visita (y no es nueva). */
+  tonoCambiado?: boolean;
 }
 
 interface SortableSongListProps {
@@ -192,7 +196,19 @@ function SortableRow({
           {String(posicion).padStart(2, "0")}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-hi">{item.nombre}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="truncate text-sm font-semibold text-hi">{item.nombre}</p>
+            {item.esNueva && (
+              <span className="shrink-0 rounded-full bg-green-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-green-600 dark:text-green-400">
+                Nuevo
+              </span>
+            )}
+            {item.tonoCambiado && (
+              <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                Tono cambiado
+              </span>
+            )}
+          </div>
           <p className="mt-0.5 truncate text-xs text-lo">{item.artista}</p>
         </div>
         {item.nota && (
