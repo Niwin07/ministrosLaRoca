@@ -90,12 +90,12 @@ function VistaLista({
 }) {
   const [seleccionado, setSeleccionado] = useState(0);
   const cancion = canciones[seleccionado];
-  const [modo, setModo] = useState<"charts" | "letra">(cancion?.charts ? "charts" : "letra");
+  const [modo, setModo] = useState<"charts" | "letra">(cancion?.letra ? "letra" : "charts");
   const tieneAmbos = !!(cancion?.charts && cancion?.letra);
 
   useEffect(() => {
-    setModo(cancion?.charts ? "charts" : "letra");
-  }, [seleccionado, cancion?.charts]);
+    setModo(cancion?.letra ? "letra" : "charts");
+  }, [seleccionado, cancion?.letra]);
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-base">
@@ -177,14 +177,22 @@ function VistaLista({
                       <p className="mt-2 text-lg font-bold text-violet-600 dark:text-violet-400">{cancion.nota}</p>
                     )}
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-3">
                     {tieneAmbos && (
-                      <button
-                        onClick={() => setModo(modo === "charts" ? "letra" : "charts")}
-                        className="rounded-full border border-mark px-3 py-1.5 text-xs text-lo transition-colors hover:border-line hover:text-hi"
-                      >
-                        {modo === "charts" ? "Letra" : "Charts"}
-                      </button>
+                      <div className="inline-flex rounded-lg border border-line bg-input p-0.5 text-xs font-semibold">
+                        <button
+                          onClick={() => setModo("letra")}
+                          className={`rounded-md px-3 py-1.5 transition-colors ${modo === "letra" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
+                        >
+                          Letra
+                        </button>
+                        <button
+                          onClick={() => setModo("charts")}
+                          className={`rounded-md px-3 py-1.5 transition-colors ${modo === "charts" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
+                        >
+                          Charts
+                        </button>
+                      </div>
                     )}
                     <button
                       onClick={() => onPresentar(seleccionado)}
@@ -239,13 +247,13 @@ function PresentadorMode({
   const listaRef = useRef<HTMLDivElement>(null);
 
   const [modoContenido, setModoContenido] = useState<"charts" | "letra">(
-    cancion.charts ? "charts" : "letra"
+    cancion.letra ? "letra" : "charts"
   );
   const tieneAmbos = !!(cancion.charts && cancion.letra);
 
   useEffect(() => {
-    setModoContenido(cancion.charts ? "charts" : "letra");
-  }, [indice, cancion.charts]);
+    setModoContenido(cancion.letra ? "letra" : "charts");
+  }, [indice, cancion.letra]);
 
   // Mantener la canción activa visible en la lista lateral
   useEffect(() => {
@@ -287,16 +295,24 @@ function PresentadorMode({
           </p>
           <div className="flex items-center gap-2">
             {tieneAmbos && (
-              <button
-                onClick={() => setModoContenido((c) => (c === "charts" ? "letra" : "charts"))}
-                className="rounded-full border border-mark px-3 py-1.5 text-xs text-lo transition-colors hover:border-line hover:text-hi"
-              >
-                {modoContenido === "charts" ? "Letra" : "Charts"}
-              </button>
+              <div className="inline-flex rounded-lg border border-line bg-input p-0.5 text-xs font-semibold">
+                <button
+                  onClick={() => setModoContenido("letra")}
+                  className={`rounded-md px-3 py-1.5 transition-colors ${modoContenido === "letra" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
+                >
+                  Letra
+                </button>
+                <button
+                  onClick={() => setModoContenido("charts")}
+                  className={`rounded-md px-3 py-1.5 transition-colors ${modoContenido === "charts" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
+                >
+                  Charts
+                </button>
+              </div>
             )}
             <button
               onClick={onSalir}
-              className="rounded-full border border-line px-3 py-1.5 text-xs text-lo transition-colors hover:bg-input hover:text-hi"
+              className="rounded-full border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-600 transition-colors hover:bg-violet-500/20 dark:text-violet-400"
             >
               ✕ Lista
             </button>
