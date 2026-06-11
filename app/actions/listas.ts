@@ -126,19 +126,26 @@ export async function agregarCancionALista(
   return result;
 }
 
-async function notificarCancionAgregada(id_playlist: number, id_cancion: number) {
+/**
+ * Notifica un cambio de contenido a todos los miembros de la plataforma de la
+ * lista (excepto el autor), solo si la lista está publicada (ENSAYO o
+ * DEFINITIVA). Fire & forget: los llamadores no esperan ni propagan errores.
+ */
+async function notificarCambioEnLista(
+  id_playlist: number,
+  tipo: "CANCION_AGREGADA" | "CANCION_QUITADA" | "TONO_CAMBIADO",
+  titulo: string,
+  cuerpo: (nombreLista: string) => string,
+) {
   const session = await auth();
   if (!session?.user) return;
 
-  const [[lista], [cancion]] = await Promise.all([
-    db.select({ estado: playlists.estado, id_plataforma: playlists.id_plataforma, nombre: playlists.nombre })
-      .from(playlists).where(eq(playlists.id_playlist, id_playlist)),
-    db.select({ nombre: canciones.nombre })
-      .from(canciones).where(eq(canciones.id_cancion, id_cancion)),
-  ]);
+  const [lista] = await db
+    .select({ estado: playlists.estado, id_plataforma: playlists.id_plataforma, nombre: playlists.nombre })
+    .from(playlists)
+    .where(eq(playlists.id_playlist, id_playlist));
 
   if (!lista || (lista.estado !== "ENSAYO" && lista.estado !== "DEFINITIVA")) return;
-  if (!cancion) return;
 
   const miembros = await db
     .select({ id_usuario: usuario_plataforma.id_usuario })
@@ -149,13 +156,23 @@ async function notificarCancionAgregada(id_playlist: number, id_cancion: number)
     miembros
       .filter((u) => u.id_usuario !== session.user.id_usuario)
       .map((u) =>
-        crearNotificacion(
-          u.id_usuario,
-          "CANCION_AGREGADA",
-          "Nueva canción en el setlist",
-          `Se agregó "${cancion.nombre}" a "${lista.nombre}".`,
-        ).catch(() => {})
+        crearNotificacion(u.id_usuario, tipo, titulo, cuerpo(lista.nombre)).catch(() => {})
       )
+  );
+}
+
+async function notificarCancionAgregada(id_playlist: number, id_cancion: number) {
+  const [cancion] = await db
+    .select({ nombre: canciones.nombre })
+    .from(canciones)
+    .where(eq(canciones.id_cancion, id_cancion));
+  if (!cancion) return;
+
+  await notificarCambioEnLista(
+    id_playlist,
+    "CANCION_AGREGADA",
+    "Nueva canción en el setlist",
+    (lista) => `Se agregó "${cancion.nombre}" a "${lista}".`,
   );
 }
 
@@ -171,6 +188,9 @@ export async function actualizarNotaCancion(
   const [registro] = await db
     .select({
       id_lista_cancion: lista_canciones.id_lista_cancion,
+      id_playlist:      lista_canciones.id_playlist,
+      nota_anterior:    lista_canciones.nota,
+      nombre_cancion:   canciones.nombre,
       estado_playlist:  playlists.estado,
       tipo_playlist:    playlists.tipo,
       owner:            playlists.id_usuario,
@@ -179,6 +199,10 @@ export async function actualizarNotaCancion(
     .innerJoin(
       playlists,
       eq(lista_canciones.id_playlist, playlists.id_playlist)
+    )
+    .innerJoin(
+      canciones,
+      eq(lista_canciones.id_cancion, canciones.id_cancion)
     )
     .where(eq(lista_canciones.id_lista_cancion, id_lista_cancion));
 
@@ -193,6 +217,19 @@ export async function actualizarNotaCancion(
     .update(lista_canciones)
     .set({ nota })
     .where(eq(lista_canciones.id_lista_cancion, id_lista_cancion));
+
+  // Notificar solo si el tono realmente cambió (fire & forget)
+  if ((registro.nota_anterior ?? "") !== nota) {
+    notificarCambioEnLista(
+      registro.id_playlist,
+      "TONO_CAMBIADO",
+      "Cambio de tono",
+      (lista) =>
+        nota
+          ? `"${registro.nombre_cancion}" ahora va en ${nota} en "${lista}".`
+          : `Se quitó el tono de "${registro.nombre_cancion}" en "${lista}".`,
+    ).catch(() => {});
+  }
 }
 
 /**
@@ -245,6 +282,8 @@ export async function eliminarCancionDeLista(
   const [registro] = await db
     .select({
       id_lista_cancion: lista_canciones.id_lista_cancion,
+      id_playlist:      lista_canciones.id_playlist,
+      nombre_cancion:   canciones.nombre,
       estado_playlist:  playlists.estado,
       tipo_playlist:    playlists.tipo,
       owner:            playlists.id_usuario,
@@ -253,6 +292,10 @@ export async function eliminarCancionDeLista(
     .innerJoin(
       playlists,
       eq(lista_canciones.id_playlist, playlists.id_playlist)
+    )
+    .innerJoin(
+      canciones,
+      eq(lista_canciones.id_cancion, canciones.id_cancion)
     )
     .where(eq(lista_canciones.id_lista_cancion, id_lista_cancion));
 
@@ -266,4 +309,12 @@ export async function eliminarCancionDeLista(
   await db
     .delete(lista_canciones)
     .where(eq(lista_canciones.id_lista_cancion, id_lista_cancion));
+
+  // Notificar al equipo si la lista está publicada (fire & forget)
+  notificarCambioEnLista(
+    registro.id_playlist,
+    "CANCION_QUITADA",
+    "Canción quitada del setlist",
+    (lista) => `Se quitó "${registro.nombre_cancion}" de "${lista}".`,
+  ).catch(() => {});
 }

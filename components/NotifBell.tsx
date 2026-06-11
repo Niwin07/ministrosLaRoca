@@ -4,16 +4,27 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Bell,
   Calendar,
+  CalendarClock,
   Music2,
+  Music4,
+  ListMinus,
   CheckCircle2,
   XCircle,
+  Undo2,
   MessageSquare,
+  MessageCircle,
   X,
 } from "lucide-react";
 
 type TipoNotif =
   | "TURNO_ASIGNADO"
+  | "TURNO_PROXIMO"
   | "LISTA_PUBLICADA"
+  | "LISTA_RETIRADA"
+  | "CANCION_AGREGADA"
+  | "CANCION_QUITADA"
+  | "TONO_CAMBIADO"
+  | "COMENTARIO"
   | "CANCION_APROBADA"
   | "CANCION_RECHAZADA"
   | "MENCION";
@@ -29,7 +40,13 @@ interface Notif {
 
 const TIPO_ICON: Record<TipoNotif, React.ReactNode> = {
   TURNO_ASIGNADO:    <Calendar   size={14} className="text-violet-500" />,
+  TURNO_PROXIMO:     <CalendarClock size={14} className="text-violet-500" />,
   LISTA_PUBLICADA:   <Music2     size={14} className="text-blue-500" />,
+  LISTA_RETIRADA:    <Undo2      size={14} className="text-amber-500" />,
+  CANCION_AGREGADA:  <Music4     size={14} className="text-blue-500" />,
+  CANCION_QUITADA:   <ListMinus  size={14} className="text-amber-500" />,
+  TONO_CAMBIADO:     <Music4     size={14} className="text-violet-500" />,
+  COMENTARIO:        <MessageCircle size={14} className="text-blue-500" />,
   CANCION_APROBADA:  <CheckCircle2 size={14} className="text-green-500" />,
   CANCION_RECHAZADA: <XCircle    size={14} className="text-red-500" />,
   MENCION:           <MessageSquare size={14} className="text-amber-500" />,
