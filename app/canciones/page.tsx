@@ -51,10 +51,11 @@ export default async function CancionesPage(props: {
       await crearSugerencia({
         nombre,
         artista,
-        bpm:     bpm !== undefined && Number.isFinite(bpm) ? bpm : undefined,
-        metrica: clean(formData.get("metrica")),
-        letra:   clean(formData.get("letra")),
-        charts:  clean(formData.get("charts")),
+        bpm:             bpm !== undefined && Number.isFinite(bpm) ? bpm : undefined,
+        metrica:         clean(formData.get("metrica")),
+        letra:           clean(formData.get("letra")),
+        charts:          clean(formData.get("charts")),
+        link_referencia: clean(formData.get("link_referencia")),
       });
 
       revalidatePath("/canciones");
@@ -168,6 +169,13 @@ export default async function CancionesPage(props: {
                 className="w-24 rounded-xl border border-mark bg-input px-3 py-3 text-center text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
               />
             </div>
+
+            <input
+              name="link_referencia"
+              type="url"
+              placeholder="Link de YouTube/Spotify (opcional)…"
+              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+            />
 
             <CargarCancion />
 

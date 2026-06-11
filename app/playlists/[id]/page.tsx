@@ -39,6 +39,7 @@ async function getPlaylistConCanciones(id: number) {
       artista:          canciones.artista,
       charts:           canciones.charts,
       letra:            canciones.letra,
+      link_referencia:  canciones.link_referencia,
     })
     .from(playlists)
     .leftJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
@@ -169,6 +170,7 @@ export default async function PlaylistDetailPage(props: {
       artista:          row.artista!,
       charts:           row.charts,
       letra:            row.letra,
+      link_referencia:  row.link_referencia,
     }));
 
   const nextOrden = items.length > 0 ? Math.max(...items.map((i) => i.orden)) + 1 : 1;

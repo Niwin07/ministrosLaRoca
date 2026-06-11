@@ -11,12 +11,24 @@ import { auth } from "@/auth";
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 interface SugerirCancionInput {
-  nombre:   string;
-  artista:  string;
-  bpm?:     number;
-  metrica?: string;
-  letra?:   string;
-  charts?:  string;
+  nombre:           string;
+  artista:          string;
+  bpm?:             number;
+  metrica?:         string;
+  letra?:           string;
+  charts?:          string;
+  link_referencia?: string;
+}
+
+/** Normaliza una URL de referencia: solo se acepta http(s), si no → null. */
+function normalizarLink(raw: FormDataEntryValue | string | null | undefined): string | null {
+  if (typeof raw !== "string") return null;
+  const url = raw.trim();
+  if (!url) return null;
+  if (!/^https?:\/\/\S+$/i.test(url)) {
+    throw new Error("El link de referencia debe ser una URL válida (http:// o https://).");
+  }
+  return url.slice(0, 500);
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -39,6 +51,7 @@ export async function sugerirCancion(
       metrica:              input.metrica ?? null,
       letra:                input.letra   ?? null,
       charts:               input.charts  ?? null,
+      link_referencia:      normalizarLink(input.link_referencia),
       estado_aprobacion:    "PENDIENTE",
       id_usuario_sugeridor: session?.user?.id_usuario ?? null,
     })
@@ -77,10 +90,11 @@ export async function actualizarCancion(formData: FormData): Promise<void> {
       .set({
         nombre,
         artista,
-        bpm:     Number.isFinite(bpm) ? bpm : null,
-        metrica: (formData.get("metrica") as string | null)?.trim() || null,
-        letra:   norm(formData.get("letra")),
-        charts:  norm(formData.get("charts")),
+        bpm:             Number.isFinite(bpm) ? bpm : null,
+        metrica:         (formData.get("metrica") as string | null)?.trim() || null,
+        letra:           norm(formData.get("letra")),
+        charts:          norm(formData.get("charts")),
+        link_referencia: normalizarLink(formData.get("link_referencia")),
       })
       .where(eq(canciones.id_cancion, id_cancion));
 

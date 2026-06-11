@@ -79,6 +79,14 @@ export default async function EditarCancionPage(props: {
           />
         </div>
 
+        <input
+          name="link_referencia"
+          type="url"
+          defaultValue={c.link_referencia ?? ""}
+          placeholder="Link de YouTube/Spotify (opcional)…"
+          className={inputCls}
+        />
+
         <CargarCancion defaultLetra={c.letra ?? ""} defaultCharts={c.charts ?? ""} nombre={c.nombre} artista={c.artista} />
 
         <Button type="submit" className="mt-1 self-start" icon={<Save size={14} />}>

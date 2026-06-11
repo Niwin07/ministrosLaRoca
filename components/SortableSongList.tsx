@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { GripVertical, ChevronDown } from "lucide-react";
+import { GripVertical, ChevronDown, Play } from "lucide-react";
 import { ChartViewerInteractivo } from "@/components/ChartViewerInteractivo";
 import { LyricViewer } from "@/components/LyricViewer";
 import { SongActions } from "@/components/SongActions";
@@ -16,6 +16,7 @@ interface SongItem {
   artista: string;
   charts: string | null;
   letra: string | null;
+  link_referencia?: string | null;
 }
 
 interface SortableSongListProps {
@@ -171,6 +172,18 @@ function SortableRow({
           <span className="shrink-0 rounded-md border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[11px] font-bold tracking-wide text-violet-600 dark:text-violet-400">
             {item.nota}
           </span>
+        )}
+        {item.link_referencia && (
+          <a
+            href={item.link_referencia}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Escuchar referencia"
+            aria-label={`Escuchar referencia de ${item.nombre}`}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gone transition-colors hover:bg-input hover:text-violet-600"
+          >
+            <Play size={13} />
+          </a>
         )}
         {puedeEditar && (
           <SongActions
