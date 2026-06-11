@@ -1,0 +1,48 @@
+name: Run DB Migration (one-time)
+on:
+  workflow_dispatch:
+    inputs:
+      db_host:
+        description: DB Host
+        required: true
+        default: mysql-da5a64b-nehuendiary-c7b0.k.aivencloud.com
+      db_port:
+        description: DB Port
+        required: true
+        default: '21892'
+      db_user:
+        description: DB User
+        required: true
+        default: avnadmin
+      db_password:
+        description: DB Password
+        required: true
+      db_name:
+        description: DB Name
+        required: true
+        default: ministros
+      db_ssl:
+        description: DB SSL
+        required: true
+        default: 'true'
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      DB_HOST: ${{ inputs.db_host }}
+      DB_PORT: ${{ inputs.db_port }}
+      DB_USER: ${{ inputs.db_user }}
+      DB_PASSWORD: ${{ inputs.db_password }}
+      DB_NAME: ${{ inputs.db_name }}
+      DB_SSL: ${{ inputs.db_ssl }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/uptime-robot-monitor-endpoint-FZT4f
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate
