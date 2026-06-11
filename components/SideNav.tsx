@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
+import { NotifBell } from "@/components/NotifBell";
 
 interface NavItem {
   href:          string;
@@ -108,6 +109,12 @@ export function SideNav({
 
       {/* Bottom: platform, theme, settings, user, logout */}
       <div className="border-t border-line px-3 py-3 space-y-0.5">
+
+        {/* Notificaciones */}
+        <div className="flex items-center gap-3 rounded-xl px-3 py-1 relative">
+          <NotifBell />
+          <span className="text-sm text-lo">Notificaciones</span>
+        </div>
 
         {/* Platform switcher */}
         {misPlataformas.length >= 2 && (

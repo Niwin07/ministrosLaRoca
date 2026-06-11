@@ -66,16 +66,55 @@ export function LectorEscenario({ nombre_lista, canciones, indiceInicial }: Lect
   }
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-base">
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-line bg-base/95 px-4 py-3 backdrop-blur-sm">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-lo">
-            {nombre_lista}
-          </p>
-          <p className="text-[11px] text-lo">{canciones.length} canciones</p>
+    <VistaLista
+      nombre_lista={nombre_lista}
+      canciones={canciones}
+      onPresentar={entrarPresentador}
+      onVolver={() => router.back()}
+    />
+  );
+}
+
+/* ─── Vista lista ──────────────────────────────────────────────────────────── */
+
+function VistaLista({
+  nombre_lista,
+  canciones,
+  onPresentar,
+  onVolver,
+}: {
+  nombre_lista: string;
+  canciones: Cancion[];
+  onPresentar: (i: number) => void;
+  onVolver: () => void;
+}) {
+  const [seleccionado, setSeleccionado] = useState(0);
+  const cancion = canciones[seleccionado];
+  const [modo, setModo] = useState<"charts" | "letra">(cancion?.charts ? "charts" : "letra");
+  const tieneAmbos = !!(cancion?.charts && cancion?.letra);
+
+  useEffect(() => {
+    setModo(cancion?.charts ? "charts" : "letra");
+  }, [seleccionado, cancion?.charts]);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex flex-col bg-base">
+      {/* Top bar */}
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line bg-base/95 px-4 py-3 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onVolver}
+            className="rounded-full border border-line px-3 py-1.5 text-xs text-lo transition-colors hover:bg-input hover:text-hi"
+          >
+            ← Volver
+          </button>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-lo">{nombre_lista}</p>
+            <p className="text-[11px] text-lo">{canciones.length} canciones</p>
+          </div>
         </div>
         <button
-          onClick={() => entrarPresentador(0)}
+          onClick={() => onPresentar(seleccionado)}
           className="flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-violet-700 active:scale-[0.97]"
         >
           <svg className="h-3 w-3 fill-current" viewBox="0 0 16 16">
@@ -85,88 +124,100 @@ export function LectorEscenario({ nombre_lista, canciones, indiceInicial }: Lect
         </button>
       </div>
 
-      <div className="pb-20">
-        {canciones.map((cancion, i) => (
-          <CancionEscenario
-            key={cancion.id_lista_cancion}
-            cancion={cancion}
-            numero={i + 1}
-            onPresentar={() => entrarPresentador(i)}
-          />
-        ))}
-      </div>
+      {/* Body: mobile = lista vertical scrollable | desktop = master-detail */}
+      <div className="flex flex-1 overflow-hidden">
 
-      <button
-        onClick={() => router.back()}
-        className="fixed bottom-6 right-4 z-[110] rounded-full border border-line bg-card px-4 py-2 text-xs text-lo shadow-card backdrop-blur-sm transition-all hover:bg-input hover:text-mid dark:shadow-none"
-      >
-        ← Volver
-      </button>
-    </div>
-  );
-}
-
-function CancionEscenario({
-  cancion,
-  numero,
-  onPresentar,
-}: {
-  cancion: Cancion;
-  numero: number;
-  onPresentar: () => void;
-}) {
-  const tieneAmbos = !!(cancion.charts && cancion.letra);
-  const [modo, setModo] = useState<"charts" | "letra">(cancion.charts ? "charts" : "letra");
-
-  return (
-    <div className="border-b border-line px-4 py-6">
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 w-5 shrink-0 text-right text-sm font-bold tabular-nums text-violet-500">
-            {numero}
-          </span>
-          <div>
-            <h2 className="text-xl font-bold leading-tight text-hi">{cancion.nombre}</h2>
-            <p className="mt-0.5 text-xs text-lo">{cancion.artista}</p>
-            {cancion.nota && (
-              <p className="mt-2 text-base font-bold text-violet-600 dark:text-violet-400">
-                {cancion.nota}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          {tieneAmbos && (
+        {/* Song index list */}
+        <div className="w-full overflow-y-auto md:w-72 md:shrink-0 md:border-r md:border-line lg:w-80">
+          {canciones.map((c, i) => (
             <button
-              onClick={() => setModo(modo === "charts" ? "letra" : "charts")}
-              className="rounded-full border border-mark px-3 py-1.5 text-xs text-lo transition-colors hover:border-line hover:text-hi"
+              key={c.id_lista_cancion}
+              onClick={() => setSeleccionado(i)}
+              className={`flex w-full items-center gap-3 border-b border-line/60 px-4 py-4 text-left transition-colors hover:bg-input md:py-3 ${
+                i === seleccionado ? "bg-violet-500/10 md:border-l-2 md:border-l-violet-500" : ""
+              }`}
             >
-              {modo === "charts" ? "Letra" : "Charts"}
+              <span className={`w-5 shrink-0 text-right text-sm font-bold tabular-nums ${
+                i === seleccionado ? "text-violet-500" : "text-lo"
+              }`}>
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-hi">{c.nombre}</p>
+                <p className="truncate text-[11px] text-lo">{c.artista}</p>
+              </div>
+              {c.nota && (
+                <span className="shrink-0 rounded-md bg-violet-500/10 px-2 py-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-400">
+                  {c.nota}
+                </span>
+              )}
+              {/* En mobile, botón presentar inline */}
+              <button
+                onClick={(e) => { e.stopPropagation(); onPresentar(i); }}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-violet-300 text-violet-600 transition-colors hover:bg-violet-50 active:scale-[0.97] dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950 md:hidden"
+              >
+                <svg className="h-3 w-3 fill-current" viewBox="0 0 16 16">
+                  <path d="M3 2.5l11 5.5-11 5.5V2.5z" />
+                </svg>
+              </button>
             </button>
+          ))}
+        </div>
+
+        {/* Content panel — solo desktop */}
+        <div className="hidden flex-1 flex-col overflow-hidden md:flex">
+          {cancion ? (
+            <>
+              <div className="shrink-0 border-b border-line px-6 py-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold leading-tight text-hi">{cancion.nombre}</h2>
+                    <p className="mt-0.5 text-sm text-lo">{cancion.artista}</p>
+                    {cancion.nota && (
+                      <p className="mt-2 text-lg font-bold text-violet-600 dark:text-violet-400">{cancion.nota}</p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {tieneAmbos && (
+                      <button
+                        onClick={() => setModo(modo === "charts" ? "letra" : "charts")}
+                        className="rounded-full border border-mark px-3 py-1.5 text-xs text-lo transition-colors hover:border-line hover:text-hi"
+                      >
+                        {modo === "charts" ? "Letra" : "Charts"}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => onPresentar(seleccionado)}
+                      className="flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-violet-700"
+                    >
+                      <svg className="h-3 w-3 fill-current" viewBox="0 0 16 16">
+                        <path d="M3 2.5l11 5.5-11 5.5V2.5z" />
+                      </svg>
+                      Presentar esta
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto px-6 py-6 lg:px-10 lg:py-8">
+                {modo === "charts" && cancion.charts ? (
+                  <ChartViewerInteractivo charts={cancion.charts} notaInicial={cancion.nota} />
+                ) : cancion.letra ? (
+                  <LyricViewer letra={cancion.letra} />
+                ) : (
+                  <p className="text-sm text-lo">Sin contenido cargado.</p>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="p-8 text-sm text-lo">Seleccioná una canción.</p>
           )}
-          <button
-            onClick={onPresentar}
-            title="Abrir en modo presentador"
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-violet-300 text-violet-600 transition-colors hover:bg-violet-50 active:scale-[0.97] dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950"
-          >
-            <svg className="h-3 w-3 fill-current" viewBox="0 0 16 16">
-              <path d="M3 2.5l11 5.5-11 5.5V2.5z" />
-            </svg>
-          </button>
         </div>
       </div>
-
-      {modo === "charts" && cancion.charts ? (
-        <ChartViewerInteractivo charts={cancion.charts} notaInicial={cancion.nota} />
-      ) : cancion.letra ? (
-        <LyricViewer letra={cancion.letra} />
-      ) : (
-        <p className="text-xs text-lo">Sin contenido.</p>
-      )}
     </div>
   );
 }
+
+/* ─── Modo Presentador ─────────────────────────────────────────────────────── */
 
 function PresentadorMode({
   canciones,
@@ -185,16 +236,22 @@ function PresentadorMode({
   const total = canciones.length;
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
+  const listaRef = useRef<HTMLDivElement>(null);
 
   const [modoContenido, setModoContenido] = useState<"charts" | "letra">(
     cancion.charts ? "charts" : "letra"
   );
   const tieneAmbos = !!(cancion.charts && cancion.letra);
 
-  // Reset content mode when song changes
   useEffect(() => {
     setModoContenido(cancion.charts ? "charts" : "letra");
   }, [indice, cancion.charts]);
+
+  // Mantener la canción activa visible en la lista lateral
+  useEffect(() => {
+    const el = listaRef.current?.querySelector(`[data-idx="${indice}"]`) as HTMLElement | null;
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [indice]);
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
@@ -213,98 +270,154 @@ function PresentadorMode({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex flex-col overflow-hidden bg-card"
+      className="fixed inset-0 z-[200] flex flex-col overflow-hidden bg-card md:flex-row"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Top bar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-black tabular-nums text-violet-600">{indice + 1}</span>
-          <span className="text-sm text-lo">/ {total}</span>
-        </div>
-        <p className="max-w-[140px] truncate text-[10px] font-bold uppercase tracking-widest text-lo">
-          {nombre_lista}
-        </p>
-        <button
-          onClick={onSalir}
-          className="rounded-full border border-line px-3 py-1.5 text-xs text-lo transition-colors hover:bg-input hover:text-hi"
-        >
-          ✕ Lista
-        </button>
-      </div>
-
-      {/* Song header */}
-      <div className="shrink-0 border-b border-line px-5 py-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black leading-tight text-hi">{cancion.nombre}</h1>
-            <p className="mt-0.5 text-sm text-lo">{cancion.artista}</p>
+      {/* ── PANEL IZQUIERDO: contenido ── */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Top bar */}
+        <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-black tabular-nums text-violet-600">{indice + 1}</span>
+            <span className="text-sm text-lo">/ {total}</span>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {cancion.nota && (
-              <span className="rounded-lg bg-violet-100 px-3 py-1.5 text-lg font-black text-violet-700 dark:bg-violet-950 dark:text-violet-300">
-                {cancion.nota}
-              </span>
-            )}
+          <p className="max-w-[140px] truncate text-[10px] font-bold uppercase tracking-widest text-lo md:hidden">
+            {nombre_lista}
+          </p>
+          <div className="flex items-center gap-2">
             {tieneAmbos && (
               <button
-                onClick={() =>
-                  setModoContenido((c) => (c === "charts" ? "letra" : "charts"))
-                }
+                onClick={() => setModoContenido((c) => (c === "charts" ? "letra" : "charts"))}
                 className="rounded-full border border-mark px-3 py-1.5 text-xs text-lo transition-colors hover:border-line hover:text-hi"
               >
                 {modoContenido === "charts" ? "Letra" : "Charts"}
               </button>
             )}
+            <button
+              onClick={onSalir}
+              className="rounded-full border border-line px-3 py-1.5 text-xs text-lo transition-colors hover:bg-input hover:text-hi"
+            >
+              ✕ Lista
+            </button>
+          </div>
+        </div>
+
+        {/* Song header */}
+        <div className="shrink-0 border-b border-line px-5 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-black leading-tight text-hi md:text-3xl">{cancion.nombre}</h1>
+              <p className="mt-0.5 text-sm text-lo">{cancion.artista}</p>
+            </div>
+            {cancion.nota && (
+              <span className="shrink-0 rounded-lg bg-violet-100 px-3 py-1.5 text-lg font-black text-violet-700 dark:bg-violet-950 dark:text-violet-300">
+                {cancion.nota}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Content — scrollable */}
+        <div key={indice} className="flex-1 overflow-y-auto px-5 py-5 md:px-10 md:py-8">
+          {modoContenido === "charts" && cancion.charts ? (
+            <ChartViewerInteractivo charts={cancion.charts} notaInicial={cancion.nota} />
+          ) : cancion.letra ? (
+            <LyricViewer letra={cancion.letra} />
+          ) : (
+            <p className="text-sm text-lo">Sin contenido.</p>
+          )}
+        </div>
+
+        {/* Bottom nav — solo móvil */}
+        <div className="shrink-0 border-t border-line bg-base/95 px-4 py-3 backdrop-blur-sm md:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              onClick={() => setIndice((i) => Math.max(i - 1, 0))}
+              disabled={indice === 0}
+              className="flex items-center gap-1.5 rounded-full border border-line px-5 py-2.5 text-sm font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30"
+            >
+              ← Anterior
+            </button>
+
+            {mostrarDots ? (
+              <div className="flex gap-1.5">
+                {canciones.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setIndice(i)}
+                    className={`h-2 rounded-full transition-all ${
+                      i === indice ? "w-5 bg-violet-600" : "w-2 bg-mark hover:bg-lo"
+                    }`}
+                  />
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs font-medium text-lo">{indice + 1} / {total}</span>
+            )}
+
+            <button
+              onClick={() => setIndice((i) => Math.min(i + 1, total - 1))}
+              disabled={indice === total - 1}
+              className="flex items-center gap-1.5 rounded-full border border-line px-5 py-2.5 text-sm font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30"
+            >
+              Siguiente →
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Content — scrollable */}
-      <div key={indice} className="flex-1 overflow-y-auto px-5 py-5">
-        {modoContenido === "charts" && cancion.charts ? (
-          <ChartViewerInteractivo charts={cancion.charts} notaInicial={cancion.nota} />
-        ) : cancion.letra ? (
-          <LyricViewer letra={cancion.letra} />
-        ) : (
-          <p className="text-sm text-lo">Sin contenido.</p>
-        )}
-      </div>
-
-      {/* Bottom nav */}
-      <div className="shrink-0 border-t border-line bg-base/95 px-4 py-3 backdrop-blur-sm">
-        <div className="flex items-center justify-between gap-3">
+      {/* ── PANEL DERECHO: lista de canciones — solo desktop ── */}
+      <div
+        ref={listaRef}
+        className="hidden w-72 shrink-0 flex-col border-l border-line bg-base md:flex lg:w-80"
+      >
+        <div className="shrink-0 border-b border-line px-4 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-lo">{nombre_lista}</p>
+          <p className="mt-0.5 text-xs text-lo">{total} canciones</p>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {canciones.map((c, i) => (
+            <button
+              key={c.id_lista_cancion}
+              data-idx={i}
+              onClick={() => setIndice(i)}
+              className={`flex w-full items-center gap-3 border-b border-line/40 px-4 py-3 text-left transition-colors hover:bg-input ${
+                i === indice ? "bg-violet-500/10 border-l-2 border-l-violet-500" : ""
+              }`}
+            >
+              <span className={`w-4 shrink-0 text-right text-sm font-bold tabular-nums ${
+                i === indice ? "text-violet-500" : "text-gone"
+              }`}>
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className={`truncate text-xs font-medium ${i === indice ? "text-hi" : "text-mid"}`}>
+                  {c.nombre}
+                </p>
+                <p className="truncate text-[10px] text-lo">{c.artista}</p>
+              </div>
+              {c.nota && (
+                <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold text-violet-600 dark:text-violet-400">
+                  {c.nota}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        {/* Prev/Next desktop */}
+        <div className="flex shrink-0 gap-2 border-t border-line px-4 py-3">
           <button
             onClick={() => setIndice((i) => Math.max(i - 1, 0))}
             disabled={indice === 0}
-            className="flex items-center gap-1.5 rounded-full border border-line px-5 py-2.5 text-sm font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30"
+            className="flex-1 rounded-xl border border-line py-2 text-xs font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30"
           >
             ← Anterior
           </button>
-
-          {mostrarDots ? (
-            <div className="flex gap-1.5">
-              {canciones.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setIndice(i)}
-                  className={`h-2 rounded-full transition-all ${
-                    i === indice ? "w-5 bg-violet-600" : "w-2 bg-mark hover:bg-lo"
-                  }`}
-                />
-              ))}
-            </div>
-          ) : (
-            <span className="text-xs font-medium text-lo">
-              {indice + 1} / {total}
-            </span>
-          )}
-
           <button
             onClick={() => setIndice((i) => Math.min(i + 1, total - 1))}
             disabled={indice === total - 1}
-            className="flex items-center gap-1.5 rounded-full border border-line px-5 py-2.5 text-sm font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30"
+            className="flex-1 rounded-xl border border-line py-2 text-xs font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30"
           >
             Siguiente →
           </button>

@@ -112,18 +112,17 @@ export default async function RootLayout({
           />
         )}
 
-        {/* ── Header ───────────────────────────────────────────────────── */}
+        {/* ── Header — solo móvil; en desktop todo vive en el sidebar ──── */}
         {session?.user && (
-          <header className="sticky top-0 z-50 border-b border-line/60 bg-base/95 backdrop-blur-xl animate-fade-in-down w-full md:ml-64 md:w-[calc(100%-16rem)]">
+          <header className="sticky top-0 z-50 border-b border-line/60 bg-base/95 backdrop-blur-xl animate-fade-in-down md:hidden">
             <div
-              className="mx-auto flex max-w-md items-center justify-between px-4 py-2 md:max-w-none"
+              className="mx-auto flex max-w-md items-center justify-between px-4 py-2"
               style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "max(1rem, env(safe-area-inset-left))", paddingRight: "max(1rem, env(safe-area-inset-right))" }}
             >
-              {/* Avatar — solo en móvil (en desktop va en sidebar) */}
               <Link
                 href="/perfil"
                 aria-label="Mi perfil"
-                className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-600 transition-opacity hover:opacity-80 md:hidden"
+                className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-600 transition-opacity hover:opacity-80"
               >
                 {foto ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -135,38 +134,31 @@ export default async function RootLayout({
                 )}
               </Link>
 
-              {/* Switcher de plataforma — solo en móvil (en desktop va en sidebar) */}
               {misPlataformas.length >= 2 && (
-                <div className="md:hidden">
-                  <PlataformaSwitcher plataformas={misPlataformas} activaId={plataformaActivaId} />
-                </div>
+                <PlataformaSwitcher plataformas={misPlataformas} activaId={plataformaActivaId} />
               )}
 
-              {/* Acciones */}
-              <div className="relative flex items-center md:ml-auto">
+              <div className="relative flex items-center">
                 <NotifBell />
-                {/* Tema, Settings, Logout — solo en móvil (en desktop van en sidebar) */}
-                <div className="contents md:hidden">
-                  <ThemeToggle tema={tema} />
-                  {session.user.rol === "ADMINISTRADOR" && (
-                    <Link
-                      href="/admin/usuarios"
-                      aria-label="Gestión de usuarios"
-                      className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
-                    >
-                      <Settings size={20} />
-                    </Link>
-                  )}
-                  <form action={logoutAction}>
-                    <button
-                      type="submit"
-                      aria-label="Cerrar sesión"
-                      className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
-                    >
-                      <LogOut size={20} />
-                    </button>
-                  </form>
-                </div>
+                <ThemeToggle tema={tema} />
+                {session.user.rol === "ADMINISTRADOR" && (
+                  <Link
+                    href="/admin/usuarios"
+                    aria-label="Gestión de usuarios"
+                    className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
+                  >
+                    <Settings size={20} />
+                  </Link>
+                )}
+                <form action={logoutAction}>
+                  <button
+                    type="submit"
+                    aria-label="Cerrar sesión"
+                    className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
+                  >
+                    <LogOut size={20} />
+                  </button>
+                </form>
               </div>
             </div>
           </header>
@@ -174,7 +166,7 @@ export default async function RootLayout({
 
         {/* ── Contenido principal ──────────────────────────────────────── */}
         <div className={session?.user ? "md:pl-64" : ""}>
-          <div className="relative mx-auto min-h-dvh max-w-md pb-28 md:max-w-2xl md:pb-10">
+          <div className="relative mx-auto min-h-dvh max-w-md pb-28 md:max-w-none md:pb-0 md:px-8 md:pt-8">
             {children}
           </div>
         </div>
