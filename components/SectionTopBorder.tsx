@@ -8,11 +8,12 @@ export function SectionTopBorder() {
   if (pathname.startsWith("/escenario") || pathname.startsWith("/login")) return null;
 
   const color = getSectionColor(pathname);
-  const { gradient } = SECTION_COLORS[color];
+  const { gradient, bg } = SECTION_COLORS[color];
 
   return (
-    <div
-      className={`h-[3px] w-full bg-gradient-to-r transition-all duration-500 ${gradient}`}
-    />
+    <>
+      <div className={`h-[3px] w-full bg-gradient-to-r transition-all duration-500 ${gradient}`} />
+      <div className={`fixed inset-0 -z-10 pointer-events-none transition-colors duration-500 ${bg}`} />
+    </>
   );
 }
