@@ -12,22 +12,24 @@ import {
   Calendar,
   type LucideIcon,
 } from "lucide-react";
+import { SECTION_COLORS, type SectionColor } from "@/lib/sectionColors";
 
 interface NavItem {
   href:          string;
   label:         string;
   icon:          LucideIcon;
+  color:         SectionColor;
   adminOnly?:    boolean;
   ministroOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/",                label: "Inicio",   icon: Home                               },
-  { href: "/canciones",       label: "Catálogo", icon: BookOpen                           },
-  { href: "/playlists",       label: "Listas",   icon: ListMusic                          },
-  { href: "/turnos",          label: "Turnos",   icon: Calendar,    ministroOnly: true    },
-  { href: "/admin/canciones", label: "Moderar",  icon: ShieldCheck, adminOnly:    true    },
-  { href: "/admin/turnos",    label: "Cola",     icon: CalendarPlus, adminOnly:    true   },
+  { href: "/",                label: "Inicio",    icon: Home,        color: "violet"  },
+  { href: "/canciones",       label: "Canciones", icon: BookOpen,    color: "emerald" },
+  { href: "/playlists",       label: "Listas",    icon: ListMusic,   color: "sky"     },
+  { href: "/turnos",          label: "Turnos",    icon: Calendar,    color: "amber",  ministroOnly: true  },
+  { href: "/admin/canciones", label: "Moderar",   icon: ShieldCheck, color: "rose",   adminOnly:    true  },
+  { href: "/admin/turnos",    label: "Cola",      icon: CalendarPlus,color: "orange", adminOnly:    true  },
 ];
 
 export function BottomNav({ rol }: { rol?: string }) {
@@ -74,7 +76,7 @@ export function BottomNav({ rol }: { rol?: string }) {
                   <motion.span
                     layoutId="nav-pill"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    className="absolute inset-0 rounded-full bg-violet-500/10 dark:bg-violet-400/10"
+                    className={`absolute inset-0 rounded-full ${SECTION_COLORS[item.color].bg}`}
                   />
                 )}
                 <Icon
@@ -82,7 +84,7 @@ export function BottomNav({ rol }: { rol?: string }) {
                   strokeWidth={isActive ? 2.5 : 1.8}
                   className={`relative transition-colors duration-200 ${
                     isActive
-                      ? "text-violet-600 dark:text-violet-400"
+                      ? SECTION_COLORS[item.color].text
                       : "text-lo group-hover:text-mid"
                   }`}
                 />
@@ -92,7 +94,7 @@ export function BottomNav({ rol }: { rol?: string }) {
               <span
                 className={`text-[10px] font-medium leading-none transition-colors duration-200 ${
                   isActive
-                    ? "text-violet-600 dark:text-violet-400"
+                    ? SECTION_COLORS[item.color].text
                     : "text-lo"
                 }`}
               >

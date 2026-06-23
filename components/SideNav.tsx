@@ -17,22 +17,24 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
 import { NotifBell } from "@/components/NotifBell";
+import { SECTION_COLORS, type SectionColor } from "@/lib/sectionColors";
 
 interface NavItem {
   href:          string;
   label:         string;
   icon:          LucideIcon;
+  color:         SectionColor;
   adminOnly?:    boolean;
   ministroOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/",                label: "Inicio",   icon: Home                              },
-  { href: "/canciones",       label: "Catálogo", icon: BookOpen                          },
-  { href: "/playlists",       label: "Listas",   icon: ListMusic                         },
-  { href: "/turnos",          label: "Turnos",   icon: Calendar,    ministroOnly: true   },
-  { href: "/admin/canciones", label: "Moderar",  icon: ShieldCheck, adminOnly:    true   },
-  { href: "/admin/turnos",    label: "Cola",     icon: CalendarPlus, adminOnly:   true   },
+  { href: "/",                label: "Inicio",    icon: Home,         color: "violet"  },
+  { href: "/canciones",       label: "Canciones", icon: BookOpen,     color: "emerald" },
+  { href: "/playlists",       label: "Listas",    icon: ListMusic,    color: "sky"     },
+  { href: "/turnos",          label: "Turnos",    icon: Calendar,     color: "amber",  ministroOnly: true  },
+  { href: "/admin/canciones", label: "Moderar",   icon: ShieldCheck,  color: "rose",   adminOnly:    true  },
+  { href: "/admin/turnos",    label: "Cola",      icon: CalendarPlus, color: "orange", adminOnly:    true  },
 ];
 
 const ROL_LABEL: Record<string, string> = {
@@ -71,10 +73,10 @@ export function SideNav({
     return true;
   });
 
-  const itemCls = (active: boolean) =>
+  const itemCls = (active: boolean, color: SectionColor = "violet") =>
     `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
       active
-        ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+        ? `${SECTION_COLORS[color].bg} ${SECTION_COLORS[color].text}`
         : "text-lo hover:bg-input hover:text-mid"
     }`;
 
@@ -99,7 +101,7 @@ export function SideNav({
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
           return (
-            <Link key={item.href} href={item.href} className={itemCls(isActive)}>
+            <Link key={item.href} href={item.href} className={itemCls(isActive, item.color)}>
               <Icon size={17} strokeWidth={isActive ? 2.5 : 1.8} className="shrink-0" />
               {item.label}
             </Link>
