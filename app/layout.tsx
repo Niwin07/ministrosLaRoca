@@ -15,6 +15,7 @@ import { usuarios, usuario_plataforma, plataformas } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
 import { SectionTopBorder } from "@/components/SectionTopBorder";
+import { DuckBackground } from "@/components/DuckBackground";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -168,6 +169,7 @@ export default async function RootLayout({
         {/* ── Contenido principal ──────────────────────────────────────── */}
         <div className={session?.user ? "md:pl-64" : ""}>
           {session?.user && <SectionTopBorder />}
+          {session?.user && plataformaActivaId === PLATAFORMA_IDS.joven && <DuckBackground />}
           <div className="relative mx-auto min-h-dvh max-w-md pb-28 md:max-w-none md:pb-0 md:px-8 md:pt-8">
             {children}
           </div>
