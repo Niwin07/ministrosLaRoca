@@ -1,20 +1,76 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-  <!-- Agua / ripple -->
-  <ellipse cx="100" cy="158" rx="62" ry="11" fill="#A0D8DF" opacity="0.5"/>
-  <ellipse cx="46" cy="154" rx="16" ry="3.5" fill="none" stroke="#B8E4EA" stroke-width="1.8" opacity="0.6"/>
-  <ellipse cx="158" cy="153" rx="13" ry="3" fill="none" stroke="#B8E4EA" stroke-width="1.8" opacity="0.6"/>
-  <!-- Cuerpo -->
-  <ellipse cx="98" cy="118" rx="54" ry="46" fill="#F5F0DC"/>
-  <!-- Ala -->
-  <ellipse cx="84" cy="122" rx="28" ry="14" fill="#E5E0C8" transform="rotate(-18 84 122)"/>
-  <!-- Cabeza -->
-  <circle cx="147" cy="83" r="29" fill="#F5F0DC"/>
-  <!-- Pico -->
-  <path d="M170 80 Q192 87 170 94 Z" fill="#E8820C"/>
-  <!-- Ojo -->
-  <circle cx="156" cy="76" r="4.5" fill="#1a1a2e"/>
-  <circle cx="157.5" cy="74.5" r="1.5" fill="white"/>
-  <!-- Patas -->
-  <path d="M82 158 L70 170 L85 170 L96 158 Z" fill="#E8820C" opacity="0.9"/>
-  <path d="M105 162 L93 174 L108 174 L119 162 Z" fill="#E8820C" opacity="0.9"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360">
+
+  <!-- Decorative seed/fluff floaties scattered around -->
+  <ellipse cx="48"  cy="88"  rx="4.5" ry="9"   fill="#F0DEC8" transform="rotate(-35 48 88)"/>
+  <ellipse cx="38"  cy="218" rx="4"   ry="8.5" fill="#F0DEC8" transform="rotate(22 38 218)"/>
+  <ellipse cx="285" cy="72"  rx="4"   ry="8"   fill="#F0DEC8" transform="rotate(-14 285 72)"/>
+  <ellipse cx="308" cy="155" rx="3.5" ry="7.5" fill="#F0DEC8" transform="rotate(30 308 155)"/>
+  <ellipse cx="302" cy="245" rx="4"   ry="8.5" fill="#F0DEC8" transform="rotate(-26 302 245)"/>
+  <ellipse cx="100" cy="28"  rx="3.5" ry="7"   fill="#F0DEC8" transform="rotate(-10 100 28)"/>
+  <ellipse cx="228" cy="26"  rx="4"   ry="7.5" fill="#F0DEC8" transform="rotate(16 228 26)"/>
+  <ellipse cx="62"  cy="312" rx="4.5" ry="9"   fill="#F0DEC8" transform="rotate(42 62 312)"/>
+  <ellipse cx="318" cy="310" rx="4"   ry="8"   fill="#F0DEC8" transform="rotate(-18 318 310)"/>
+  <circle  cx="78"  cy="55"  r="4.5"            fill="#F0DEC8"/>
+  <circle  cx="290" cy="192" r="3.5"            fill="#F0DEC8"/>
+  <circle  cx="155" cy="18"  r="3"              fill="#F0DEC8"/>
+
+  <!-- Shadow / water base -->
+  <ellipse cx="208" cy="305" rx="98" ry="18" fill="#E8C8A8" opacity="0.32"/>
+
+  <!-- Duck body layers (fluffy, round, puffball shaped) -->
+  <!-- Main body -->
+  <ellipse cx="210" cy="192" rx="125" ry="115" fill="#FAF6F0"/>
+  <!-- Body shading bottom-center -->
+  <ellipse cx="210" cy="268" rx="105" ry="50"  fill="#F0E0CE" opacity="0.55"/>
+  <!-- Body shading right -->
+  <ellipse cx="295" cy="208" rx="60"  ry="72"  fill="#F5E8D8" opacity="0.42"/>
+  <!-- Tail bump right -->
+  <ellipse cx="318" cy="228" rx="34"  ry="30"  fill="#FAF6F0"/>
+
+  <!-- Head -->
+  <circle cx="152" cy="112" r="78" fill="#FAF6F0"/>
+  <!-- Head shading bottom -->
+  <ellipse cx="152" cy="158" rx="60" ry="30" fill="#F0E0CE" opacity="0.48"/>
+
+  <!-- Left wing / arm holding Bible -->
+  <ellipse cx="120" cy="215" rx="46" ry="40" fill="#FAF6F0"/>
+  <ellipse cx="120" cy="235" rx="38" ry="22" fill="#F0E0CE" opacity="0.52"/>
+
+  <!-- Bible -->
+  <!-- Pages edge (right side, lighter) -->
+  <rect x="108" y="162" width="84"  height="98" rx="5" fill="#EAE0C4"/>
+  <!-- Main cover -->
+  <rect x="100" y="155" width="78"  height="95" rx="5" fill="#1E2D48"/>
+  <!-- Spine shadow -->
+  <rect x="100" y="155" width="11"  height="95" rx="4" fill="#142038"/>
+  <!-- Cross vertical -->
+  <rect x="133" y="178" width="9"   height="46" rx="2.5" fill="#D4A828"/>
+  <!-- Cross horizontal -->
+  <rect x="119" y="194" width="37"  height="8"  rx="2.5" fill="#D4A828"/>
+
+  <!-- Beak -->
+  <path d="M 82 136 Q 52 150 82 166 Q 96 160 96 150 Q 96 140 82 136 Z" fill="#E87010"/>
+  <!-- Beak highlight -->
+  <ellipse cx="70" cy="148" rx="9" ry="6" fill="#F09040" opacity="0.45"/>
+
+  <!-- Eye -->
+  <circle cx="126" cy="102" r="11"  fill="#1A2040"/>
+  <circle cx="131" cy="97"  r="4"   fill="white"/>
+  <circle cx="122" cy="109" r="2"   fill="white" opacity="0.6"/>
+
+  <!-- Cheeks (pink blush) -->
+  <ellipse cx="152" cy="128" rx="16" ry="11" fill="#F5B0A0" opacity="0.68"/>
+
+  <!-- Feet -->
+  <!-- Left foot -->
+  <ellipse cx="173" cy="305" rx="24" ry="11" fill="#E07018" transform="rotate(-12 173 305)"/>
+  <circle  cx="157" cy="311" r="7"  fill="#D06010"/>
+  <circle  cx="168" cy="314" r="7"  fill="#D06010"/>
+  <circle  cx="180" cy="313" r="7"  fill="#D06010"/>
+  <!-- Right foot -->
+  <ellipse cx="215" cy="308" rx="24" ry="11" fill="#E07018" transform="rotate(10 215 308)"/>
+  <circle  cx="202" cy="314" r="6.5" fill="#D06010"/>
+  <circle  cx="214" cy="317" r="6.5" fill="#D06010"/>
+  <circle  cx="226" cy="315" r="6.5" fill="#D06010"/>
+
 </svg>

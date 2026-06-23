@@ -5,9 +5,9 @@ export function DuckBackground() {
       style={{
         zIndex: -15,
         backgroundImage: "url('/duck-tile.svg')",
-        backgroundSize: "190px 190px",
+        backgroundSize: "240px 240px",
         backgroundRepeat: "repeat",
-        opacity: 0.22,
+        opacity: 0.28,
       }}
     />
   );
