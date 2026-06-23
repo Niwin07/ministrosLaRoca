@@ -192,22 +192,22 @@ export default async function PlaylistDetailPage(props: {
   const { rol, id_usuario } = session.user;
 
   // ── Última visita: badges "Nuevo" / "Tono cambiado" ───────────────────────
-  // Se lee la visita anterior ANTES de actualizarla, para comparar contra los
-  // timestamps de lista_canciones. Sin visita previa no se muestran badges.
-  const [visitaPrevia] = await db
-    .select({ ultima_visita: playlist_visitas.ultima_visita })
-    .from(playlist_visitas)
-    .where(and(
-      eq(playlist_visitas.id_usuario, id_usuario),
-      eq(playlist_visitas.id_playlist, id),
-    ));
-  const ultimaVisita = visitaPrevia?.ultima_visita ?? null;
-
-  // Registrar esta visita (upsert por PK usuario+playlist)
-  await db
-    .insert(playlist_visitas)
-    .values({ id_usuario, id_playlist: id, ultima_visita: new Date() })
-    .onDuplicateKeyUpdate({ set: { ultima_visita: new Date() } });
+  // Lectura y upsert en la misma transacción para evitar race conditions entre
+  // cargas concurrentes del mismo usuario (p. ej. dos pestañas a la vez).
+  const { ultimaVisita } = await db.transaction(async (tx) => {
+    const [visitaPrevia] = await tx
+      .select({ ultima_visita: playlist_visitas.ultima_visita })
+      .from(playlist_visitas)
+      .where(and(
+        eq(playlist_visitas.id_usuario, id_usuario),
+        eq(playlist_visitas.id_playlist, id),
+      ));
+    await tx
+      .insert(playlist_visitas)
+      .values({ id_usuario, id_playlist: id, ultima_visita: new Date() })
+      .onDuplicateKeyUpdate({ set: { ultima_visita: new Date() } });
+    return { ultimaVisita: visitaPrevia?.ultima_visita ?? null };
+  });
   const puedeEditar =
     id_usuario === cabecera.id_usuario ||
     rol === "ADMINISTRADOR" ||
@@ -313,7 +313,8 @@ export default async function PlaylistDetailPage(props: {
     // página es dinámica y re-consulta en la próxima visita. Solo redirigimos si
     // algo falla, para mostrar el banner de error.
     try {
-      const raw             = formData.get("reordenamientos") as string;
+      const raw = formData.get("reordenamientos");
+      if (typeof raw !== "string" || !raw) throw new Error("Datos de reordenamiento inválidos.");
       const reordenamientos = JSON.parse(raw) as ReordenItem[];
       await reordenarLista(id, reordenamientos);
     } catch (e) {

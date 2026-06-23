@@ -49,7 +49,7 @@ export function EditorContenido({ name, tipo, label, value, onChange, placeholde
             key={s}
             type="button"
             onClick={() => insertar(`[${s}]\n`)}
-            className="rounded-md border border-mark bg-input px-2 py-1 text-[11px] text-mid transition-colors hover:border-line hover:text-hi"
+            className="rounded-md border border-mark bg-input px-2 py-1 text-[11px] text-mid transition-colors hover:border-line hover:text-hi md:px-4 md:py-2 md:text-xs"
           >
             + {s}
           </button>
@@ -59,7 +59,7 @@ export function EditorContenido({ name, tipo, label, value, onChange, placeholde
             type="button"
             onClick={() => insertar("|  ")}
             title="Separador de compás"
-            className="rounded-md border border-mark bg-input px-2.5 py-1 font-mono text-[11px] text-mid transition-colors hover:border-line hover:text-hi"
+            className="rounded-md border border-mark bg-input px-2.5 py-1 font-mono text-[11px] text-mid transition-colors hover:border-line hover:text-hi md:px-3 md:py-2 md:text-xs"
           >
             |
           </button>

@@ -124,7 +124,7 @@ export async function agregarCancionALista(
   });
 
   // Notificar al equipo si la lista ya está publicada (fire & forget)
-  notificarCancionAgregada(id_playlist, id_cancion).catch(() => {});
+  notificarCancionAgregada(id_playlist, id_cancion).catch((e) => console.error("notif:", e));
 
   return result;
 }
@@ -159,7 +159,7 @@ async function notificarCambioEnLista(
     miembros
       .filter((u) => u.id_usuario !== session.user.id_usuario)
       .map((u) =>
-        crearNotificacion(u.id_usuario, tipo, titulo, cuerpo(lista.nombre)).catch(() => {})
+        crearNotificacion(u.id_usuario, tipo, titulo, cuerpo(lista.nombre)).catch((e) => console.error("notif:", e))
       )
   );
 }
@@ -233,7 +233,7 @@ export async function actualizarNotaCancion(
         nota
           ? `"${registro.nombre_cancion}" ahora va en ${nota} en "${lista}".`
           : `Se quitó el tono de "${registro.nombre_cancion}" en "${lista}".`,
-    ).catch(() => {});
+    ).catch((e) => console.error("notif:", e));
   }
 }
 
@@ -321,7 +321,7 @@ export async function eliminarCancionDeLista(
     "CANCION_QUITADA",
     "Canción quitada del setlist",
     (lista) => `Se quitó "${registro.nombre_cancion}" de "${lista}".`,
-  ).catch(() => {});
+  ).catch((e) => console.error("notif:", e));
 }
 
 // ── Comentarios por canción ───────────────────────────────────────────────────
@@ -366,7 +366,7 @@ export async function agregarComentario(
       "COMENTARIO",
       "Nuevo comentario",
       `${user.name ?? "Alguien"} comentó "${registro.nombre_cancion}" en "${registro.nombre_lista}".`,
-    ).catch(() => {});
+    ).catch((e) => console.error("notif:", e));
   }
 }
 

@@ -102,17 +102,19 @@ export function HistorialListas({ listas, onClonar }: Props) {
           Nada coincide con &ldquo;{q}&rdquo;.
         </p>
       ) : (
-        visibles.map((lista) => (
-          <FilaHistorial
-            key={lista.id_playlist}
-            lista={lista}
-            abierta={abierta === lista.id_playlist}
-            onToggle={() =>
-              setAbierta((prev) => (prev === lista.id_playlist ? null : lista.id_playlist))
-            }
-            onClonar={onClonar}
-          />
-        ))
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 lg:gap-4">
+          {visibles.map((lista) => (
+            <FilaHistorial
+              key={lista.id_playlist}
+              lista={lista}
+              abierta={abierta === lista.id_playlist}
+              onToggle={() =>
+                setAbierta((prev) => (prev === lista.id_playlist ? null : lista.id_playlist))
+              }
+              onClonar={onClonar}
+            />
+          ))}
+        </div>
       )}
 
       {/* Paginación — solo si hay más de una página */}

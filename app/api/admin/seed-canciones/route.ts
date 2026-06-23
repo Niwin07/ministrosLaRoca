@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { canciones } from "@/db/schema";

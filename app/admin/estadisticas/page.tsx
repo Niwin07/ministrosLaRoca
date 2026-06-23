@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, BarChart3, Music2, Flame, Clock, UserCircle2 } from "lucide-react";
 import { db } from "@/db";
 import { canciones, lista_canciones, playlists, usuarios } from "@/db/schema";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 
 type Orden = "mas-usadas" | "menos-usadas" | "az" | "sin-usar";
