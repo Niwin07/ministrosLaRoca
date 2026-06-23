@@ -1,14 +1,29 @@
 "use server";
 
 import { db } from "@/db";
-import { cronograma, plataformas } from "@/db/schema";
-import { and, eq, sql } from "drizzle-orm";
+import { cronograma, plataformas, playlists } from "@/db/schema";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
 import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
 import { crearNotificacion } from "@/lib/notif";
+
+// Mueve a MAZO todas las listas EVENTO publicadas (ENSAYO/DEFINITIVA) de un ministro.
+async function archivarListasActivas(id_usuario: number, id_plataforma: number): Promise<void> {
+  await db
+    .update(playlists)
+    .set({ estado: "MAZO" })
+    .where(
+      and(
+        eq(playlists.id_usuario, id_usuario),
+        eq(playlists.id_plataforma, id_plataforma),
+        eq(playlists.tipo, "EVENTO"),
+        inArray(playlists.estado, ["ENSAYO", "DEFINITIVA"]),
+      )
+    );
+}
 
 // Solo ADMINISTRADOR o LÍDER gestionan la cola.
 async function assertGestor(): Promise<void> {
@@ -92,6 +107,16 @@ export async function marcarActivo(formData: FormData) {
       .where(eq(cronograma.id_turno, id_turno));
     if (!turno) return;
 
+    // Capturar al ACTIVO actual antes de reemplazarlo (para archivar sus listas).
+    const [activoAnterior] = await db
+      .select({ id_usuario: cronograma.id_usuario })
+      .from(cronograma)
+      .where(and(
+        eq(cronograma.estado_turno, "ACTIVO"),
+        eq(cronograma.id_plataforma, turno.id_plataforma),
+      ))
+      .limit(1);
+
     await db.transaction(async (tx) => {
       await tx
         .update(cronograma)
@@ -106,6 +131,11 @@ export async function marcarActivo(formData: FormData) {
         .set({ estado_turno: "ACTIVO" })
         .where(eq(cronograma.id_turno, id_turno));
     });
+
+    // Archivar las listas publicadas del ministro que dejó de ser ACTIVO.
+    if (activoAnterior) {
+      await archivarListasActivas(activoAnterior.id_usuario, turno.id_plataforma);
+    }
 
     revalidar();
 
@@ -149,7 +179,11 @@ export async function desactivarActivo(formData: FormData) {
     if (!id_turno) return;
 
     const [activo] = await db
-      .select({ id_turno: cronograma.id_turno, id_plataforma: cronograma.id_plataforma })
+      .select({
+        id_turno:     cronograma.id_turno,
+        id_plataforma: cronograma.id_plataforma,
+        id_usuario:   cronograma.id_usuario,
+      })
       .from(cronograma)
       .where(and(
         eq(cronograma.id_turno, id_turno),
@@ -172,6 +206,8 @@ export async function desactivarActivo(formData: FormData) {
       .set({ estado_turno: "EN_ESPERA", orden: Number(min) - 1 })
       .where(eq(cronograma.id_turno, activo.id_turno));
 
+    await archivarListasActivas(activo.id_usuario, activo.id_plataforma);
+
     revalidar();
   } catch (e) {
     errorCola(e, "No se pudo desactivar al director.");
@@ -185,6 +221,16 @@ export async function quitarTurno(formData: FormData) {
     await assertGestor();
     const id_turno = Number(formData.get("id_turno"));
     if (!id_turno) return;
+
+    const [turno] = await db
+      .select({ id_usuario: cronograma.id_usuario, id_plataforma: cronograma.id_plataforma })
+      .from(cronograma)
+      .where(eq(cronograma.id_turno, id_turno))
+      .limit(1);
+
+    if (turno) {
+      await archivarListasActivas(turno.id_usuario, turno.id_plataforma);
+    }
 
     await db.delete(cronograma).where(eq(cronograma.id_turno, id_turno));
 
