@@ -66,9 +66,9 @@ export function EditorContenido({ name, tipo, label, value, onChange, placeholde
         )}
       </div>
 
+      <input type="hidden" name={name} value={value} />
       <textarea
         ref={ref}
-        name={name}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={6}

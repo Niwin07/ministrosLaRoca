@@ -145,11 +145,22 @@ export function ImportadorCancion({
         setError(data.error ?? "Error al procesar con IA.");
         return;
       }
-      onImport({ letra: data.letra ?? "", charts: data.charts ?? "" });
-      const partes = [data.letra ? "letra" : null, data.charts ? "acordes" : null].filter(Boolean).join(" y ");
-      setAviso(`Listo: cargué ${partes} abajo. Revisalo y editá lo que haga falta.`);
-      setTextoLetra("");
-      setTextoCharts("");
+      const letraFinal  = data.letra?.trim()  || textoLetra.trim();
+      const chartsFinal = data.charts?.trim() || textoCharts.trim();
+      onImport({ letra: letraFinal, charts: chartsFinal });
+      if (letraFinal)  setTextoLetra("");
+      if (chartsFinal) setTextoCharts("");
+      const useFallback = (!data.letra?.trim() && !!textoLetra.trim())
+                       || (!data.charts?.trim() && !!textoCharts.trim());
+      const partes = [letraFinal ? "letra" : null, chartsFinal ? "acordes" : null]
+        .filter(Boolean).join(" y ");
+      setAviso(
+        !partes
+          ? "La IA no encontró datos. Escribí directamente en los campos de abajo."
+          : useFallback
+          ? `Cargué ${partes} sin formatear (la IA no reconoció la canción). Revisá los marcadores de sección.`
+          : `Listo: cargué ${partes} abajo. Revisalo y editá lo que haga falta.`
+      );
     } catch {
       setError("No pude conectar con la IA. Revisá tu conexión.");
     } finally {
@@ -194,7 +205,7 @@ export function ImportadorCancion({
           icon={<FileText size={11} />}
           texto={textoLetra}
           onTexto={setTextoLetra}
-          placeholder="Pegá la letra o subí el PDF de letra. (Opcional — si no tenés, la IA la genera.)"
+          placeholder="Pegá la letra o subí el PDF. Si la canción es conocida, la IA la buscará en fuentes externas."
           cargando={cargando}
         />
 
@@ -207,20 +218,36 @@ export function ImportadorCancion({
           icon={<Music size={11} />}
           texto={textoCharts}
           onTexto={setTextoCharts}
-          placeholder="Pegá los acordes o subí el PDF de charts. (Opcional — si no tenés, la IA los genera.)"
+          placeholder="Pegá los acordes o subí el PDF. Si no tenés acordes, podés dejar este campo vacío."
           cargando={cargando}
         />
 
-        {/* Botón interpretar */}
-        <button
-          type="button"
-          onClick={handleInterpretar}
-          disabled={!nombreAI.trim() || !artistaAI.trim() || cargando}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {cargando ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-          {cargando ? "Interpretando…" : "Interpretar con IA"}
-        </button>
+        {/* Botones de acción */}
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={handleInterpretar}
+            disabled={!nombreAI.trim() || !artistaAI.trim() || cargando}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {cargando ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            {cargando ? "Interpretando…" : "Interpretar con IA"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!textoLetra.trim() && !textoCharts.trim()) return;
+              onImport({ letra: textoLetra.trim(), charts: textoCharts.trim() });
+              setAviso("Texto copiado a los campos de abajo. Editá y agregá secciones [Coro], [Verso], etc.");
+              setTextoLetra("");
+              setTextoCharts("");
+            }}
+            disabled={(!textoLetra.trim() && !textoCharts.trim()) || cargando}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-violet-500/30 px-4 py-2 text-xs font-medium text-violet-600 transition-colors hover:border-violet-500/60 hover:bg-violet-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Usar directamente (sin IA)
+          </button>
+        </div>
 
         {error && (
           <p className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-600 dark:text-red-400">
