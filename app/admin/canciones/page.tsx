@@ -111,6 +111,8 @@ export default async function AdminCancionesPage(props: {
                     <CargarCancion
                       defaultLetra={c.letra ?? ""}
                       defaultCharts={c.charts ?? ""}
+                      nombre={c.nombre}
+                      artista={c.artista}
                     />
 
                     <Button type="submit" variant="success" icon={<Check size={14} />}>

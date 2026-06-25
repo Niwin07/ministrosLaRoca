@@ -20,9 +20,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "GROQ_API_KEY no configurada" }, { status: 500 });
     }
 
+    // Buscar letra real en lyrics.ovh antes de pedirle al modelo que invente
+    let letraExterna = "";
+    if (!textoLetra.trim()) {
+      try {
+        const lyricRes = await fetch(
+          `https://api.lyrics.ovh/v1/${encodeURIComponent(artista)}/${encodeURIComponent(nombre)}`,
+          { signal: AbortSignal.timeout(4000) }
+        );
+        if (lyricRes.ok) {
+          const lyricData = await lyricRes.json() as { lyrics?: string };
+          letraExterna = lyricData.lyrics?.trim() ?? "";
+        }
+      } catch { /* ignorar si falla o timeout */ }
+    }
+
     const seccionLetra = textoLetra.trim()
       ? `TEXTO DE LETRA (extraído de archivo):\n${textoLetra.trim()}`
-      : "LETRA: (no se proporcionó texto — generá la letra completa usando tu conocimiento de la canción)";
+      : letraExterna
+      ? `TEXTO DE LETRA (fuente externa):\n${letraExterna}`
+      : `LETRA: no disponible — si no conocés la letra con total certeza, devolvé el campo "letra" como string vacío (""). No inventes ni completes letras que no conozcas con seguridad.`;
 
     const seccionCharts = textoCharts.trim()
       ? `TEXTO DE ACORDES/CHARTS (extraído de archivo):\n${textoCharts.trim()}`
