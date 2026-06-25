@@ -20,60 +20,62 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "GROQ_API_KEY no configurada" }, { status: 500 });
     }
 
-    // Buscar letra real en lyrics.ovh antes de pedirle al modelo que invente
+    // ── Buscar letra en fuentes externas (solo si el usuario no proporcionó texto) ──
     let letraExterna = "";
     if (!textoLetra.trim()) {
+      // Fuente 1: lyrics.ovh
       try {
-        const lyricRes = await fetch(
+        const r1 = await fetch(
           `https://api.lyrics.ovh/v1/${encodeURIComponent(artista)}/${encodeURIComponent(nombre)}`,
           { signal: AbortSignal.timeout(4000) }
         );
-        if (lyricRes.ok) {
-          const lyricData = await lyricRes.json() as { lyrics?: string };
-          letraExterna = lyricData.lyrics?.trim() ?? "";
+        if (r1.ok) {
+          const d = await r1.json() as { lyrics?: string };
+          letraExterna = d.lyrics?.trim() ?? "";
         }
-      } catch { /* ignorar si falla o timeout */ }
+      } catch { /* timeout o red */ }
+
+      // Fuente 2: lrclib.net (fallback con mejor cobertura de música cristiana contemporánea)
+      if (!letraExterna) {
+        try {
+          const r2 = await fetch(
+            `https://lrclib.net/api/search?q=${encodeURIComponent(nombre)}&artist_name=${encodeURIComponent(artista)}`,
+            { signal: AbortSignal.timeout(4000) }
+          );
+          if (r2.ok) {
+            const results = await r2.json() as { plainLyrics?: string }[];
+            letraExterna = results[0]?.plainLyrics?.trim() ?? "";
+          }
+        } catch { /* timeout o red */ }
+      }
     }
 
+    // ── Construir secciones del prompt ──────────────────────────────────────────────
     const seccionLetra = textoLetra.trim()
-      ? `TEXTO DE LETRA (extraído de archivo):\n${textoLetra.trim()}`
+      ? `LETRA (del archivo del usuario — formatear y estructurar):\n${textoLetra.trim()}`
       : letraExterna
-      ? `TEXTO DE LETRA (fuente externa):\n${letraExterna}`
-      : `LETRA: no disponible — si no conocés la letra con total certeza, devolvé el campo "letra" como string vacío (""). No inventes ni completes letras que no conozcas con seguridad.`;
+      ? `LETRA (fuente externa — agregá los marcadores de sección [Verso]/[Coro]/etc. y formateá):\n${letraExterna}`
+      : `LETRA: no disponible. Si no conocés la letra con total certeza, devolvé el campo "letra" como string vacío "". No inventes.`;
 
     const seccionCharts = textoCharts.trim()
-      ? `TEXTO DE ACORDES/CHARTS (extraído de archivo):\n${textoCharts.trim()}`
-      : "ACORDES: (no se proporcionó texto — generá los charts completos usando tu conocimiento de la canción)";
+      ? `ACORDES (del archivo del usuario — formatear y estructurar):\n${textoCharts.trim()}`
+      : `ACORDES: no disponibles. Si no conocés los acordes con total certeza, devolvé el campo "charts" como string vacío "". No inventes.`;
 
-    const prompt = `Sos un experto en cifrado de canciones de alabanza y adoración cristiana.
+    // ── Prompt con roles separados (mejor seguimiento de instrucciones en Llama 3.3) ─
+    const systemMsg = `Sos un experto en cifrado de canciones de alabanza y adoración cristiana.
+Tu tarea: limpiar, formatear y estructurar letra y acordes según estas convenciones:
+- Secciones: [Intro] [Verso] [Verso 2] [Pre-Coro] [Coro] [Puente] [Outro]
+- Acordes: notación real (G, Am, C/E, Dsus4, Em7) o Nashville (1, 4, 6m, 5)
+- Primera aparición de una sección: contenido completo. Repeticiones: solo el encabezado.
+- Sin metadatos (CCLI, copyright, autores, URLs).
+- Separar secciones con una línea en blanco.
+- Devolvé ÚNICAMENTE JSON válido: {"letra":"...","charts":"..."} sin bloques de código ni explicaciones.`;
 
-Te voy a dar el nombre de una canción, el artista, y opcionalmente texto crudo de la letra y/o de los acordes (pueden estar mal extraídos de un PDF).
-
-Tu tarea:
-1. Usar tu conocimiento de "${nombre}" de "${artista}" para corregir o completar lo que falte
-2. Limpiar y formatear cada parte según las convenciones del sistema
-3. Si se proporcionó texto de letra → usarlo como base para el campo "letra"
-4. Si se proporcionó texto de acordes → usarlo como base para el campo "charts"
-5. Si alguno falta → generarlo completo desde tu conocimiento
-
-CONVENCIONES DEL SISTEMA:
-- Secciones entre corchetes: [Intro], [Verso], [Verso 2], [Pre-Coro], [Coro], [Puente], [Outro]
-- Acordes en notación real (ej: G, Am, C/E, Dsus4, Em7) — preferido
-  O notación Nashville si el texto original los usa (1, 4, 5, 6m)
-- En "charts": encabezado [Sección] seguido de los acordes línea por línea
-- En "letra": encabezado [Sección] seguido de las estrofas
-- Separar secciones con línea en blanco
-- No incluir metadatos (CCLI, copyright, autores, URLs)
-- IMPORTANTE — repeticiones: la PRIMERA vez que aparece una sección escribís el contenido completo.
-  Si esa misma sección se repite después, escribís SOLO el encabezado (ej: [Coro]) sin repetir el texto.
-  Esto aplica tanto a letra como a charts.
+    const userMsg = `Canción: "${nombre}" de "${artista}"
 
 ${seccionLetra}
 
-${seccionCharts}
-
-Devolvé ÚNICAMENTE un objeto JSON válido con exactamente estas dos claves, sin \`\`\`json ni explicaciones:
-{"letra":"...","charts":"..."}`;
+${seccionCharts}`;
 
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -83,9 +85,13 @@ Devolvé ÚNICAMENTE un objeto JSON válido con exactamente estas dos claves, si
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.2,
+        messages: [
+          { role: "system", content: systemMsg },
+          { role: "user",   content: userMsg   },
+        ],
+        temperature: 0.1,
         max_tokens: 4096,
+        response_format: { type: "json_object" },
       }),
     });
 
