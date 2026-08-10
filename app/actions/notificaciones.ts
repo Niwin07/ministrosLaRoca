@@ -6,15 +6,15 @@ import { crearNotificacion } from "@/lib/notif";
 
 /** Admin/Líder envía una notificación de prueba a un usuario específico. */
 export async function probarNotificacion(formData: FormData): Promise<void> {
-  const session = await auth();
-  if (!session?.user) throw new Error("No autenticado.");
-  if (session.user.rol !== "ADMINISTRADOR" && session.user.rol !== "LIDER") {
-    throw new Error("Sin permisos.");
-  }
-
-  const id_usuario = Number(formData.get("id_usuario")) || session.user.id_usuario;
-
   try {
+    const session = await auth();
+    if (!session?.user) throw new Error("No autenticado.");
+    if (session.user.rol !== "ADMINISTRADOR" && session.user.rol !== "LIDER") {
+      throw new Error("Sin permisos.");
+    }
+
+    const id_usuario = Number(formData.get("id_usuario")) || session.user.id_usuario;
+
     await crearNotificacion(
       id_usuario,
       "MENCION",
@@ -33,19 +33,19 @@ export async function probarNotificacion(formData: FormData): Promise<void> {
 
 /** Solo ADMINISTRADOR puede enviar menciones manuales a un usuario. */
 export async function enviarMencion(formData: FormData): Promise<void> {
-  const session = await auth();
-  if (!session?.user) throw new Error("No autenticado.");
-  if (session.user.rol !== "ADMINISTRADOR") throw new Error("Sin permisos.");
-
   const id_usuario = Number(formData.get("id_usuario"));
-  const titulo = (formData.get("titulo") as string | null)?.trim();
-  const cuerpo = (formData.get("cuerpo") as string | null)?.trim();
-
-  if (!id_usuario || !titulo || !cuerpo) {
-    redirect(`/admin/usuarios/${id_usuario}?error=Completá+todos+los+campos`);
-  }
-
   try {
+    const session = await auth();
+    if (!session?.user) throw new Error("No autenticado.");
+    if (session.user.rol !== "ADMINISTRADOR") throw new Error("Sin permisos.");
+
+    const titulo = (formData.get("titulo") as string | null)?.trim();
+    const cuerpo = (formData.get("cuerpo") as string | null)?.trim();
+
+    if (!id_usuario || !titulo || !cuerpo) {
+      throw new Error("Completá todos los campos.");
+    }
+
     await crearNotificacion(id_usuario, "MENCION", titulo, cuerpo);
   } catch (e) {
     redirect(

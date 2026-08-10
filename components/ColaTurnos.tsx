@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { GripVertical, Mic2, Trash2 } from "lucide-react";
+import { GripVertical, Mic2, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/Button";
 
@@ -35,18 +35,31 @@ export function ColaTurnos({ turnos, onReordenar, onActivar, onQuitar }: Props) 
     inicial.current = orden.map((t) => t.id_turno);
   }
 
+  function guardarOrden(nuevo: TurnoItem[]) {
+    const ordenes = turnos.map((t) => t.orden).sort((a, b) => a - b);
+    const payload = nuevo.map((t, i) => ({ id_turno: t.id_turno, orden: ordenes[i] }));
+    const fd = new FormData();
+    fd.set("reordenamientos", JSON.stringify(payload));
+    startTransition(async () => { await onReordenar(fd); });
+  }
+
   function handleDragEnd() {
     const ids = orden.map((t) => t.id_turno);
     const cambio =
       ids.length !== inicial.current.length ||
       ids.some((id, i) => id !== inicial.current[i]);
     if (!cambio) return;
+    guardarOrden(orden);
+  }
 
-    const ordenes = turnos.map((t) => t.orden).sort((a, b) => a - b);
-    const payload = orden.map((t, i) => ({ id_turno: t.id_turno, orden: ordenes[i] }));
-    const fd = new FormData();
-    fd.set("reordenamientos", JSON.stringify(payload));
-    startTransition(async () => { await onReordenar(fd); });
+  // Alternativa accesible por teclado al drag-and-drop (que es pointer/touch-only).
+  function moverItem(idx: number, direccion: -1 | 1) {
+    const destino = idx + direccion;
+    if (destino < 0 || destino >= orden.length) return;
+    const nuevo = [...orden];
+    [nuevo[idx], nuevo[destino]] = [nuevo[destino], nuevo[idx]];
+    setOrden(nuevo);
+    guardarOrden(nuevo);
   }
 
   function accion(fn: (fd: FormData) => Promise<void>, id: number) {
@@ -75,8 +88,11 @@ export function ColaTurnos({ turnos, onReordenar, onActivar, onQuitar }: Props) 
           key={t.id_turno}
           turno={t}
           pos={idx + 1}
+          esPrimero={idx === 0}
+          esUltimo={idx === orden.length - 1}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onMover={(dir) => moverItem(idx, dir)}
           onActivar={() => accion(onActivar, t.id_turno)}
           onQuitar={() => accion(onQuitar, t.id_turno)}
         />
@@ -88,13 +104,16 @@ export function ColaTurnos({ turnos, onReordenar, onActivar, onQuitar }: Props) 
 interface FilaProps {
   turno:       TurnoItem;
   pos:         number;
+  esPrimero:   boolean;
+  esUltimo:    boolean;
   onDragStart: () => void;
   onDragEnd:   () => void;
+  onMover:     (direccion: -1 | 1) => void;
   onActivar:   () => void;
   onQuitar:    () => void;
 }
 
-function Fila({ turno, pos, onDragStart, onDragEnd, onActivar, onQuitar }: FilaProps) {
+function Fila({ turno, pos, esPrimero, esUltimo, onDragStart, onDragEnd, onMover, onActivar, onQuitar }: FilaProps) {
   const controls = useDragControls();
   const [arrastrando, setArrastrando] = useState(false);
 
@@ -116,12 +135,34 @@ function Fila({ turno, pos, onDragStart, onDragEnd, onActivar, onQuitar }: FilaP
         onPointerDown={(e) => { e.preventDefault(); controls.start(e); }}
         style={{ touchAction: "none" }}
         aria-label="Arrastrar para reordenar"
-        className={`flex h-8 w-6 shrink-0 items-center justify-center text-gone transition-colors hover:text-mid ${
+        className={`flex h-8 w-5 shrink-0 items-center justify-center text-gone transition-colors hover:text-mid ${
           arrastrando ? "cursor-grabbing text-violet-500" : "cursor-grab"
         }`}
       >
         <GripVertical size={16} />
       </button>
+
+      {/* Alternativa accesible por teclado al drag-and-drop */}
+      <div className="flex shrink-0 flex-col">
+        <button
+          type="button"
+          onClick={() => onMover(-1)}
+          disabled={esPrimero}
+          aria-label="Mover arriba"
+          className="flex h-4 w-5 items-center justify-center rounded-t text-gone transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40"
+        >
+          <ChevronUp size={12} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onMover(1)}
+          disabled={esUltimo}
+          aria-label="Mover abajo"
+          className="flex h-4 w-5 items-center justify-center rounded-b text-gone transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40"
+        >
+          <ChevronDown size={12} />
+        </button>
+      </div>
 
       <span className="w-4 shrink-0 text-center text-xs font-semibold tabular-nums text-gone">{pos}</span>
       <Avatar foto={turno.foto} nombre={turno.nombre_usuario} size={32} />

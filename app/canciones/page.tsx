@@ -9,6 +9,8 @@ import { CatalogoCanciones } from "@/components/CatalogoCanciones";
 import { CargarCancion } from "@/components/CargarCancion";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
 import { sugerirCancion as crearSugerencia } from "@/app/actions/canciones";
 import { METRICAS } from "@/lib/metricas";
 
@@ -135,37 +137,33 @@ export default async function CancionesPage(props: {
           )}
 
           <form action={handleSugerir} className="flex flex-col gap-3">
-            <input
-              name="nombre"
-              placeholder="Nombre de la canción *"
-              required
-              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-            />
-            <input
-              name="artista"
-              placeholder="Artista *"
-              required
-              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-            />
+            <Input id="nombre" name="nombre" label="Nombre de la canción" required />
+            <Input id="artista" name="artista" label="Artista" required />
 
             <div className="flex gap-2">
-              <select
-                name="metrica"
-                defaultValue=""
-                className="flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
-              >
-                <option value="">Métrica (opcional)…</option>
-                {METRICAS.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-              <input
+              <div className="flex-1 flex flex-col gap-1.5">
+                <Label htmlFor="metrica">Métrica (opcional)</Label>
+                <select
+                  id="metrica"
+                  name="metrica"
+                  defaultValue=""
+                  className="w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
+                >
+                  <option value="">Sin definir…</option>
+                  {METRICAS.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+              <Input
+                id="bpm"
                 name="bpm"
                 type="number"
                 min={1}
                 max={300}
-                placeholder="BPM"
-                className="w-24 rounded-xl border border-mark bg-input px-3 py-3 text-center text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+                label="BPM"
+                wrapperClassName="w-24"
+                className="text-center"
               />
             </div>
 

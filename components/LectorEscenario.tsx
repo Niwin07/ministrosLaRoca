@@ -5,6 +5,9 @@ import type { Dispatch, SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { ChartViewerInteractivo } from "@/components/ChartViewerInteractivo";
 import { LyricViewer } from "@/components/LyricViewer";
+import { X } from "lucide-react";
+
+const FOCUS_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base";
 
 interface Cancion {
   id_lista_cancion: number;
@@ -103,8 +106,9 @@ function VistaLista({
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line bg-base/95 px-4 py-3 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={onVolver}
-            className="rounded-full border border-line px-3 py-1.5 text-xs text-lo transition-colors hover:bg-input hover:text-hi"
+            className={`rounded-full border border-line px-3 py-1.5 text-xs text-lo transition-colors hover:bg-input hover:text-hi ${FOCUS_RING}`}
           >
             ← Volver
           </button>
@@ -114,8 +118,9 @@ function VistaLista({
           </div>
         </div>
         <button
+          type="button"
           onClick={() => onPresentar(seleccionado)}
-          className="flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-violet-700 active:scale-[0.97]"
+          className={`flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-violet-700 active:scale-[0.97] ${FOCUS_RING}`}
         >
           <svg className="h-3 w-3 fill-current" viewBox="0 0 16 16">
             <path d="M3 2.5l11 5.5-11 5.5V2.5z" />
@@ -132,8 +137,9 @@ function VistaLista({
           {canciones.map((c, i) => (
             <button
               key={c.id_lista_cancion}
+              type="button"
               onClick={() => setSeleccionado(i)}
-              className={`flex w-full items-center gap-3 border-b border-line/60 px-4 py-4 text-left transition-colors hover:bg-input md:py-3 ${
+              className={`flex w-full items-center gap-3 border-b border-line/60 px-4 py-4 text-left transition-colors hover:bg-input md:py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500/40 ${
                 i === seleccionado ? "bg-violet-500/10 md:border-l-2 md:border-l-violet-500" : ""
               }`}
             >
@@ -153,8 +159,10 @@ function VistaLista({
               )}
               {/* En mobile, botón presentar inline */}
               <button
+                type="button"
+                aria-label={`Presentar "${c.nombre}"`}
                 onClick={(e) => { e.stopPropagation(); onPresentar(i); }}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-violet-300 text-violet-600 transition-colors hover:bg-violet-50 active:scale-[0.97] dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950 md:hidden"
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-violet-300 text-violet-600 transition-colors hover:bg-violet-50 active:scale-[0.97] dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950 md:hidden ${FOCUS_RING}`}
               >
                 <svg className="h-3 w-3 fill-current" viewBox="0 0 16 16">
                   <path d="M3 2.5l11 5.5-11 5.5V2.5z" />
@@ -179,24 +187,31 @@ function VistaLista({
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     {tieneAmbos && (
-                      <div className="inline-flex rounded-lg border border-line bg-input p-0.5 text-xs font-semibold">
+                      <div className="inline-flex rounded-lg border border-line bg-input p-0.5 text-xs font-semibold" role="tablist" aria-label="Tipo de contenido">
                         <button
+                          type="button"
+                          role="tab"
+                          aria-selected={modo === "letra"}
                           onClick={() => setModo("letra")}
-                          className={`rounded-md px-3 py-1.5 transition-colors ${modo === "letra" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
+                          className={`rounded-md px-3 py-1.5 transition-colors ${FOCUS_RING} ${modo === "letra" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
                         >
                           Letra
                         </button>
                         <button
+                          type="button"
+                          role="tab"
+                          aria-selected={modo === "charts"}
                           onClick={() => setModo("charts")}
-                          className={`rounded-md px-3 py-1.5 transition-colors ${modo === "charts" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
+                          className={`rounded-md px-3 py-1.5 transition-colors ${FOCUS_RING} ${modo === "charts" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
                         >
                           Charts
                         </button>
                       </div>
                     )}
                     <button
+                      type="button"
                       onClick={() => onPresentar(seleccionado)}
-                      className="flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-violet-700"
+                      className={`flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-violet-700 ${FOCUS_RING}`}
                     >
                       <svg className="h-3 w-3 fill-current" viewBox="0 0 16 16">
                         <path d="M3 2.5l11 5.5-11 5.5V2.5z" />
@@ -295,26 +310,35 @@ function PresentadorMode({
           </p>
           <div className="flex items-center gap-2">
             {tieneAmbos && (
-              <div className="inline-flex rounded-lg border border-line bg-input p-0.5 text-xs font-semibold">
+              <div className="inline-flex rounded-lg border border-line bg-input p-0.5 text-xs font-semibold" role="tablist" aria-label="Tipo de contenido">
                 <button
+                  type="button"
+                  role="tab"
+                  aria-selected={modoContenido === "letra"}
                   onClick={() => setModoContenido("letra")}
-                  className={`rounded-md px-3 py-1.5 transition-colors ${modoContenido === "letra" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
+                  className={`rounded-md px-3 py-1.5 transition-colors ${FOCUS_RING} ${modoContenido === "letra" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
                 >
                   Letra
                 </button>
                 <button
+                  type="button"
+                  role="tab"
+                  aria-selected={modoContenido === "charts"}
                   onClick={() => setModoContenido("charts")}
-                  className={`rounded-md px-3 py-1.5 transition-colors ${modoContenido === "charts" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
+                  className={`rounded-md px-3 py-1.5 transition-colors ${FOCUS_RING} ${modoContenido === "charts" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
                 >
                   Charts
                 </button>
               </div>
             )}
             <button
+              type="button"
               onClick={onSalir}
-              className="rounded-full border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-600 transition-colors hover:bg-violet-500/20 dark:text-violet-400"
+              aria-label="Volver a la lista"
+              className={`flex items-center gap-1 rounded-full border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-600 transition-colors hover:bg-violet-500/20 dark:text-violet-400 ${FOCUS_RING}`}
             >
-              ✕ Lista
+              <X size={12} strokeWidth={2.5} aria-hidden />
+              Lista
             </button>
           </div>
         </div>
@@ -349,9 +373,10 @@ function PresentadorMode({
         <div className="shrink-0 border-t border-line bg-base/95 px-4 py-3 backdrop-blur-sm md:hidden">
           <div className="flex items-center justify-between gap-3">
             <button
+              type="button"
               onClick={() => setIndice((i) => Math.max(i - 1, 0))}
               disabled={indice === 0}
-              className="flex items-center gap-1.5 rounded-full border border-line px-5 py-2.5 text-sm font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30"
+              className={`flex items-center gap-1.5 rounded-full border border-line px-5 py-2.5 text-sm font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30 ${FOCUS_RING}`}
             >
               ← Anterior
             </button>
@@ -361,8 +386,11 @@ function PresentadorMode({
                 {canciones.map((_, i) => (
                   <button
                     key={i}
+                    type="button"
+                    aria-label={`Ir a la canción ${i + 1}`}
+                    aria-current={i === indice ? "true" : undefined}
                     onClick={() => setIndice(i)}
-                    className={`h-2 rounded-full transition-all ${
+                    className={`h-2 rounded-full transition-all ${FOCUS_RING} ${
                       i === indice ? "w-5 bg-violet-600" : "w-2 bg-mark hover:bg-lo"
                     }`}
                   />
@@ -373,9 +401,10 @@ function PresentadorMode({
             )}
 
             <button
+              type="button"
               onClick={() => setIndice((i) => Math.min(i + 1, total - 1))}
               disabled={indice === total - 1}
-              className="flex items-center gap-1.5 rounded-full border border-line px-5 py-2.5 text-sm font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30"
+              className={`flex items-center gap-1.5 rounded-full border border-line px-5 py-2.5 text-sm font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30 ${FOCUS_RING}`}
             >
               Siguiente →
             </button>
@@ -396,9 +425,10 @@ function PresentadorMode({
           {canciones.map((c, i) => (
             <button
               key={c.id_lista_cancion}
+              type="button"
               data-idx={i}
               onClick={() => setIndice(i)}
-              className={`flex w-full items-center gap-3 border-b border-line/40 px-4 py-3 text-left transition-colors hover:bg-input ${
+              className={`flex w-full items-center gap-3 border-b border-line/40 px-4 py-3 text-left transition-colors hover:bg-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500/40 ${
                 i === indice ? "bg-violet-500/10 border-l-2 border-l-violet-500" : ""
               }`}
             >
@@ -424,16 +454,18 @@ function PresentadorMode({
         {/* Prev/Next desktop */}
         <div className="flex shrink-0 gap-2 border-t border-line px-4 py-3">
           <button
+            type="button"
             onClick={() => setIndice((i) => Math.max(i - 1, 0))}
             disabled={indice === 0}
-            className="flex-1 rounded-xl border border-line py-2 text-xs font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30"
+            className={`flex-1 rounded-xl border border-line py-2 text-xs font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30 ${FOCUS_RING}`}
           >
             ← Anterior
           </button>
           <button
+            type="button"
             onClick={() => setIndice((i) => Math.min(i + 1, total - 1))}
             disabled={indice === total - 1}
-            className="flex-1 rounded-xl border border-line py-2 text-xs font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30"
+            className={`flex-1 rounded-xl border border-line py-2 text-xs font-medium text-mid transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30 ${FOCUS_RING}`}
           >
             Siguiente →
           </button>

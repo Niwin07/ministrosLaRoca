@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Upload, Sparkles, Loader2, ChevronDown, AlertCircle, CheckCircle2, FileText, Music } from "lucide-react";
 import type { CancionImportada } from "@/lib/importar-cancion";
+import { Button } from "@/components/Button";
 
 const TIPOS = ".txt,.text,.cho,.crd,.pro,.chordpro,.md,.pdf,text/plain,application/pdf";
 
@@ -212,15 +213,17 @@ export function ImportadorCancion({
         />
 
         {/* Botón interpretar */}
-        <button
+        <Button
           type="button"
+          shape="block"
+          fullWidth
           onClick={handleInterpretar}
           disabled={!nombreAI.trim() || !artistaAI.trim() || cargando}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+          loading={cargando}
+          icon={<Sparkles size={14} />}
         >
-          {cargando ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
           {cargando ? "Interpretando…" : "Interpretar con IA"}
-        </button>
+        </Button>
 
         {error && (
           <p className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-600 dark:text-red-400">

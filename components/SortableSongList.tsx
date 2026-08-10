@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { GripVertical, ChevronDown } from "lucide-react";
+import { GripVertical, ChevronDown, ChevronUp } from "lucide-react";
 import { ChartViewerInteractivo } from "@/components/ChartViewerInteractivo";
 import { LyricViewer } from "@/components/LyricViewer";
 import { SongActions } from "@/components/SongActions";
@@ -53,18 +53,11 @@ export function SortableSongList({
     ordenInicial.current = orden.map((i) => i.id_lista_cancion);
   }
 
-  function handleDragEnd() {
-    const idsActuales = orden.map((i) => i.id_lista_cancion);
-    const cambio =
-      idsActuales.length !== ordenInicial.current.length ||
-      idsActuales.some((id, i) => id !== ordenInicial.current[i]);
-
-    if (!cambio) return;
-
-    // Preservar el multiset de valores de `orden` (UNIQUE(id_playlist, orden)):
-    // tomamos los órdenes originales ascendentes y los asignamos por posición nueva.
+  function guardarOrden(nuevo: SongItem[]) {
+    // Preserva el multiset de valores de `orden` (UNIQUE(id_playlist, orden)):
+    // toma los órdenes originales ascendentes y los asigna por posición nueva.
     const ordenes = items.map((i) => i.orden).sort((a, b) => a - b);
-    const payload = orden.map((it, idx) => ({
+    const payload = nuevo.map((it, idx) => ({
       id_lista_cancion: it.id_lista_cancion,
       orden: ordenes[idx],
     }));
@@ -74,6 +67,26 @@ export function SortableSongList({
     startTransition(async () => {
       await onReordenar(fd);
     });
+  }
+
+  function handleDragEnd() {
+    const idsActuales = orden.map((i) => i.id_lista_cancion);
+    const cambio =
+      idsActuales.length !== ordenInicial.current.length ||
+      idsActuales.some((id, i) => id !== ordenInicial.current[i]);
+
+    if (!cambio) return;
+    guardarOrden(orden);
+  }
+
+  // Alternativa accesible por teclado al drag-and-drop (que es pointer/touch-only).
+  function moverItem(idx: number, direccion: -1 | 1) {
+    const destino = idx + direccion;
+    if (destino < 0 || destino >= orden.length) return;
+    const nuevo = [...orden];
+    [nuevo[idx], nuevo[destino]] = [nuevo[destino], nuevo[idx]];
+    setOrden(nuevo);
+    guardarOrden(nuevo);
   }
 
   return (
@@ -89,8 +102,11 @@ export function SortableSongList({
           item={item}
           posicion={idx + 1}
           puedeEditar={puedeEditar}
+          esPrimero={idx === 0}
+          esUltimo={idx === orden.length - 1}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onMover={(dir) => moverItem(idx, dir)}
           onEliminar={onEliminar}
           onActualizarNota={onActualizarNota}
         />
@@ -103,8 +119,11 @@ interface SortableRowProps {
   item: SongItem;
   posicion: number;
   puedeEditar: boolean;
+  esPrimero: boolean;
+  esUltimo: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
+  onMover: (direccion: -1 | 1) => void;
   onEliminar:       (formData: FormData) => Promise<void>;
   onActualizarNota: (formData: FormData) => Promise<void>;
 }
@@ -113,8 +132,11 @@ function SortableRow({
   item,
   posicion,
   puedeEditar,
+  esPrimero,
+  esUltimo,
   onDragStart,
   onDragEnd,
+  onMover,
   onEliminar,
   onActualizarNota,
 }: SortableRowProps) {
@@ -145,20 +167,43 @@ function SortableRow({
       {/* Fila principal */}
       <div className="flex items-center gap-2 px-3 py-4 sm:gap-3 sm:px-4">
         {puedeEditar && (
-          <button
-            type="button"
-            onPointerDown={(e) => {
-              e.preventDefault();
-              controls.start(e);
-            }}
-            style={{ touchAction: "none" }}
-            className={`flex h-8 w-6 shrink-0 touch-none items-center justify-center text-gone transition-colors hover:text-mid ${
-              arrastrando ? "cursor-grabbing text-violet-500" : "cursor-grab"
-            }`}
-            aria-label="Arrastrar para reordenar"
-          >
-            <GripVertical size={16} />
-          </button>
+          <>
+            <button
+              type="button"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                controls.start(e);
+              }}
+              style={{ touchAction: "none" }}
+              className={`flex h-8 w-5 shrink-0 touch-none items-center justify-center text-gone transition-colors hover:text-mid ${
+                arrastrando ? "cursor-grabbing text-violet-500" : "cursor-grab"
+              }`}
+              aria-label="Arrastrar para reordenar"
+            >
+              <GripVertical size={16} />
+            </button>
+            {/* Alternativa accesible por teclado al drag-and-drop */}
+            <div className="flex shrink-0 flex-col">
+              <button
+                type="button"
+                onClick={() => onMover(-1)}
+                disabled={esPrimero}
+                aria-label="Mover arriba"
+                className="flex h-4 w-5 items-center justify-center rounded-t text-gone transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40"
+              >
+                <ChevronUp size={12} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onMover(1)}
+                disabled={esUltimo}
+                aria-label="Mover abajo"
+                className="flex h-4 w-5 items-center justify-center rounded-b text-gone transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40"
+              >
+                <ChevronDown size={12} />
+              </button>
+            </div>
+          </>
         )}
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-500/[.12] text-[10px] font-bold text-violet-600 dark:text-violet-400">
           {String(posicion).padStart(2, "0")}

@@ -2,15 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Bell, BellOff, X } from "lucide-react";
-
-function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
-  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
-  const b64 = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(b64);
-  const out = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
-}
+import { Button } from "@/components/Button";
+import { IconButton } from "@/components/ui/IconButton";
+import { detectarEstadoPush, activarPush } from "@/lib/push-client";
 
 type Estado = "invisible" | "mostrar" | "bloqueado" | "ocupado";
 
@@ -18,51 +12,24 @@ export function ActivarNotifBanner() {
   const [estado, setEstado] = useState<Estado>("invisible");
 
   useEffect(() => {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-    if (Notification.permission === "denied") { setEstado("bloqueado"); return; }
-
-    // Si no hay ningún SW registrado, ready nunca resuelve → verificar primero
-    navigator.serviceWorker.getRegistrations().then((regs) => {
-      if (regs.length === 0) { setEstado("mostrar"); return; }
-      navigator.serviceWorker.ready.then((reg) =>
-        reg.pushManager.getSubscription().then((sub) => {
-          if (!sub) setEstado("mostrar");
-        })
-      );
+    detectarEstadoPush().then((e) => {
+      if (e === "bloqueado") setEstado("bloqueado");
+      else if (e === "inactivo") setEstado("mostrar");
     });
   }, []);
 
   async function activar() {
     setEstado("ocupado");
     try {
-      await navigator.serviceWorker.register("/sw.js");
-      // Usar el SW activo (ready), no el resultado de register() que puede estar instalando
-      const reg = await navigator.serviceWorker.ready;
-
-      const perm = await Notification.requestPermission();
-      if (perm !== "granted") { setEstado("bloqueado"); return; }
-
-      const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!publicKey) { setEstado("invisible"); return; }
-
-      // Reusar suscripción existente para evitar error por cambio de VAPID key
-      let sub = await reg.pushManager.getSubscription();
-      if (!sub) {
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly:      true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
-        });
-      }
-
-      await fetch("/api/push", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(sub.toJSON()),
-      });
-
+      await activarPush();
       setEstado("invisible");
-    } catch {
-      setEstado("invisible"); // No rebotar al "mostrar" — el usuario ya intentó
+    } catch (e) {
+      if (e instanceof Error && e.message === "PERMISO_DENEGADO") {
+        setEstado("bloqueado");
+      } else {
+        console.error("Error al activar push:", e);
+        setEstado("invisible"); // No rebotar al "mostrar" — el usuario ya intentó
+      }
     }
   }
 
@@ -78,9 +45,13 @@ export function ActivarNotifBanner() {
             Habilitálas en la configuración del navegador para recibir alertas de turnos y listas.
           </p>
         </div>
-        <button onClick={() => setEstado("invisible")} className="shrink-0 text-amber-500 hover:text-amber-700">
-          <X size={13} />
-        </button>
+        <IconButton
+          icon={<X size={13} />}
+          label="Descartar aviso"
+          size="sm"
+          onClick={() => setEstado("invisible")}
+          className="text-amber-500 hover:text-amber-700 hover:bg-transparent"
+        />
       </div>
     );
   }
@@ -94,13 +65,15 @@ export function ActivarNotifBanner() {
         <p className="text-xs font-semibold text-violet-700 dark:text-violet-400">Activá las notificaciones</p>
         <p className="text-[11px] text-lo">Enterate cuando te asignen un turno o se publique la lista.</p>
       </div>
-      <button
+      <Button
+        type="button"
+        size="sm"
+        loading={estado === "ocupado"}
         onClick={activar}
-        disabled={estado === "ocupado"}
-        className="shrink-0 rounded-full bg-violet-600 px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+        className="shrink-0"
       >
-        {estado === "ocupado" ? "…" : "Activar"}
-      </button>
+        Activar
+      </Button>
     </div>
   );
 }

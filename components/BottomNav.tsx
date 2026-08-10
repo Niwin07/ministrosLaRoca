@@ -3,42 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import {
-  Home,
-  BookOpen,
-  ListMusic,
-  ShieldCheck,
-  CalendarPlus,
-  Calendar,
-  type LucideIcon,
-} from "lucide-react";
-
-interface NavItem {
-  href:          string;
-  label:         string;
-  icon:          LucideIcon;
-  adminOnly?:    boolean;
-  ministroOnly?: boolean;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { href: "/",                label: "Inicio",   icon: Home                               },
-  { href: "/canciones",       label: "Catálogo", icon: BookOpen                           },
-  { href: "/playlists",       label: "Listas",   icon: ListMusic                          },
-  { href: "/turnos",          label: "Turnos",   icon: Calendar,    ministroOnly: true    },
-  { href: "/admin/canciones", label: "Moderar",  icon: ShieldCheck, adminOnly:    true    },
-  { href: "/admin/turnos",    label: "Cola",     icon: CalendarPlus, adminOnly:    true   },
-];
+import { getNavItems } from "@/lib/nav-items";
 
 export function BottomNav({ rol }: { rol?: string }) {
   const pathname = usePathname();
-  const esAdmin  = rol === "ADMINISTRADOR" || rol === "LIDER";
-
-  const items = NAV_ITEMS.filter((item) => {
-    if (item.adminOnly)    return esAdmin;
-    if (item.ministroOnly) return !esAdmin;
-    return true;
-  });
+  const items = getNavItems(rol);
 
   return (
     // Anchored tab bar — both modes. Centered on the max-w-md content column.

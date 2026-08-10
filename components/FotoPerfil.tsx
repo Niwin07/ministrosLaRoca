@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, Check } from "lucide-react";
+import { Camera, Check, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/Button";
+import { Avatar } from "@/components/Avatar";
 
 interface FotoPerfilProps {
   foto:         string | null;
@@ -46,7 +47,6 @@ export function FotoPerfil({ foto, nombre, onActualizar }: FotoPerfilProps) {
   const [procesando, setProcesando] = useState(false);
 
   const mostrada = preview ?? foto;
-  const inicial = nombre.charAt(0).toUpperCase();
 
   async function handleArchivo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -66,14 +66,7 @@ export function FotoPerfil({ foto, nombre, onActualizar }: FotoPerfilProps) {
     <div className="flex items-center gap-4">
       {/* Avatar (foto actual o preview) */}
       <div className="relative shrink-0">
-        <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-violet-600">
-          {mostrada ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={mostrada} alt="Foto de perfil" className="h-full w-full object-cover" />
-          ) : (
-            <span className="text-2xl font-semibold text-white">{inicial}</span>
-          )}
-        </div>
+        <Avatar foto={mostrada} nombre={nombre} size={80} />
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -93,13 +86,9 @@ export function FotoPerfil({ foto, nombre, onActualizar }: FotoPerfilProps) {
             <Button type="submit" size="sm" icon={<Check size={13} />}>
               Guardar foto
             </Button>
-            <button
-              type="button"
-              onClick={() => setPreview(null)}
-              className="rounded-lg px-2 py-1 text-xs font-medium text-mid transition-colors hover:text-hi"
-            >
+            <Button type="button" variant="ghost" size="sm" icon={<X size={13} />} onClick={() => setPreview(null)}>
               Cancelar
-            </button>
+            </Button>
           </form>
         ) : (
           <div className="flex items-center gap-2">
@@ -116,12 +105,9 @@ export function FotoPerfil({ foto, nombre, onActualizar }: FotoPerfilProps) {
             {foto && (
               <form action={onActualizar}>
                 <input type="hidden" name="foto" value="" />
-                <button
-                  type="submit"
-                  className="rounded-lg px-2 py-1.5 text-xs font-medium text-red-500 transition-colors hover:text-red-600"
-                >
+                <Button type="submit" variant="ghost" size="sm" icon={<Trash2 size={13} />} className="text-red-500 hover:text-red-600">
                   Quitar
-                </button>
+                </Button>
               </form>
             )}
           </div>

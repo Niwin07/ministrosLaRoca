@@ -191,6 +191,7 @@ export default async function DashboardPage() {
                   <Link
                     href={`/escenario/mazo/${listaActiva.id_playlist}?presentar=${i}`}
                     className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-violet-300 text-violet-600 transition-colors hover:bg-violet-50 active:scale-[0.97] dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950"
+                    aria-label={`Presentar "${c.nombre}"`}
                     title={`Presentar "${c.nombre}"`}
                   >
                     <svg className="h-2.5 w-2.5 fill-current" viewBox="0 0 16 16">

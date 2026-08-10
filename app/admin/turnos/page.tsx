@@ -12,6 +12,7 @@ import { ColaTurnos } from "@/components/ColaTurnos";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
 import { Avatar } from "@/components/Avatar";
+import { Label } from "@/components/ui/Label";
 import { PLATAFORMAS_LIST } from "@/lib/plataforma";
 
 const FEEDBACK: Record<string, string> = {
@@ -102,6 +103,9 @@ export default async function AdminTurnosPage(props: {
         </div>
       )}
 
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+      <div className="flex flex-col gap-6">
+
       {/* ── Formulario: agregar a la cola ────────────────────────────── */}
       <div className="rounded-2xl border border-line bg-card p-5">
         <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-mid">
@@ -111,7 +115,7 @@ export default async function AdminTurnosPage(props: {
           {/* Selector de plataforma */}
           <div className="flex gap-2">
             {PLATAFORMAS_LIST.map((pla, i) => (
-              <label key={pla.id} className="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-mark bg-input px-4 py-3 text-sm has-[:checked]:border-violet-500 has-[:checked]:bg-violet-500/10 has-[:checked]:text-violet-600">
+              <label key={pla.id} className="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-mark bg-input px-4 py-3 text-sm has-[:checked]:border-violet-500 has-[:checked]:bg-violet-500/10 has-[:checked]:text-violet-600 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-violet-500/40">
                 <input
                   type="radio"
                   name="id_plataforma"
@@ -124,22 +128,26 @@ export default async function AdminTurnosPage(props: {
             ))}
           </div>
 
-          <div className="flex gap-3">
-            <select
-              name="id_usuario"
-              required
-              className="flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
-            >
-              <option value="">— Seleccionar ministro —</option>
-              {listaUsuarios.map((u) => (
-                <option key={u.id_usuario} value={u.id_usuario}>
-                  {u.nombre}
-                </option>
-              ))}
-            </select>
-            <Button type="submit" className="shrink-0">
-              Agregar
-            </Button>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="id_usuario_agregar">Ministro</Label>
+            <div className="flex gap-3">
+              <select
+                id="id_usuario_agregar"
+                name="id_usuario"
+                required
+                className="flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
+              >
+                <option value="">— Seleccionar ministro —</option>
+                {listaUsuarios.map((u) => (
+                  <option key={u.id_usuario} value={u.id_usuario}>
+                    {u.nombre}
+                  </option>
+                ))}
+              </select>
+              <Button type="submit" className="shrink-0">
+                Agregar
+              </Button>
+            </div>
           </div>
         </form>
       </div>
@@ -181,24 +189,6 @@ export default async function AdminTurnosPage(props: {
         )}
       </section>
 
-      {/* ── Colas por plataforma ──────────────────────────────────────── */}
-      {colas.map(({ plataforma, items }) => (
-        <section key={plataforma.id} className="space-y-3">
-          <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-mid">
-              Cola — {plataforma.nombre}
-            </h2>
-            <p className="mt-0.5 text-[11px] text-lo">Arrastrá para reordenar quién sigue.</p>
-          </div>
-          <ColaTurnos
-            turnos={items}
-            onReordenar={reordenarCola}
-            onActivar={marcarActivo}
-            onQuitar={quitarTurno}
-          />
-        </section>
-      ))}
-
       {/* ── Test de notificaciones ───────────────────────────────────── */}
       <section className="rounded-2xl border border-line bg-card p-5">
         <div className="mb-4 flex items-center gap-2">
@@ -210,23 +200,51 @@ export default async function AdminTurnosPage(props: {
         <p className="mb-4 text-[11px] text-lo">
           Enviá una notificación de prueba a cualquier usuario para verificar que le llegue al dispositivo.
         </p>
-        <form action={probarNotificacion} className="flex gap-3">
-          <select
-            name="id_usuario"
-            required
-            className="flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
-          >
-            {listaUsuarios.map((u) => (
-              <option key={u.id_usuario} value={u.id_usuario}>
-                {u.nombre}
-              </option>
-            ))}
-          </select>
-          <Button type="submit" variant="secondary" className="shrink-0" icon={<Bell size={13} />}>
+        <form action={probarNotificacion} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="id_usuario_probar">Usuario</Label>
+            <select
+              id="id_usuario_probar"
+              name="id_usuario"
+              required
+              className="w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
+            >
+              {listaUsuarios.map((u) => (
+                <option key={u.id_usuario} value={u.id_usuario}>
+                  {u.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Button type="submit" variant="secondary" className="self-start" icon={<Bell size={13} />}>
             Probar
           </Button>
         </form>
       </section>
+
+      </div>{/* fin columna izquierda */}
+
+      {/* ── Colas por plataforma ──────────────────────────────────────── */}
+      <div className="flex flex-col gap-6">
+        {colas.map(({ plataforma, items }) => (
+          <section key={plataforma.id} className="space-y-3">
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-mid">
+                Cola — {plataforma.nombre}
+              </h2>
+              <p className="mt-0.5 text-[11px] text-lo">Arrastrá para reordenar quién sigue.</p>
+            </div>
+            <ColaTurnos
+              turnos={items}
+              onReordenar={reordenarCola}
+              onActivar={marcarActivo}
+              onQuitar={quitarTurno}
+            />
+          </section>
+        ))}
+      </div>
+
+      </div>{/* fin grid */}
 
     </main>
   );

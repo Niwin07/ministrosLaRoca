@@ -20,7 +20,7 @@ export function ThemeToggle({ tema, sidebar }: { tema: "claro" | "oscuro"; sideb
         onClick={toggle}
         disabled={pending}
         aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-lo transition-colors hover:bg-input hover:text-mid disabled:opacity-40"
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-lo transition-colors hover:bg-input hover:text-mid disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
       >
         {isDark
           ? <Sun  size={17} strokeWidth={1.8} className="shrink-0" />
@@ -36,7 +36,7 @@ export function ThemeToggle({ tema, sidebar }: { tema: "claro" | "oscuro"; sideb
       onClick={toggle}
       disabled={pending}
       aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-      className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors hover:text-hi disabled:opacity-40"
+      className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors hover:text-hi disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
     >
       {isDark ? <Sun size={20} /> : <Moon size={20} />}
     </button>

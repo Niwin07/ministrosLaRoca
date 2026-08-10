@@ -7,20 +7,26 @@ import { usuarios } from "@/db/schema";
 import { asc } from "drizzle-orm";
 import { crearUsuario } from "@/app/actions/usuarios";
 import { Button } from "@/components/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { ErrorBanner } from "@/components/ErrorBanner";
+import { Avatar } from "@/components/Avatar";
+import { ROL_LABEL } from "@/lib/roles";
 
 const FEEDBACK: Record<string, string> = {
   creado:       "Usuario creado exitosamente.",
   actualizado:  "Usuario actualizado exitosamente.",
 };
 
-const ROL_STYLE: Record<string, string> = {
-  ADMINISTRADOR: "bg-violet-500/15 text-violet-700 dark:text-violet-400",
-  LIDER:         "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  MINISTRO:      "bg-input text-mid",
+const ROL_TONE: Record<string, BadgeTone> = {
+  ADMINISTRADOR: "violet",
+  LIDER:         "info",
+  MINISTRO:      "neutral",
 };
 
 export default async function AdminUsuariosPage(props: {
-  searchParams: Promise<{ success?: string }>;
+  searchParams: Promise<{ success?: string; error?: string }>;
 }) {
   const searchParams = await props.searchParams;
   const session = await auth();
@@ -28,6 +34,7 @@ export default async function AdminUsuariosPage(props: {
   if (session.user.rol !== "ADMINISTRADOR") redirect("/");
 
   const mensaje = searchParams.success ? (FEEDBACK[searchParams.success] ?? null) : null;
+  const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
 
   const listaUsuarios = await db
     .select({
@@ -41,7 +48,7 @@ export default async function AdminUsuariosPage(props: {
     .orderBy(asc(usuarios.nombre));
 
   return (
-    <main className="px-4 pt-8 pb-6 space-y-6">
+    <main className="px-4 pt-8 pb-6 space-y-6 lg:max-w-none">
 
       {/* ── Cabecera ─────────────────────────────────────────────────── */}
       <Link
@@ -62,11 +69,14 @@ export default async function AdminUsuariosPage(props: {
       </div>
 
       {/* ── Feedback ─────────────────────────────────────────────────── */}
+      <ErrorBanner message={errorMsg} />
       {mensaje && (
         <div className="rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
           {mensaje}
         </div>
       )}
+
+      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[360px_1fr] lg:items-start lg:gap-6">
 
       {/* ── Formulario: crear usuario ────────────────────────────────── */}
       <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
@@ -78,65 +88,22 @@ export default async function AdminUsuariosPage(props: {
         </div>
         <form action={crearUsuario} className="flex flex-col gap-4">
 
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="nombre"
-              className="text-xs font-medium uppercase tracking-wider text-lo"
-            >
-              Nombre
-            </label>
-            <input
-              id="nombre"
-              name="nombre"
-              type="text"
-              required
-              placeholder="Ej: Juan Pérez"
-              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-            />
-          </div>
+          <Input id="nombre" name="nombre" type="text" required label="Nombre" placeholder="Ej: Juan Pérez" />
+
+          <Input id="email" name="email" type="email" required label="Email" placeholder="juan@iglesia.com" />
+
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            required
+            minLength={6}
+            label="Contraseña"
+            placeholder="Mínimo 6 caracteres"
+          />
 
           <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="email"
-              className="text-xs font-medium uppercase tracking-wider text-lo"
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              placeholder="juan@iglesia.com"
-              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="password"
-              className="text-xs font-medium uppercase tracking-wider text-lo"
-            >
-              Contraseña
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              minLength={6}
-              placeholder="Mínimo 6 caracteres"
-              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="rol"
-              className="text-xs font-medium uppercase tracking-wider text-lo"
-            >
-              Rol
-            </label>
+            <Label htmlFor="rol">Rol</Label>
             <select
               id="rol"
               name="rol"
@@ -171,22 +138,13 @@ export default async function AdminUsuariosPage(props: {
             No hay usuarios registrados.
           </p>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 xl:grid-cols-3">
             {listaUsuarios.map((u) => (
               <div
                 key={u.id_usuario}
                 className="flex items-center gap-4 rounded-2xl border border-line bg-card px-4 py-4 shadow-card dark:shadow-none"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-input">
-                  {u.foto ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={u.foto} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="text-xs font-bold text-mid">
-                      {u.nombre.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </div>
+                <Avatar foto={u.foto} nombre={u.nombre} size={36} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-hi">
                     {u.nombre}
@@ -195,11 +153,7 @@ export default async function AdminUsuariosPage(props: {
                     {u.email}
                   </p>
                 </div>
-                <span
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium ${ROL_STYLE[u.rol] ?? ROL_STYLE.MINISTRO}`}
-                >
-                  {u.rol}
-                </span>
+                <Badge tone={ROL_TONE[u.rol] ?? "neutral"}>{ROL_LABEL[u.rol] ?? u.rol}</Badge>
                 <Link
                   href={`/admin/usuarios/${u.id_usuario}`}
                   aria-label={`Editar ${u.nombre}`}
@@ -212,6 +166,8 @@ export default async function AdminUsuariosPage(props: {
           </div>
         )}
       </section>
+
+      </div>
 
     </main>
   );

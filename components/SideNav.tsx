@@ -2,44 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Home,
-  BookOpen,
-  ListMusic,
-  ShieldCheck,
-  CalendarPlus,
-  Calendar,
-  Music2,
-  Settings,
-  LogOut,
-  type LucideIcon,
-} from "lucide-react";
+import { Music2, Settings, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
 import { NotifBell } from "@/components/NotifBell";
-
-interface NavItem {
-  href:          string;
-  label:         string;
-  icon:          LucideIcon;
-  adminOnly?:    boolean;
-  ministroOnly?: boolean;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { href: "/",                label: "Inicio",   icon: Home                              },
-  { href: "/canciones",       label: "Catálogo", icon: BookOpen                          },
-  { href: "/playlists",       label: "Listas",   icon: ListMusic                         },
-  { href: "/turnos",          label: "Turnos",   icon: Calendar,    ministroOnly: true   },
-  { href: "/admin/canciones", label: "Moderar",  icon: ShieldCheck, adminOnly:    true   },
-  { href: "/admin/turnos",    label: "Cola",     icon: CalendarPlus, adminOnly:   true   },
-];
-
-const ROL_LABEL: Record<string, string> = {
-  ADMINISTRADOR: "Administrador",
-  LIDER:         "Líder",
-  MINISTRO:      "Ministro",
-};
+import { Avatar } from "@/components/Avatar";
+import { getNavItems, ocultarNav } from "@/lib/nav-items";
+import { ROL_LABEL } from "@/lib/roles";
 
 interface Props {
   rol?:               string;
@@ -62,14 +31,9 @@ export function SideNav({
 }: Props) {
   const pathname = usePathname();
 
-  if (pathname.startsWith("/escenario") || pathname.startsWith("/login")) return null;
+  if (ocultarNav(pathname)) return null;
 
-  const esAdmin = rol === "ADMINISTRADOR" || rol === "LIDER";
-  const items = NAV_ITEMS.filter((item) => {
-    if (item.adminOnly)    return esAdmin;
-    if (item.ministroOnly) return !esAdmin;
-    return true;
-  });
+  const items = getNavItems(rol);
 
   const itemCls = (active: boolean) =>
     `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -133,14 +97,7 @@ export function SideNav({
 
         {/* User profile */}
         <Link href="/perfil" className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-input">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-600">
-            {foto ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={foto} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <span className="text-xs font-semibold text-white">{nombre.charAt(0).toUpperCase()}</span>
-            )}
-          </div>
+          <Avatar foto={foto ?? null} nombre={nombre} size={32} />
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-hi">{nombre}</p>
             <p className="text-[10px] text-lo">{ROL_LABEL[rol ?? ""] ?? rol}</p>
@@ -151,7 +108,7 @@ export function SideNav({
         <form action={logoutAction}>
           <button
             type="submit"
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-lo transition-colors hover:bg-input hover:text-hi"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-lo transition-colors hover:bg-input hover:text-hi focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
           >
             <LogOut size={17} strokeWidth={1.8} className="shrink-0" />
             Cerrar sesión

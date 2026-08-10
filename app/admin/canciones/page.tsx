@@ -9,6 +9,7 @@ import { resolverSugerencia } from "@/app/actions/canciones";
 import { CargarCancion } from "@/components/CargarCancion";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
+import { X } from "lucide-react";
 
 export default async function AdminCancionesPage(props: {
   searchParams: Promise<{ error?: string; eliminada?: string }>;
@@ -28,7 +29,7 @@ export default async function AdminCancionesPage(props: {
     .orderBy(canciones.nombre);
 
   return (
-    <main className="flex flex-col gap-6 px-4 pt-8 pb-6">
+    <main className="flex flex-col gap-6 px-4 pt-8 pb-6 lg:mx-auto lg:w-full lg:max-w-3xl">
 
       <div className="flex items-center justify-between">
         <Link
@@ -121,12 +122,9 @@ export default async function AdminCancionesPage(props: {
                   <form action={resolverSugerencia}>
                     <input type="hidden" name="id_cancion" value={c.id_cancion} />
                     <input type="hidden" name="decision"   value="RECHAZADA" />
-                    <button
-                      type="submit"
-                      className="rounded-full border border-red-500/30 px-4 py-2 text-sm text-red-600 transition-colors hover:border-red-500/50 hover:bg-red-500/10 dark:text-red-400"
-                    >
+                    <Button type="submit" variant="secondary" icon={<X size={14} />} className="border-red-500/30 text-red-600 hover:border-red-500/50 hover:bg-red-500/10 dark:text-red-400">
                       Rechazar
-                    </button>
+                    </Button>
                   </form>
 
                 </div>

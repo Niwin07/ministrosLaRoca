@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotifBell } from "@/components/NotifBell";
 import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
 import { PlataformaCookieSetter } from "@/components/PlataformaCookieSetter";
+import { Avatar } from "@/components/Avatar";
 import { auth, signOut } from "@/auth";
 import { db } from "@/db";
 import { usuarios, usuario_plataforma, plataformas } from "@/db/schema";
@@ -122,16 +123,9 @@ export default async function RootLayout({
               <Link
                 href="/perfil"
                 aria-label="Mi perfil"
-                className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-600 transition-opacity hover:opacity-80"
+                className="shrink-0 rounded-full transition-opacity hover:opacity-80"
               >
-                {foto ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={foto} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-xs font-semibold text-white">
-                    {session.user.name?.charAt(0).toUpperCase()}
-                  </span>
-                )}
+                <Avatar foto={foto} nombre={session.user.name ?? ""} size={40} />
               </Link>
 
               {misPlataformas.length >= 2 && (

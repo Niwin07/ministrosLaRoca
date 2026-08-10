@@ -72,15 +72,24 @@ export function NotifBell({ sidebar }: { sidebar?: boolean } = {}) {
     return () => window.removeEventListener("focus", onFocus);
   }, [fetchNotifs]);
 
-  // Cerrar al click fuera
+  // Cerrar al click fuera o con Escape
   useEffect(() => {
-    function handler(e: MouseEvent) {
+    function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setAbierto(false);
       }
     }
-    if (abierto) document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setAbierto(false);
+    }
+    if (abierto) {
+      document.addEventListener("mousedown", handleClick);
+      document.addEventListener("keydown", handleKey);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
   }, [abierto]);
 
   async function abrir() {
@@ -100,9 +109,11 @@ export function NotifBell({ sidebar }: { sidebar?: boolean } = {}) {
     <div ref={ref} className={sidebar ? "relative" : undefined}>
       {sidebar ? (
         <button
+          type="button"
           onClick={abrir}
           aria-label={`Notificaciones${noLeidas > 0 ? ` (${noLeidas} nuevas)` : ""}`}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-lo transition-colors hover:bg-input hover:text-mid"
+          aria-expanded={abierto}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-lo transition-colors hover:bg-input hover:text-mid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
         >
           <div className="relative shrink-0">
             <Bell size={17} strokeWidth={1.8} />
@@ -121,9 +132,11 @@ export function NotifBell({ sidebar }: { sidebar?: boolean } = {}) {
         </button>
       ) : (
         <button
+          type="button"
           onClick={abrir}
           aria-label={`Notificaciones${noLeidas > 0 ? ` (${noLeidas} nuevas)` : ""}`}
-          className="relative flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
+          aria-expanded={abierto}
+          className="relative flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
         >
           <Bell size={20} />
           {noLeidas > 0 && (
@@ -141,8 +154,9 @@ export function NotifBell({ sidebar }: { sidebar?: boolean } = {}) {
               Notificaciones
             </span>
             <button
+              type="button"
               onClick={() => setAbierto(false)}
-              className="text-gone hover:text-hi"
+              className="rounded-full text-gone hover:text-hi focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40"
               aria-label="Cerrar"
             >
               <X size={14} />

@@ -10,6 +10,8 @@ import { Button } from "@/components/Button";
 import { StepperPill } from "@/components/StepperPill";
 import { TonoSelect } from "@/components/TonoSelect";
 import { CancionSelect } from "@/components/CancionSelect";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { puedeVerLista } from "@/lib/playlist-visibility";
 import { auth } from "@/auth";
 import {
   agregarCancionALista,
@@ -83,11 +85,11 @@ function urlError(id: number, msg: string): string {
 
 // ── Badges ────────────────────────────────────────────────────────────────────
 
-const ESTADO_BADGE: Record<string, string> = {
-  PREPARACION: "bg-green-200 text-green-700 border-green-300 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20",
-  ENSAYO:      "bg-amber-100 text-amber-800 border-amber-200 dark:bg-yellow-400/10 dark:text-yellow-400 dark:border-yellow-400/20",
-  DEFINITIVA:  "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-400/10 dark:text-blue-400 dark:border-blue-400/20",
-  MAZO:        "bg-input text-mid border-mark",
+const ESTADO_TONE: Record<string, BadgeTone> = {
+  PREPARACION: "success",
+  ENSAYO:      "warning",
+  DEFINITIVA:  "info",
+  MAZO:        "neutral",
 };
 
 // ── Página ────────────────────────────────────────────────────────────────────
@@ -123,6 +125,12 @@ export default async function PlaylistDetailPage(props: {
     tipo:          rows[0].tipo,
     estado:        rows[0].estado,
   };
+
+  // Las listas privadas (plantillas y eventos en preparación) solo las ve su
+  // dueño o ADMINISTRADOR/LIDER — antes cualquier usuario autenticado podía
+  // navegar a /playlists/{id} y ver el contenido de una lista ajena aunque no
+  // pudiera editarla.
+  if (!puedeVerLista(cabecera, session.user)) notFound();
 
   const directorActivoId = await getDirectorActivo(cabecera.id_plataforma);
 
@@ -274,6 +282,9 @@ export default async function PlaylistDetailPage(props: {
       {/* ── Banner de error (acción que no se pudo completar) ─────────── */}
       <ErrorBanner message={errorMsg} />
 
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-6">
+      <div className="flex flex-col gap-4">
+
       {/* ── Header ────────────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-line bg-card px-5 py-5 shadow-card dark:shadow-none">
 
@@ -282,9 +293,9 @@ export default async function PlaylistDetailPage(props: {
             {cabecera.tipo === "EVENTO" ? "Lista de evento" : cabecera.tipo === "PRESET" ? "Plantilla" : cabecera.tipo}
           </span>
           {cabecera.estado && (
-            <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${ESTADO_BADGE[cabecera.estado] ?? "bg-input text-mid border-mark"}`}>
+            <Badge tone={ESTADO_TONE[cabecera.estado] ?? "neutral"}>
               {ESTADO_LABEL[cabecera.estado] ?? cabecera.estado}
-            </span>
+            </Badge>
           )}
         </div>
 
@@ -346,6 +357,7 @@ export default async function PlaylistDetailPage(props: {
                       key={estado}
                       type="button"
                       disabled
+                      aria-label={`${label} — ${motivoBloqueo}`}
                       title={motivoBloqueo}
                       className="cursor-not-allowed rounded-full border border-dashed border-mark px-3 py-1 text-[10px] text-gone opacity-60"
                     >
@@ -413,6 +425,8 @@ export default async function PlaylistDetailPage(props: {
         />
       )}
 
+      </div>{/* fin columna izquierda */}
+
       {/* ── Agregar canción ───────────────────────────────────────────── */}
       {puedeEditarContenido && (
         <div className="rounded-2xl border border-line bg-card px-5 py-5 shadow-card dark:shadow-none">
@@ -439,6 +453,7 @@ export default async function PlaylistDetailPage(props: {
                   min={1}
                   defaultValue={nextOrden}
                   required
+                  aria-label="Posición en la lista"
                   className="w-20 rounded-xl border border-mark bg-input px-3 py-3 text-center text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
                 />
               </div>
@@ -450,6 +465,8 @@ export default async function PlaylistDetailPage(props: {
           )}
         </div>
       )}
+
+      </div>{/* fin grid */}
 
     </div>
   );

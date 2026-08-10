@@ -44,7 +44,7 @@ export default async function TurnosPage() {
   const hayDatos = !!turnoActivo || cola.length > 0;
 
   return (
-    <main className="px-4 pt-8 pb-6 space-y-6">
+    <main className="px-4 pt-8 pb-6 space-y-6 lg:max-w-4xl">
 
       <h1 className="text-2xl font-bold tracking-tight text-hi">
         Turnos
@@ -55,7 +55,7 @@ export default async function TurnosPage() {
           <p className="text-sm text-lo">La cola de turnos está vacía.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
 
           {/* En Servicio */}
           {turnoActivo && (

@@ -10,6 +10,8 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { actualizarCancion } from "@/app/actions/canciones";
 import { METRICAS } from "@/lib/metricas";
 import { Button } from "@/components/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
 import { EliminarCancionButton } from "@/components/EliminarCancionButton";
 
 export default async function EditarCancionPage(props: {
@@ -30,11 +32,8 @@ export default async function EditarCancionPage(props: {
   const [c] = await db.select().from(canciones).where(eq(canciones.id_cancion, id));
   if (!c) notFound();
 
-  const inputCls =
-    "w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30";
-
   return (
-    <main className="flex flex-col gap-5 px-4 pt-8 pb-10">
+    <main className="flex flex-col gap-5 px-4 pt-8 pb-10 lg:mx-auto lg:w-full lg:max-w-2xl">
 
       <Link
         href="/canciones"
@@ -54,28 +53,36 @@ export default async function EditarCancionPage(props: {
       <form action={actualizarCancion} className="flex flex-col gap-3">
         <input type="hidden" name="id_cancion" value={c.id_cancion} />
 
-        <input name="nombre" defaultValue={c.nombre} placeholder="Nombre de la canción *" required className={inputCls} />
-        <input name="artista" defaultValue={c.artista} placeholder="Artista *" required className={inputCls} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Input id="nombre" name="nombre" defaultValue={c.nombre} label="Nombre de la canción" required />
+          <Input id="artista" name="artista" defaultValue={c.artista} label="Artista" required />
+        </div>
 
         <div className="flex gap-2">
-          <select
-            name="metrica"
-            defaultValue={c.metrica ?? ""}
-            className={`${inputCls} flex-1 [&>option]:bg-card`}
-          >
-            <option value="">Métrica…</option>
-            {METRICAS.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-          <input
+          <div className="flex-1 flex flex-col gap-1.5">
+            <Label htmlFor="metrica">Métrica</Label>
+            <select
+              id="metrica"
+              name="metrica"
+              defaultValue={c.metrica ?? ""}
+              className="w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
+            >
+              <option value="">Sin definir…</option>
+              {METRICAS.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+          <Input
+            id="bpm"
             name="bpm"
             type="number"
             min={1}
             max={300}
             defaultValue={c.bpm ?? ""}
-            placeholder="BPM"
-            className="w-24 rounded-xl border border-mark bg-input px-3 py-3 text-center text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+            label="BPM"
+            wrapperClassName="w-24"
+            className="text-center"
           />
         </div>
 

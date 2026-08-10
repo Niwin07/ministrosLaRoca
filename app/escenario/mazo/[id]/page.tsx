@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { canciones, lista_canciones, playlists } from "@/db/schema";
 import { auth } from "@/auth";
 import { LectorEscenario } from "@/components/LectorEscenario";
+import { puedeVerLista } from "@/lib/playlist-visibility";
 
 export default async function EscenarioMazoPage(props: {
   params: Promise<{ id: string }>;
@@ -23,6 +24,9 @@ export default async function EscenarioMazoPage(props: {
   const rows = await db
     .select({
       nombre_lista:     playlists.nombre,
+      id_usuario:       playlists.id_usuario,
+      tipo:             playlists.tipo,
+      estado:           playlists.estado,
       id_lista_cancion: lista_canciones.id_lista_cancion,
       orden:            lista_canciones.orden,
       nota:             lista_canciones.nota,
@@ -38,6 +42,10 @@ export default async function EscenarioMazoPage(props: {
     .orderBy(lista_canciones.orden);
 
   if (rows.length === 0) notFound();
+
+  // Misma regla de visibilidad que /playlists/[id]: plantillas y eventos en
+  // preparación son privados del dueño (o ADMINISTRADOR/LIDER).
+  if (!puedeVerLista(rows[0], session.user)) notFound();
 
   const items = rows
     .filter((r) => r.id_lista_cancion !== null)

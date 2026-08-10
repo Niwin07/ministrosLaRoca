@@ -23,10 +23,14 @@ export async function actualizarMiNombre(formData: FormData) {
     volver(`error=${encodeURIComponent("El nombre no puede quedar vacío.")}`);
   }
 
-  await db
-    .update(usuarios)
-    .set({ nombre })
-    .where(eq(usuarios.id_usuario, session.user.id_usuario));
+  try {
+    await db
+      .update(usuarios)
+      .set({ nombre })
+      .where(eq(usuarios.id_usuario, session.user.id_usuario));
+  } catch {
+    volver(`error=${encodeURIComponent("No se pudo actualizar el nombre.")}`);
+  }
 
   revalidatePath("/perfil");
   revalidatePath("/", "layout"); // el header muestra la inicial del nombre
@@ -44,25 +48,29 @@ export async function actualizarMiFoto(formData: FormData) {
 
   const foto = (formData.get("foto") as string | null) ?? "";
 
-  if (foto === "") {
-    // Quitar la foto.
-    await db
-      .update(usuarios)
-      .set({ foto: null })
-      .where(eq(usuarios.id_usuario, session.user.id_usuario));
-  } else {
-    // Validamos que sea una imagen en data URL y que no sea desproporcionada
-    // (el cliente la achica a ~256px; 1.5 MB de base64 es un techo holgado).
-    if (!/^data:image\/(png|jpe?g|webp);base64,/.test(foto)) {
-      volver(`error=${encodeURIComponent("Formato de imagen no válido.")}`);
+  try {
+    if (foto === "") {
+      // Quitar la foto.
+      await db
+        .update(usuarios)
+        .set({ foto: null })
+        .where(eq(usuarios.id_usuario, session.user.id_usuario));
+    } else {
+      // Validamos que sea una imagen en data URL y que no sea desproporcionada
+      // (el cliente la achica a ~256px; 1.5 MB de base64 es un techo holgado).
+      if (!/^data:image\/(png|jpe?g|webp);base64,/.test(foto)) {
+        volver(`error=${encodeURIComponent("Formato de imagen no válido.")}`);
+      }
+      if (foto.length > 1_500_000) {
+        volver(`error=${encodeURIComponent("La imagen es demasiado pesada. Probá con otra.")}`);
+      }
+      await db
+        .update(usuarios)
+        .set({ foto })
+        .where(eq(usuarios.id_usuario, session.user.id_usuario));
     }
-    if (foto.length > 1_500_000) {
-      volver(`error=${encodeURIComponent("La imagen es demasiado pesada. Probá con otra.")}`);
-    }
-    await db
-      .update(usuarios)
-      .set({ foto })
-      .where(eq(usuarios.id_usuario, session.user.id_usuario));
+  } catch {
+    volver(`error=${encodeURIComponent("No se pudo actualizar la foto.")}`);
   }
 
   revalidatePath("/perfil");
@@ -93,24 +101,33 @@ export async function cambiarMiPassword(formData: FormData) {
     volver(`error=${encodeURIComponent("La confirmación no coincide con la nueva contraseña.")}`);
   }
 
-  const [usuario] = await db
-    .select({ password_hash: usuarios.password_hash })
-    .from(usuarios)
-    .where(eq(usuarios.id_usuario, session.user.id_usuario))
-    .limit(1);
+  try {
+    const [usuario] = await db
+      .select({ password_hash: usuarios.password_hash })
+      .from(usuarios)
+      .where(eq(usuarios.id_usuario, session.user.id_usuario))
+      .limit(1);
 
-  if (!usuario) redirect("/login");
+    if (!usuario) redirect("/login");
 
-  const ok = await bcrypt.compare(actual, usuario.password_hash);
-  if (!ok) {
-    volver(`error=${encodeURIComponent("La contraseña actual es incorrecta.")}`);
+    const ok = await bcrypt.compare(actual, usuario.password_hash);
+    if (!ok) {
+      volver(`error=${encodeURIComponent("La contraseña actual es incorrecta.")}`);
+    }
+
+    const password_hash = await bcrypt.hash(nueva, 10);
+    await db
+      .update(usuarios)
+      .set({ password_hash })
+      .where(eq(usuarios.id_usuario, session.user.id_usuario));
+  } catch (e) {
+    // Los redirect() de Next.js se implementan lanzando internamente — hay
+    // que dejarlos pasar sin convertirlos en el mensaje de error genérico.
+    if (e && typeof e === "object" && "digest" in e && String(e.digest).startsWith("NEXT_REDIRECT")) {
+      throw e;
+    }
+    volver(`error=${encodeURIComponent("No se pudo actualizar la contraseña.")}`);
   }
-
-  const password_hash = await bcrypt.hash(nueva, 10);
-  await db
-    .update(usuarios)
-    .set({ password_hash })
-    .where(eq(usuarios.id_usuario, session.user.id_usuario));
 
   volver("success=password");
 }

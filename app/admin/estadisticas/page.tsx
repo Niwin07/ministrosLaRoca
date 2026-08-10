@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, BarChart3, Music2, Flame, Clock, UserCircle2 } from "lucide-react";
 import { db } from "@/db";
 import { canciones, lista_canciones, playlists, usuarios } from "@/db/schema";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { auth } from "@/auth";
+import { Badge } from "@/components/ui/Badge";
 
 type Orden = "mas-usadas" | "menos-usadas" | "az" | "sin-usar";
 
@@ -91,7 +92,7 @@ export default async function EstadisticasPage(props: {
   ];
 
   return (
-    <main className="flex flex-col gap-6 px-4 pt-8 pb-24">
+    <main className="flex flex-col gap-6 px-4 pt-8 pb-24 lg:mx-auto lg:w-full lg:max-w-4xl">
 
       <Link
         href="/admin/canciones"
@@ -113,7 +114,7 @@ export default async function EstadisticasPage(props: {
       </div>
 
       {/* ── Cards resumen ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3 lg:max-w-lg">
         <div className="flex flex-col gap-1 rounded-2xl border border-line bg-card p-4 shadow-card dark:shadow-none">
           <Music2 size={16} className="text-violet-500" />
           <p className="text-2xl font-black text-hi">{total}</p>
@@ -173,7 +174,7 @@ export default async function EstadisticasPage(props: {
           Todas las canciones han sido usadas al menos una vez.
         </p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2">
           {lista.map((c, i) => {
             const usos = Number(c.veces_usada);
             return (
@@ -194,15 +195,9 @@ export default async function EstadisticasPage(props: {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <p className="truncate text-sm font-semibold text-hi">{c.nombre}</p>
-                      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                        usos === 0
-                          ? "bg-input text-gone"
-                          : usos >= 5
-                          ? "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
-                          : "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
-                      }`}>
+                      <Badge tone={usos === 0 ? "neutral" : usos >= 5 ? "warning" : "violet"} className="normal-case">
                         {usos === 0 ? "Sin usar" : `${usos}×`}
-                      </span>
+                      </Badge>
                     </div>
 
                     <p className="mt-0.5 text-xs text-lo">{c.artista}</p>

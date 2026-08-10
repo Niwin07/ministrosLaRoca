@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Music2, ChevronDown } from "lucide-react";
+import { usePortalDropdown } from "@/lib/use-portal-dropdown";
 
 const MAYORES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const;
 const MENORES = ["Cm", "C#m", "Dm", "D#m", "Em", "Fm", "F#m", "Gm", "G#m", "Am", "A#m", "Bm"] as const;
@@ -36,34 +37,24 @@ export function TonoSelect({
 }: Props) {
   const [internal, setInternal] = useState(defaultValue ?? "");
   const [open, setOpen]         = useState(false);
-  const [style, setStyle]       = useState<React.CSSProperties>({});
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const panelRef   = useRef<HTMLDivElement>(null);
 
   const selected = valueProp !== undefined ? valueProp : internal;
 
-  useEffect(() => {
-    if (!open) return;
-    const rect = triggerRef.current?.getBoundingClientRect();
-    if (rect) {
+  const { triggerRef, panelRef, style } = usePortalDropdown({
+    open,
+    onClose: () => setOpen(false),
+    computeStyle: (rect) => {
       let right = window.innerWidth - rect.right;
       if (right < 8) right = 8;
-      setStyle({
+      return {
         position: "fixed",
         bottom:   window.innerHeight - rect.top + 8,
         right,
         width:    PANEL_WIDTH,
         zIndex:   9999,
-      });
-    }
-    function onMouseDown(e: MouseEvent) {
-      const t = e.target as Node;
-      if (triggerRef.current?.contains(t) || panelRef.current?.contains(t)) return;
-      setOpen(false);
-    }
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
-  }, [open]);
+      };
+    },
+  });
 
   function elegir(nota: string) {
     if (valueProp === undefined) setInternal(nota);

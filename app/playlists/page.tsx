@@ -11,9 +11,9 @@ import { crearPlaylist, instanciarPreset, clonarMazo, renombrarPlaylist, elimina
 import { HistorialListas } from "@/components/HistorialListas";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { Button } from "@/components/Button";
-import { PlantillaItem } from "@/components/PlantillaItem";
-import { ListaPrepItem } from "@/components/ListaPrepItem";
+import { PlaylistRowItem } from "@/components/PlaylistRowItem";
 import { Avatar } from "@/components/Avatar";
+import { Badge } from "@/components/ui/Badge";
 
 function fmtFecha(d: Date | null): string {
   if (!d) return "Sin fecha";
@@ -240,15 +240,9 @@ export default async function PlaylistsPage(props: {
                   <p className="truncate text-base font-semibold text-hi">{lista.nombre}</p>
                   <p className="mt-0.5 truncate text-xs text-lo">{lista.nombre_usuario}</p>
                 </div>
-                <span
-                  className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                    lista.estado === "DEFINITIVA"
-                      ? "border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-400"
-                      : "border-yellow-200 bg-yellow-100 text-yellow-700 dark:border-yellow-400/30 dark:bg-yellow-400/10 dark:text-yellow-400"
-                  }`}
-                >
+                <Badge tone={lista.estado === "DEFINITIVA" ? "info" : "warning"}>
                   {ESTADO_LABEL[lista.estado ?? ""] ?? lista.estado}
-                </span>
+                </Badge>
                 <ChevronRight size={15} className="shrink-0 text-gone" />
               </Link>
             ))}
@@ -271,11 +265,14 @@ export default async function PlaylistsPage(props: {
         ) : (
           <div className="flex flex-col gap-1">
             {enPreparacion.map((lista) => (
-              <ListaPrepItem
+              <PlaylistRowItem
                 key={lista.id_playlist}
                 id_playlist={lista.id_playlist}
                 nombre={lista.nombre}
+                subtitulo="Seguí armándola"
+                destacada
                 onEliminar={handleEliminarLista}
+                eliminarLabel="Borrar lista en preparación"
               />
             ))}
           </div>
@@ -302,13 +299,14 @@ export default async function PlaylistsPage(props: {
         ) : (
           <div className="flex flex-col gap-1">
             {plantillas.map((lista) => (
-              <PlantillaItem
+              <PlaylistRowItem
                 key={lista.id_playlist}
                 id_playlist={lista.id_playlist}
                 nombre={lista.nombre}
                 onUsar={handleInstanciarPreset}
                 onRenombrar={handleRenombrarPlantilla}
                 onEliminar={handleEliminarLista}
+                eliminarLabel="Borrar plantilla"
               />
             ))}
           </div>

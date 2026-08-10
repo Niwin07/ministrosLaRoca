@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Search, Music2, ChevronDown, X } from "lucide-react";
+import { usePortalDropdown } from "@/lib/use-portal-dropdown";
 
 interface Cancion {
   id_cancion: number;
@@ -22,55 +23,44 @@ export function CancionSelect({ name, canciones, placeholder = "Elegí una canci
   const [selected, setSelected] = useState<Cancion | null>(null);
   const [open, setOpen]         = useState(false);
   const [q, setQ]               = useState("");
-  const [style, setStyle]       = useState<React.CSSProperties>({});
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const panelRef   = useRef<HTMLDivElement>(null);
-  const searchRef  = useRef<HTMLInputElement>(null);
 
   const filtradas = canciones.filter((c) =>
     !q.trim() ||
     `${c.nombre} ${c.artista}`.toLowerCase().includes(q.trim().toLowerCase()),
   );
 
-  useEffect(() => {
-    if (!open) return;
+  function cerrar() {
+    setOpen(false);
+    setQ("");
+  }
 
-    const rect = triggerRef.current?.getBoundingClientRect();
-    if (rect) {
+  const { triggerRef, panelRef, style } = usePortalDropdown({
+    open,
+    onClose: cerrar,
+    computeStyle: (rect) => {
       const spaceBelow = window.innerHeight - rect.bottom - 16;
       const spaceAbove = rect.top - 16;
       const openUp = spaceAbove > spaceBelow && spaceBelow < 150;
 
-      setStyle(
-        openUp
-          ? {
-              position: "fixed",
-              bottom:   window.innerHeight - rect.top + 4,
-              left:     rect.left,
-              width:    rect.width,
-              maxHeight: Math.max(160, Math.min(PANEL_MAX_H, spaceAbove)),
-              zIndex:   9999,
-            }
-          : {
-              position: "fixed",
-              top:      rect.bottom + 4,
-              left:     rect.left,
-              width:    rect.width,
-              maxHeight: Math.max(160, Math.min(PANEL_MAX_H, spaceBelow)),
-              zIndex:   9999,
-            },
-      );
-    }
-
-    function onMouseDown(e: MouseEvent) {
-      const t = e.target as Node;
-      if (triggerRef.current?.contains(t) || panelRef.current?.contains(t)) return;
-      setOpen(false);
-      setQ("");
-    }
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
-  }, [open]);
+      return openUp
+        ? {
+            position: "fixed",
+            bottom:   window.innerHeight - rect.top + 4,
+            left:     rect.left,
+            width:    rect.width,
+            maxHeight: Math.max(160, Math.min(PANEL_MAX_H, spaceAbove)),
+            zIndex:   9999,
+          }
+        : {
+            position: "fixed",
+            top:      rect.bottom + 4,
+            left:     rect.left,
+            width:    rect.width,
+            maxHeight: Math.max(160, Math.min(PANEL_MAX_H, spaceBelow)),
+            zIndex:   9999,
+          };
+    },
+  });
 
   function elegir(c: Cancion) {
     setSelected(c);
@@ -89,7 +79,6 @@ export function CancionSelect({ name, canciones, placeholder = "Elegí una canci
           <div className="relative shrink-0 border-b border-line">
             <Search size={13} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lo" />
             <input
-              ref={searchRef}
               type="text"
               value={q}
               onChange={(e) => setQ(e.target.value)}

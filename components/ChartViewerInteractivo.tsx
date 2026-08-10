@@ -32,11 +32,13 @@ export function ChartViewerInteractivo({ charts, notaInicial }: Props) {
   return (
     <div>
       <div className="mb-2.5 flex items-center gap-2">
-        <div className="inline-flex rounded-lg border border-mark bg-input p-0.5 text-[11px] font-medium">
+        <div className="inline-flex rounded-lg border border-mark bg-input p-0.5 text-[11px] font-medium" role="tablist" aria-label="Notación">
           <button
             type="button"
+            role="tab"
+            aria-selected={modo === "numeros"}
             onClick={() => setModo("numeros")}
-            className={`rounded-md px-2.5 py-1 transition-colors ${
+            className={`rounded-md px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 ${
               modo === "numeros" ? "bg-violet-600 text-white" : "text-mid hover:text-hi"
             }`}
           >
@@ -44,8 +46,10 @@ export function ChartViewerInteractivo({ charts, notaInicial }: Props) {
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={modo === "acordes"}
             onClick={() => setModo("acordes")}
-            className={`rounded-md px-2.5 py-1 transition-colors ${
+            className={`rounded-md px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 ${
               modo === "acordes" ? "bg-violet-600 text-white" : "text-mid hover:text-hi"
             }`}
           >

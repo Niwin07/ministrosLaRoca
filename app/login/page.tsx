@@ -3,6 +3,7 @@ import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { Music2 } from "lucide-react";
 import { Button } from "@/components/Button";
+import { Input } from "@/components/ui/Input";
 
 export default async function LoginPage(props: {
   searchParams: Promise<{ error?: string | string[] }>;
@@ -57,22 +58,22 @@ export default async function LoginPage(props: {
             </p>
           )}
 
-          <form action={loginAction} className="flex flex-col gap-3">
-            <input
+          <form action={loginAction} className="flex flex-col gap-4">
+            <Input
+              id="email"
               name="email"
               type="email"
-              placeholder="Email"
+              label="Email"
               required
               autoComplete="email"
-              className="w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
             />
-            <input
+            <Input
+              id="password"
               name="password"
               type="password"
-              placeholder="Contraseña"
+              label="Contraseña"
               required
               autoComplete="current-password"
-              className="w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
             />
             <Button
               type="submit"

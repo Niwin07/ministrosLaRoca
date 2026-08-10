@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, Music2, ChevronDown, ChevronLeft, ChevronRight, X, Pencil, SlidersHorizontal } from "lucide-react";
 import { ChartViewerInteractivo } from "@/components/ChartViewerInteractivo";
 import { LyricViewer } from "@/components/LyricViewer";
+import { IconButton } from "@/components/ui/IconButton";
 
 interface Cancion {
   id_cancion: number;
@@ -83,8 +84,8 @@ export function CatalogoCanciones({
       <Link
         href={`/admin/canciones/${id}`}
         onClick={(e) => e.stopPropagation()}
-        title="Editar canción"
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gone transition-colors hover:bg-input hover:text-violet-600"
+        aria-label="Editar canción"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gone transition-colors hover:bg-input hover:text-violet-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40"
       >
         <Pencil size={13} />
       </Link>
@@ -310,27 +311,23 @@ export function CatalogoCanciones({
       {/* ── Paginación ──────────────────────────────────────────────── */}
       {totalPaginas > 1 && (
         <div className="flex items-center justify-center gap-4 pt-1">
-          <button
-            type="button"
+          <IconButton
             disabled={pagina === 1}
             onClick={() => setPagina((p) => p - 1)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-card text-lo transition-colors hover:border-mark hover:text-hi disabled:pointer-events-none disabled:opacity-30"
-            aria-label="Página anterior"
-          >
-            <ChevronLeft size={15} />
-          </button>
+            icon={<ChevronLeft size={15} />}
+            label="Página anterior"
+            className="border border-line bg-card hover:bg-card hover:border-mark disabled:pointer-events-none disabled:opacity-30"
+          />
           <span className="text-xs tabular-nums text-lo">
             {pagina} <span className="text-gone">/</span> {totalPaginas}
           </span>
-          <button
-            type="button"
+          <IconButton
             disabled={pagina === totalPaginas}
             onClick={() => setPagina((p) => p + 1)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-card text-lo transition-colors hover:border-mark hover:text-hi disabled:pointer-events-none disabled:opacity-30"
-            aria-label="Página siguiente"
-          >
-            <ChevronRight size={15} />
-          </button>
+            icon={<ChevronRight size={15} />}
+            label="Página siguiente"
+            className="border border-line bg-card hover:bg-card hover:border-mark disabled:pointer-events-none disabled:opacity-30"
+          />
         </div>
       )}
     </div>
