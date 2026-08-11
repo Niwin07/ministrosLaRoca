@@ -7,19 +7,35 @@
 // Uso:  npm run db:seed-canciones-esp
 // ============================================================================
 
+import { inArray } from "drizzle-orm";
 import { db } from "../db/index";
 import { canciones } from "../db/schema";
 import { DATA } from "./canciones-esp-data";
 
+// Idempotente (por nombre) y batcheado — antes insertaba una por una sin
+// chequear si ya existía, así que correrlo dos veces duplicaba el repertorio.
 async function seed() {
   console.log(`\nSeed: ${DATA.length} canciones (español) — estado PENDIENTE\n`);
 
-  for (const cancion of DATA) {
-    await db.insert(canciones).values(cancion);
-    console.log(`  ✓ ${cancion.nombre}`);
+  const existentes = new Set(
+    (await db
+      .select({ nombre: canciones.nombre })
+      .from(canciones)
+      .where(inArray(canciones.nombre, DATA.map((c) => c.nombre))))
+      .map((r) => r.nombre),
+  );
+
+  const nuevas = DATA.filter((c) => !existentes.has(c.nombre));
+
+  for (const c of DATA) {
+    console.log(existentes.has(c.nombre) ? `  = ${c.nombre} (ya existía, salteada)` : `  ✓ ${c.nombre}`);
   }
 
-  console.log(`\n${DATA.length} canciones insertadas. Revisá los charts en /admin/canciones (Moderación).\n`);
+  if (nuevas.length > 0) {
+    await db.insert(canciones).values(nuevas);
+  }
+
+  console.log(`\n${nuevas.length} canciones insertadas, ${existentes.size} salteadas. Revisá los charts en /admin/canciones (Moderación).\n`);
   process.exit(0);
 }
 

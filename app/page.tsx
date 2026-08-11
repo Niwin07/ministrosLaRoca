@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { ChevronRight, Music2, Plus, Tv2, Mic2 } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { cronograma, playlists, lista_canciones, canciones, usuarios } from "@/db/schema";
+import { cronograma, playlists, lista_canciones, canciones } from "@/db/schema";
 import { eq, desc, and, or, sql } from "drizzle-orm";
 import { HeroCard } from "@/components/HeroCard";
 import { Avatar } from "@/components/Avatar";
 import { ActivarNotifBanner } from "@/components/ActivarNotifBanner";
 import { ESTADO_LABEL } from "@/lib/estados";
 import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
+import { getUsuarioFoto } from "@/lib/usuario-request-cache";
 
 function formatFecha(d: Date | null): string {
   if (!d) return "Sin fecha";
@@ -80,12 +81,7 @@ export default async function DashboardPage() {
       .orderBy(desc(playlists.id_playlist))
       .limit(4),
 
-    db
-      .select({ foto: usuarios.foto })
-      .from(usuarios)
-      .where(eq(usuarios.id_usuario, id_usuario))
-      .limit(1)
-      .then((r) => r[0]?.foto ?? null),
+    getUsuarioFoto(id_usuario),
   ]);
 
   const cancionesActivas = listaActiva

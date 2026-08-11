@@ -1,5 +1,5 @@
 import type { DefaultSession } from "next-auth";
-import type { Rol } from "@/lib/mock-user";
+import type { Rol } from "@/lib/roles";
 
 // Extiende la sesión para inyectar los campos del dominio
 declare module "next-auth" {

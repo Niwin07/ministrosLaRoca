@@ -1,7 +1,7 @@
 import webpush from "web-push";
 import { db } from "@/db";
 import { notificaciones, push_suscripciones } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 export type TipoNotif =
   | "TURNO_ASIGNADO"
@@ -25,6 +25,32 @@ function setupVapid() {
   _vapidListo = true;
 }
 
+type Suscripcion = typeof push_suscripciones.$inferSelect;
+
+function enviarPush(suscripciones: Suscripcion[], titulo: string, cuerpo: string): void {
+  const payload = JSON.stringify({ title: titulo, body: cuerpo });
+
+  for (const s of suscripciones) {
+    webpush
+      .sendNotification(
+        { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth_key } },
+        payload,
+      )
+      .catch((err: { statusCode?: number }) => {
+        // 410 Gone = la suscripción expiró; la eliminamos. Cualquier otro
+        // error (VAPID mal configurado, red, etc.) se loguea — antes se
+        // perdía en silencio y no había forma de notar que el push estaba roto.
+        if (err?.statusCode === 410) {
+          db.delete(push_suscripciones)
+            .where(eq(push_suscripciones.id_suscripcion, s.id_suscripcion))
+            .catch((delErr) => console.error("enviarPush: no se pudo borrar suscripción vencida:", delErr));
+        } else {
+          console.error("enviarPush: fallo al enviar:", err);
+        }
+      });
+  }
+}
+
 /**
  * Inserta una notificación para el usuario y envía el push a todos sus
  * dispositivos suscritos. Fire-and-forget: los errores de push no bloquean.
@@ -45,23 +71,36 @@ export async function crearNotificacion(
     .from(push_suscripciones)
     .where(eq(push_suscripciones.id_usuario, id_usuario));
 
-  if (suscripciones.length === 0) return;
+  if (suscripciones.length > 0) enviarPush(suscripciones, titulo, cuerpo);
+}
 
-  const payload = JSON.stringify({ title: titulo, body: cuerpo });
+/**
+ * Igual que crearNotificacion pero para varios destinatarios a la vez —
+ * pensada para el "avisar a todo el equipo de la plataforma" (lista
+ * publicada, canción agregada, etc.). Antes esos casos llamaban a
+ * crearNotificacion() una vez por usuario dentro de un `.map()`, lo que
+ * generaba un INSERT + un SELECT de push_suscripciones por persona (N+1).
+ * Acá se hace un solo INSERT batcheado y un solo SELECT con `IN (...)`.
+ */
+export async function crearNotificacionMasiva(
+  ids_usuario: number[],
+  tipo: TipoNotif,
+  titulo: string,
+  cuerpo: string,
+): Promise<void> {
+  if (ids_usuario.length === 0) return;
 
-  for (const s of suscripciones) {
-    webpush
-      .sendNotification(
-        { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth_key } },
-        payload,
-      )
-      .catch((err: { statusCode?: number }) => {
-        // 410 Gone = la suscripción expiró; la eliminamos
-        if (err?.statusCode === 410) {
-          db.delete(push_suscripciones)
-            .where(eq(push_suscripciones.id_suscripcion, s.id_suscripcion))
-            .catch(() => {});
-        }
-      });
-  }
+  await db.insert(notificaciones).values(
+    ids_usuario.map((id_usuario) => ({ id_usuario, tipo, titulo, cuerpo, leida: 0 as const })),
+  );
+
+  setupVapid();
+  if (!_vapidListo) return;
+
+  const suscripciones = await db
+    .select()
+    .from(push_suscripciones)
+    .where(inArray(push_suscripciones.id_usuario, ids_usuario));
+
+  if (suscripciones.length > 0) enviarPush(suscripciones, titulo, cuerpo);
 }

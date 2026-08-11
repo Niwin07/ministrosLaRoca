@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { Search, Music2, ChevronDown, ChevronLeft, ChevronRight, X, Pencil, SlidersHorizontal } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Search, Music2, ChevronDown, ChevronLeft, ChevronRight, X, Pencil, SlidersHorizontal, Loader2 } from "lucide-react";
 import { ChartViewerInteractivo } from "@/components/ChartViewerInteractivo";
 import { LyricViewer } from "@/components/LyricViewer";
 import { IconButton } from "@/components/ui/IconButton";
@@ -19,65 +20,81 @@ interface Cancion {
 
 type FiltroContenido = "charts" | "letra" | null;
 
+interface Filtros {
+  q:         string;
+  artista:   string;
+  metrica:   string;
+  contenido: FiltroContenido;
+}
+
+interface CatalogoCancionesProps {
+  /** Página actual ya resuelta por el servidor (búsqueda/filtros/paginación viven en la URL). */
+  canciones:      Cancion[];
+  /** Cuántas canciones matchean los filtros actuales (para "X de Y"). */
+  total:          number;
+  /** Total de canciones aprobadas sin filtrar. */
+  totalAprobadas: number;
+  /** Todos los artistas/métricas del catálogo completo (para los dropdowns). */
+  artistas:       string[];
+  metricas:       string[];
+  pagina:         number;
+  totalPaginas:   number;
+  filtros:        Filtros;
+  puedeEditar?:   boolean;
+}
+
 export function CatalogoCanciones({
   canciones,
+  total,
+  totalAprobadas,
+  artistas,
+  metricas,
+  pagina,
+  totalPaginas,
+  filtros,
   puedeEditar = false,
-}: {
-  canciones: Cancion[];
-  puedeEditar?: boolean;
-}) {
-  const [q, setQ]                       = useState("");
-  const [artista, setArtista]           = useState("");
-  const [metrica, setMetrica]           = useState("");
-  const [contenido, setContenido]       = useState<FiltroContenido>(null);
+}: CatalogoCancionesProps) {
+  const router       = useRouter();
+  const pathname     = usePathname();
+  const searchParams = useSearchParams();
+  const [pending, startTransition] = useTransition();
+
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  const [pagina, setPagina]             = useState(1);
+  // Estado local del input de búsqueda: se debounce antes de navegar, así
+  // el usuario escribe fluido y no se dispara una navegación por tecla.
+  const [qLocal, setQLocal] = useState(filtros.q);
 
-  const POR_PAGINA = 15;
+  const filtrosActivos = [filtros.q, filtros.artista, filtros.metrica, filtros.contenido].filter(Boolean).length;
 
-  const artistas = useMemo(
-    () => [...new Set(canciones.map((c) => c.artista))].sort(),
-    [canciones],
-  );
-
-  const metricas = useMemo(
-    () => [...new Set(canciones.map((c) => c.metrica).filter(Boolean))].sort() as string[],
-    [canciones],
-  );
-
-  const filtrosActivos = [q, artista, metrica, contenido].filter(Boolean).length;
-
-  function limpiarFiltros() {
-    setQ("");
-    setArtista("");
-    setMetrica("");
-    setContenido(null);
+  function navegar(cambios: Record<string, string | null>, resetPagina = true) {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(cambios)) {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
+    if (resetPagina) params.delete("pagina");
+    // Los banners de "sugerida"/"editada"/error son de un solo uso — no
+    // tiene sentido que sigan apareciendo mientras el usuario busca/filtra.
+    params.delete("sugerida");
+    params.delete("editada");
+    params.delete("error");
+    startTransition(() => {
+      router.push(`${pathname}${params.toString() ? `?${params}` : ""}`, { scroll: false });
+    });
   }
 
-  const filtradas = useMemo(() => {
-    let lista = canciones;
+  // Debounce de la búsqueda — navega 350ms después de que el usuario deja de tipear.
+  useEffect(() => {
+    if (qLocal === filtros.q) return;
+    const t = setTimeout(() => navegar({ q: qLocal || null }), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qLocal]);
 
-    const t = q.trim().toLowerCase();
-    if (t) {
-      lista = lista.filter(
-        (c) => c.nombre.toLowerCase().includes(t) || c.artista.toLowerCase().includes(t),
-      );
-    }
-
-    if (artista) lista = lista.filter((c) => c.artista === artista);
-    if (metrica) lista = lista.filter((c) => c.metrica === metrica);
-
-    if (contenido === "charts") lista = lista.filter((c) => !!c.charts);
-    if (contenido === "letra")  lista = lista.filter((c) => !!c.letra);
-
-    return lista;
-  }, [canciones, q, artista, metrica, contenido]);
-
-  // Resetear a página 1 cada vez que cambien los filtros
-  useEffect(() => { setPagina(1); }, [q, artista, metrica, contenido]);
-
-  const totalPaginas = Math.ceil(filtradas.length / POR_PAGINA);
-  const paginadas    = filtradas.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
+  function limpiarFiltros() {
+    setQLocal("");
+    navegar({ q: null, artista: null, metrica: null, contenido: null });
+  }
 
   const botonEditar = (id: number) =>
     puedeEditar ? (
@@ -92,22 +109,22 @@ export function CatalogoCanciones({
     ) : null;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className={`flex flex-col gap-3 transition-opacity ${pending ? "opacity-60" : ""}`}>
       {/* ── Barra de búsqueda + toggle filtros ─────────────────────── */}
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-lo" />
           <input
             type="text"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            value={qLocal}
+            onChange={(e) => setQLocal(e.target.value)}
             placeholder="Buscar por nombre o artista…"
             className="w-full rounded-xl border border-mark bg-input pl-10 pr-10 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
           />
-          {q && (
+          {qLocal && (
             <button
               type="button"
-              onClick={() => setQ("")}
+              onClick={() => { setQLocal(""); navegar({ q: null }); }}
               aria-label="Limpiar búsqueda"
               className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-gone transition-colors hover:bg-card hover:text-mid"
             >
@@ -154,8 +171,8 @@ export function CatalogoCanciones({
           <div className="flex flex-col gap-1">
             <label className="text-[11px] text-lo">Artista</label>
             <select
-              value={artista}
-              onChange={(e) => setArtista(e.target.value)}
+              value={filtros.artista}
+              onChange={(e) => navegar({ artista: e.target.value || null })}
               className="rounded-lg border border-mark bg-input px-3 py-2 text-sm text-hi outline-none transition-colors focus:border-violet-500 [&>option]:bg-card"
             >
               <option value="">Todos</option>
@@ -170,8 +187,8 @@ export function CatalogoCanciones({
             <div className="flex flex-col gap-1">
               <label className="text-[11px] text-lo">Métrica</label>
               <select
-                value={metrica}
-                onChange={(e) => setMetrica(e.target.value)}
+                value={filtros.metrica}
+                onChange={(e) => navegar({ metrica: e.target.value || null })}
                 className="rounded-lg border border-mark bg-input px-3 py-2 text-sm text-hi outline-none transition-colors focus:border-violet-500 [&>option]:bg-card"
               >
                 <option value="">Todas</option>
@@ -190,9 +207,9 @@ export function CatalogoCanciones({
                 <button
                   key={tipo}
                   type="button"
-                  onClick={() => setContenido(contenido === tipo ? null : tipo)}
+                  onClick={() => navegar({ contenido: filtros.contenido === tipo ? null : tipo })}
                   className={`flex-1 rounded-lg border py-2 text-xs font-medium transition-colors ${
-                    contenido === tipo
+                    filtros.contenido === tipo
                       ? "border-violet-500/40 bg-violet-500/10 text-violet-600"
                       : "border-mark bg-input text-mid hover:border-line hover:text-hi"
                   }`}
@@ -207,12 +224,11 @@ export function CatalogoCanciones({
 
       {/* ── Contador de resultados ──────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-lo">
-          {filtradas.length === canciones.length
-            ? `${canciones.length} canciones`
-            : `${filtradas.length} de ${canciones.length}`}
+        <p className="flex items-center gap-1.5 text-xs text-lo">
+          {pending && <Loader2 size={11} className="animate-spin" />}
+          {total === totalAprobadas ? `${totalAprobadas} canciones` : `${total} de ${totalAprobadas}`}
         </p>
-        {filtrosActivos > 0 && filtradas.length !== canciones.length && (
+        {filtrosActivos > 0 && total !== totalAprobadas && (
           <button
             type="button"
             onClick={limpiarFiltros}
@@ -224,7 +240,7 @@ export function CatalogoCanciones({
       </div>
 
       {/* ── Lista ───────────────────────────────────────────────────── */}
-      {filtradas.length === 0 ? (
+      {canciones.length === 0 ? (
         <p className="rounded-xl border border-line bg-card px-4 py-6 text-center text-sm text-lo">
           {filtrosActivos > 0
             ? "Ninguna canción coincide con los filtros aplicados."
@@ -232,7 +248,7 @@ export function CatalogoCanciones({
         </p>
       ) : (
         <ul className="flex flex-col gap-1.5">
-          {paginadas.map((c) => {
+          {canciones.map((c) => {
             const tieneDetalle = Boolean(c.letra || c.charts);
             const meta = (
               <div className="flex shrink-0 items-center gap-1.5">
@@ -312,8 +328,8 @@ export function CatalogoCanciones({
       {totalPaginas > 1 && (
         <div className="flex items-center justify-center gap-4 pt-1">
           <IconButton
-            disabled={pagina === 1}
-            onClick={() => setPagina((p) => p - 1)}
+            disabled={pagina <= 1}
+            onClick={() => navegar({ pagina: String(pagina - 1) }, false)}
             icon={<ChevronLeft size={15} />}
             label="Página anterior"
             className="border border-line bg-card hover:bg-card hover:border-mark disabled:pointer-events-none disabled:opacity-30"
@@ -322,8 +338,8 @@ export function CatalogoCanciones({
             {pagina} <span className="text-gone">/</span> {totalPaginas}
           </span>
           <IconButton
-            disabled={pagina === totalPaginas}
-            onClick={() => setPagina((p) => p + 1)}
+            disabled={pagina >= totalPaginas}
+            onClick={() => navegar({ pagina: String(pagina + 1) }, false)}
             icon={<ChevronRight size={15} />}
             label="Página siguiente"
             className="border border-line bg-card hover:bg-card hover:border-mark disabled:pointer-events-none disabled:opacity-30"

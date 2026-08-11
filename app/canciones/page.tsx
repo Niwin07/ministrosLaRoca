@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { canciones } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull, like, ne, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { ChevronDown, CheckCircle2, Sparkles } from "lucide-react";
@@ -14,8 +14,19 @@ import { Label } from "@/components/ui/Label";
 import { sugerirCancion as crearSugerencia } from "@/app/actions/canciones";
 import { METRICAS } from "@/lib/metricas";
 
+const POR_PAGINA = 15;
+
 export default async function CancionesPage(props: {
-  searchParams: Promise<{ sugerida?: string; editada?: string; error?: string }>;
+  searchParams: Promise<{
+    sugerida?:  string;
+    editada?:   string;
+    error?:     string;
+    q?:         string;
+    artista?:   string;
+    metrica?:   string;
+    contenido?: string;
+    pagina?:    string;
+  }>;
 }) {
   const searchParams = await props.searchParams;
   const session = await auth();
@@ -26,11 +37,83 @@ export default async function CancionesPage(props: {
   const puedeEditar =
     session.user.rol === "ADMINISTRADOR" || session.user.rol === "LIDER";
 
-  const aprobadas = await db
-    .select()
-    .from(canciones)
-    .where(eq(canciones.estado_aprobacion, "APROBADA"))
-    .orderBy(canciones.nombre);
+  // Búsqueda/filtros/paginación en el servidor (antes se traía TODO el
+  // catálogo con letra/charts incluidos y se filtraba/paginaba en el
+  // cliente — crecía sin límite con cada canción nueva). El estado de los
+  // filtros vive en la URL, así que es la única fuente de verdad tanto para
+  // la query como para lo que ve CatalogoCanciones.
+  const q         = (searchParams.q ?? "").trim();
+  const artista   = searchParams.artista ?? "";
+  const metrica   = searchParams.metrica ?? "";
+  const contenido = searchParams.contenido === "charts" || searchParams.contenido === "letra"
+    ? searchParams.contenido
+    : null;
+  const pagina = Math.max(1, Number(searchParams.pagina) || 1);
+
+  const condiciones = [eq(canciones.estado_aprobacion, "APROBADA")];
+
+  if (q) {
+    // Escapar comodines de LIKE para que una búsqueda tipo "50%" busque el
+    // texto literal en vez de comportarse como patrón.
+    const escapado = q.replace(/[%_\\]/g, (m) => `\\${m}`);
+    const patron = `%${escapado}%`;
+    const clause = or(like(canciones.nombre, patron), like(canciones.artista, patron));
+    if (clause) condiciones.push(clause);
+  }
+  if (artista) condiciones.push(eq(canciones.artista, artista));
+  if (metrica) condiciones.push(eq(canciones.metrica, metrica));
+  if (contenido === "charts") {
+    condiciones.push(isNotNull(canciones.charts), ne(canciones.charts, ""));
+  }
+  if (contenido === "letra") {
+    condiciones.push(isNotNull(canciones.letra), ne(canciones.letra, ""));
+  }
+
+  const whereClause = and(...condiciones)!;
+
+  const [aprobadas, totalRows, totalAprobadasRows, artistaRows, metricaRows] = await Promise.all([
+    db
+      .select({
+        id_cancion: canciones.id_cancion,
+        nombre:     canciones.nombre,
+        artista:    canciones.artista,
+        bpm:        canciones.bpm,
+        metrica:    canciones.metrica,
+        letra:      canciones.letra,
+        charts:     canciones.charts,
+      })
+      .from(canciones)
+      .where(whereClause)
+      .orderBy(canciones.nombre)
+      .limit(POR_PAGINA)
+      .offset((pagina - 1) * POR_PAGINA),
+
+    db.select({ count: sql<number>`COUNT(*)` }).from(canciones).where(whereClause),
+
+    db.select({ count: sql<number>`COUNT(*)` })
+      .from(canciones)
+      .where(eq(canciones.estado_aprobacion, "APROBADA")),
+
+    // Listas para los dropdowns de filtro — siempre sobre el catálogo
+    // completo aprobado, no sobre el resultado ya filtrado (igual que antes).
+    db.select({ artista: canciones.artista })
+      .from(canciones)
+      .where(eq(canciones.estado_aprobacion, "APROBADA"))
+      .groupBy(canciones.artista)
+      .orderBy(canciones.artista),
+
+    db.select({ metrica: canciones.metrica })
+      .from(canciones)
+      .where(and(eq(canciones.estado_aprobacion, "APROBADA"), isNotNull(canciones.metrica)))
+      .groupBy(canciones.metrica)
+      .orderBy(canciones.metrica),
+  ]);
+
+  const total          = Number(totalRows[0]?.count ?? 0);
+  const totalAprobadas = Number(totalAprobadasRows[0]?.count ?? 0);
+  const totalPaginas   = Math.max(1, Math.ceil(total / POR_PAGINA));
+  const artistas       = artistaRows.map((r) => r.artista);
+  const metricas       = metricaRows.map((r) => r.metrica).filter((m): m is string => !!m);
 
   const sugeridaOk = searchParams.sugerida === "1";
   const editadaOk  = searchParams.editada === "1";
@@ -89,12 +172,22 @@ export default async function CancionesPage(props: {
           <div>
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-bold text-hi">Catálogo</h1>
-              <span className="text-xs text-lo">{aprobadas.length} canciones</span>
+              <span className="text-xs text-lo">{totalAprobadas} canciones</span>
             </div>
             <p className="mt-1 text-sm text-lo">Buscá una canción y mirá su letra y acordes.</p>
           </div>
 
-          <CatalogoCanciones canciones={aprobadas} puedeEditar={puedeEditar} />
+          <CatalogoCanciones
+            canciones={aprobadas}
+            total={total}
+            totalAprobadas={totalAprobadas}
+            artistas={artistas}
+            metricas={metricas}
+            pagina={pagina}
+            totalPaginas={totalPaginas}
+            filtros={{ q, artista, metrica, contenido }}
+            puedeEditar={puedeEditar}
+          />
         </section>
       </div>
 

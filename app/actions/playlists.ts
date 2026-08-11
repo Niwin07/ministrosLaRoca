@@ -8,7 +8,7 @@ import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { PLATAFORMA_IDS } from "@/lib/plataforma";
 import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
-import { crearNotificacion } from "@/lib/notif";
+import { crearNotificacionMasiva } from "@/lib/notif";
 
 async function getPlataformaActiva(): Promise<number> {
   const session = await auth();
@@ -131,27 +131,25 @@ export async function avanzarEstadoPlaylist(
   revalidatePath(`/playlists/${id_playlist}`);
   revalidatePath("/playlists");
 
-  // Notificar a todos los usuarios de la plataforma cuando la lista se publica
+  // Notificar a todos los usuarios de la plataforma cuando la lista se publica.
+  // Un solo INSERT batcheado + un solo SELECT de suscripciones (crearNotificacionMasiva)
+  // en vez de un round-trip de DB por miembro (antes N+1 vía crearNotificacion en .map()).
   if (nuevoEstado === "ENSAYO" || nuevoEstado === "DEFINITIVA") {
-    const [playlistNombre, plataformaNombre, usuarios] = await Promise.all([
+    const [playlistNombre, plataformaNombre, miembros] = await Promise.all([
       db.select({ nombre: playlists.nombre }).from(playlists).where(eq(playlists.id_playlist, id_playlist)).limit(1).then((r) => r[0]?.nombre ?? ""),
       db.select({ nombre: plataformas.nombre }).from(plataformas).where(eq(plataformas.id_plataforma, playlist.id_plataforma)).limit(1).then((r) => r[0]?.nombre ?? ""),
       db.select({ id_usuario: usuario_plataforma.id_usuario }).from(usuario_plataforma).where(eq(usuario_plataforma.id_plataforma, playlist.id_plataforma)),
     ]);
 
     const etiqueta = nuevoEstado === "ENSAYO" ? "en ensayo" : "definitiva";
-    const promesas = usuarios
-      .filter((u) => u.id_usuario !== session.user.id_usuario)
-      .map((u) =>
-        crearNotificacion(
-          u.id_usuario,
-          "LISTA_PUBLICADA",
-          `Lista ${etiqueta} — ${plataformaNombre}`,
-          `"${playlistNombre}" ya está disponible.`,
-        ).catch(() => {}),
-      );
+    const destinatarios = miembros.map((u) => u.id_usuario).filter((id) => id !== session.user.id_usuario);
 
-    Promise.all(promesas).catch(() => {});
+    crearNotificacionMasiva(
+      destinatarios,
+      "LISTA_PUBLICADA",
+      `Lista ${etiqueta} — ${plataformaNombre}`,
+      `"${playlistNombre}" ya está disponible.`,
+    ).catch((err) => console.error("avanzarEstadoPlaylist: fallo notificando publicación:", err));
   }
 
   // Notificar al equipo cuando la lista vuelve a preparación desde un estado público
@@ -161,18 +159,14 @@ export async function avanzarEstadoPlaylist(
       db.select({ id_usuario: usuario_plataforma.id_usuario }).from(usuario_plataforma).where(eq(usuario_plataforma.id_plataforma, playlist.id_plataforma)),
     ]);
 
-    const promesas = miembros
-      .filter((u) => u.id_usuario !== session.user.id_usuario)
-      .map((u) =>
-        crearNotificacion(
-          u.id_usuario,
-          "LISTA_RETIRADA",
-          `Lista en preparación — ${plataformaNombre}`,
-          `"${playlist.nombre}" volvió a preparación.`,
-        ).catch(() => {})
-      );
+    const destinatarios = miembros.map((u) => u.id_usuario).filter((id) => id !== session.user.id_usuario);
 
-    Promise.all(promesas).catch(() => {});
+    crearNotificacionMasiva(
+      destinatarios,
+      "LISTA_RETIRADA",
+      `Lista en preparación — ${plataformaNombre}`,
+      `"${playlist.nombre}" volvió a preparación.`,
+    ).catch((err) => console.error("avanzarEstadoPlaylist: fallo notificando retiro:", err));
   }
 }
 
@@ -271,10 +265,15 @@ export async function instanciarPreset(id_preset: number): Promise<void> {
 
 // ── clonarMazo ────────────────────────────────────────────────────────────────
 
-export async function clonarMazo(
-  id_playlist: number,
-  id_usuario_ejecutor: number
-): Promise<{ nuevaPlaylistId: number }> {
+// El ejecutor se toma SIEMPRE de la sesión, nunca de un parámetro — antes
+// `id_usuario_ejecutor` venía del caller sin validar, así que un Server
+// Action invocado directamente (bypaseando la página) podía clonar una lista
+// ajena y atribuírsela a cualquier id_usuario arbitrario.
+export async function clonarMazo(id_playlist: number): Promise<{ nuevaPlaylistId: number }> {
+  const session = await auth();
+  if (!session?.user) throw new Error("No autenticado.");
+  const id_usuario_ejecutor = session.user.id_usuario;
+
   return await db.transaction(async (tx) => {
 
     const [original] = await tx

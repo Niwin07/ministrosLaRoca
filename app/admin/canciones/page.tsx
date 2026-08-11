@@ -22,8 +22,17 @@ export default async function AdminCancionesPage(props: {
   const errorMsg   = typeof searchParams.error    === "string" ? searchParams.error    : null;
   const eliminada  = searchParams.eliminada === "1";
 
+  // Solo las columnas que esta página renderiza/pasa a CargarCancion.
   const pendientes = await db
-    .select()
+    .select({
+      id_cancion: canciones.id_cancion,
+      nombre:     canciones.nombre,
+      artista:    canciones.artista,
+      bpm:        canciones.bpm,
+      metrica:    canciones.metrica,
+      letra:      canciones.letra,
+      charts:     canciones.charts,
+    })
     .from(canciones)
     .where(eq(canciones.estado_aprobacion, "PENDIENTE"))
     .orderBy(canciones.nombre);

@@ -1,5 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
-import type { Rol } from "@/lib/mock-user";
+import type { Rol } from "@/lib/roles";
 
 // Configuración compartida y EDGE-SAFE: no importa `db` (mysql2) ni `bcryptjs`,
 // así puede correr en el middleware (edge runtime). El provider Credentials —que
@@ -7,6 +7,13 @@ import type { Rol } from "@/lib/mock-user";
 export const authConfig = {
   pages: {
     signIn: "/login",
+  },
+  // Antes implícito (default de NextAuth = 30 días). Se deja explícito y algo
+  // más corto: la app tiene acciones de administrador (crear usuarios, cambiar
+  // roles) y no vale la pena una sesión tan larga sin re-autenticación.
+  session: {
+    strategy: "jwt",
+    maxAge:   14 * 24 * 60 * 60, // 14 días
   },
   providers: [],
   callbacks: {

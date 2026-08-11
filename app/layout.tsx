@@ -11,9 +11,7 @@ import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
 import { PlataformaCookieSetter } from "@/components/PlataformaCookieSetter";
 import { Avatar } from "@/components/Avatar";
 import { auth, signOut } from "@/auth";
-import { db } from "@/db";
-import { usuarios, usuario_plataforma, plataformas } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getUsuarioFoto, getMisPlataformas } from "@/lib/usuario-request-cache";
 import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
 import "./globals.css";
 
@@ -62,18 +60,8 @@ export default async function RootLayout({
 
   if (session?.user) {
     const [userFoto, userPlataformas] = await Promise.all([
-      db
-        .select({ foto: usuarios.foto })
-        .from(usuarios)
-        .where(eq(usuarios.id_usuario, session.user.id_usuario))
-        .limit(1)
-        .then((r) => r[0]?.foto ?? null),
-
-      db
-        .select({ id_plataforma: plataformas.id_plataforma, nombre: plataformas.nombre, es_principal: usuario_plataforma.es_principal })
-        .from(usuario_plataforma)
-        .innerJoin(plataformas, eq(usuario_plataforma.id_plataforma, plataformas.id_plataforma))
-        .where(eq(usuario_plataforma.id_usuario, session.user.id_usuario)),
+      getUsuarioFoto(session.user.id_usuario),
+      getMisPlataformas(session.user.id_usuario),
     ]);
 
     foto = userFoto;

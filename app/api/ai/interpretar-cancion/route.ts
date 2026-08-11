@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { permitir } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+
+  // Cada llamada pega contra la API paga de Groq — tope por usuario para que
+  // un loop (accidental o no) no genere costo sin control.
+  if (!permitir(`ai-import:${session.user.id_usuario}`, 20, 60 * 60 * 1000)) {
+    return NextResponse.json(
+      { error: "Alcanzaste el límite de importaciones con IA por hora. Probá de nuevo más tarde." },
+      { status: 429 },
+    );
   }
 
   try {

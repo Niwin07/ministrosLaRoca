@@ -245,7 +245,7 @@ export default async function PlaylistDetailPage(props: {
     "use server";
     let destino: string;
     try {
-      const { nuevaPlaylistId } = await clonarMazo(id, id_usuario);
+      const { nuevaPlaylistId } = await clonarMazo(id);
       destino = `/playlists/${nuevaPlaylistId}`;
     } catch (e) {
       destino = urlError(id, e instanceof Error ? e.message : "No se pudo clonar la lista.");

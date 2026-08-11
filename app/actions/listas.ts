@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { canciones, lista_canciones, playlists, usuario_plataforma } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { auth } from "@/auth";
-import { crearNotificacion } from "@/lib/notif";
+import { crearNotificacionMasiva } from "@/lib/notif";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -121,7 +121,9 @@ export async function agregarCancionALista(
   });
 
   // Notificar al equipo si la lista ya está publicada (fire & forget)
-  notificarCancionAgregada(id_playlist, id_cancion).catch(() => {});
+  notificarCancionAgregada(id_playlist, id_cancion).catch((err) =>
+    console.error("agregarCancionALista: fallo notificando al equipo:", err)
+  );
 
   return result;
 }
@@ -145,18 +147,14 @@ async function notificarCancionAgregada(id_playlist: number, id_cancion: number)
     .from(usuario_plataforma)
     .where(eq(usuario_plataforma.id_plataforma, lista.id_plataforma));
 
-  await Promise.all(
-    miembros
-      .filter((u) => u.id_usuario !== session.user.id_usuario)
-      .map((u) =>
-        crearNotificacion(
-          u.id_usuario,
-          "CANCION_AGREGADA",
-          "Nueva canción en el setlist",
-          `Se agregó "${cancion.nombre}" a "${lista.nombre}".`,
-        ).catch(() => {})
-      )
-  );
+  const destinatarios = miembros.map((u) => u.id_usuario).filter((id) => id !== session.user.id_usuario);
+
+  await crearNotificacionMasiva(
+    destinatarios,
+    "CANCION_AGREGADA",
+    "Nueva canción en el setlist",
+    `Se agregó "${cancion.nombre}" a "${lista.nombre}".`,
+  ).catch((err) => console.error("notificarCancionAgregada:", err));
 }
 
 /**

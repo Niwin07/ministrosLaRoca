@@ -87,6 +87,7 @@ export async function actualizarCancion(formData: FormData): Promise<void> {
     revalidatePath("/canciones");
     revalidatePath(`/admin/canciones/${id_cancion}`);
   } catch (e) {
+    console.error("actualizarCancion:", e);
     redirect(
       `/admin/canciones/${id_cancion}?error=${encodeURIComponent(
         e instanceof Error ? e.message : "No se pudieron guardar los cambios."
@@ -122,6 +123,7 @@ export async function eliminarCancion(formData: FormData): Promise<void> {
     revalidatePath("/canciones");
     revalidatePath("/admin/canciones");
   } catch (e) {
+    console.error("eliminarCancion:", e);
     redirect(
       `/admin/canciones/${id_cancion}?error=${encodeURIComponent(
         e instanceof Error ? e.message : "No se pudo eliminar la canción."
@@ -197,12 +199,13 @@ export async function resolverSugerencia(formData: FormData): Promise<void> {
         aprobada ? "CANCION_APROBADA" : "CANCION_RECHAZADA",
         aprobada ? "Canción aprobada" : "Canción no aprobada",
         `"${cancionCompleta.nombre}" fue ${aprobada ? "agregada al catálogo" : "rechazada por el liderazgo"}.`,
-      ).catch(() => {});
+      ).catch((err) => console.error("resolverSugerencia: fallo notificando al sugeridor:", err));
     }
 
     revalidatePath("/canciones");
     revalidatePath("/admin/canciones");
   } catch (e) {
+    console.error("resolverSugerencia:", e);
     redirect(
       `/admin/canciones?error=${encodeURIComponent(
         e instanceof Error ? e.message : "No se pudo resolver la sugerencia."

@@ -112,7 +112,13 @@ export default async function PlaylistsPage(props: {
         ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
       ))
       .groupBy(playlists.id_playlist, playlists.nombre, usuarios.nombre, playlists.actualizadoEn)
-      .orderBy(desc(playlists.actualizadoEn)),
+      .orderBy(desc(playlists.actualizadoEn))
+      // Techo de seguridad: sin esto la query (y el HTML que arma) crecen sin
+      // límite para siempre — cada servicio archivado se acumula acá. 100
+      // archivados más recientes alcanza de sobra para el buscador de
+      // HistorialListas; el resto del histórico sigue en la base, solo no
+      // se lista en esta vista rápida.
+      .limit(100),
   ]);
 
   // Canciones de las listas archivadas (una sola query) para el preview inline.
@@ -185,7 +191,7 @@ export default async function PlaylistsPage(props: {
     let destino: string;
     try {
       const id = Number(formData.get("id_playlist"));
-      const { nuevaPlaylistId } = await clonarMazo(id, id_usuario);
+      const { nuevaPlaylistId } = await clonarMazo(id);
       destino = `/playlists/${nuevaPlaylistId}`;
     } catch (e) {
       destino = `/playlists?error=${encodeURIComponent(

@@ -10,6 +10,7 @@
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
     "db:seed-canciones": "tsx --env-file=.env.local scripts/seed-canciones.ts",
     "db:seed-canciones-esp": "tsx --env-file=.env.local scripts/seed-canciones-esp.ts",
+    "db:seed-canciones-pdfs": "tsx --env-file=.env.local scripts/seed-canciones-pdfs.ts",
     "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts"
   },
   "dependencies": {

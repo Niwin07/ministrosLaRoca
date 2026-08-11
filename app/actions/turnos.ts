@@ -25,8 +25,11 @@ function revalidar() {
 }
 
 // Redirige a la cola con un mensaje de error (patrón redirect→?error=→banner).
-// Devuelve `never` porque redirect() lanza internamente.
+// Devuelve `never` porque redirect() lanza internamente. Loguea server-side
+// antes de redirigir — antes el error solo se veía en el banner del usuario,
+// invisible en los logs de Vercel/servidor.
 function errorCola(e: unknown, fallback: string): never {
+  console.error("turnos:", e);
   redirect(
     `/admin/turnos?error=${encodeURIComponent(e instanceof Error ? e.message : fallback)}`
   );
@@ -45,16 +48,22 @@ export async function agregarACola(formData: FormData) {
       ?? (session2?.user ? await getPlataformaActivaId(session2.user.id_usuario, session2.user.rol) : undefined)
       ?? PLATAFORMA_IDS.general;
 
-    const [{ max } = { max: 0 }] = await db
-      .select({ max: sql<number>`COALESCE(MAX(${cronograma.orden}), 0)` })
-      .from(cronograma)
-      .where(and(eq(cronograma.id_plataforma, id_plataforma), eq(cronograma.estado_turno, "EN_ESPERA")));
+    // Transacción para que el cálculo de MAX(orden) + el INSERT sean atómicos
+    // (mismo patrón que agregarCancionALista en listas.ts) — sin esto, dos
+    // altas concurrentes a la misma plataforma podían calcular el mismo
+    // `orden` y quedar en la misma posición de la cola.
+    await db.transaction(async (tx) => {
+      const [{ max } = { max: 0 }] = await tx
+        .select({ max: sql<number>`COALESCE(MAX(${cronograma.orden}), 0)` })
+        .from(cronograma)
+        .where(and(eq(cronograma.id_plataforma, id_plataforma), eq(cronograma.estado_turno, "EN_ESPERA")));
 
-    await db.insert(cronograma).values({
-      id_usuario,
-      id_plataforma,
-      estado_turno: "EN_ESPERA",
-      orden: Number(max) + 1,
+      await tx.insert(cronograma).values({
+        id_usuario,
+        id_plataforma,
+        estado_turno: "EN_ESPERA",
+        orden: Number(max) + 1,
+      });
     });
 
     revalidar();
@@ -71,7 +80,7 @@ export async function agregarACola(formData: FormData) {
       "TURNO_ASIGNADO",
       "Te asignaron un turno",
       `Estás en la cola de ${plataforma?.nombre ?? "la plataforma"}.`,
-    ).catch(() => {});
+    ).catch((err) => console.error("agregarACola: fallo notificando:", err));
   } catch (e) {
     errorCola(e, "No se pudo agregar a la cola.");
   }
@@ -132,7 +141,7 @@ export async function marcarActivo(formData: FormData) {
         "TURNO_PROXIMO",
         "Tu turno se acerca",
         `Sos el próximo en la cola de ${plat?.nombre ?? "la plataforma"}.`,
-      ).catch(() => {});
+      ).catch((err) => console.error("marcarActivo: fallo notificando al siguiente:", err));
     }
   } catch (e) {
     errorCola(e, "No se pudo marcar al ministro como activo.");

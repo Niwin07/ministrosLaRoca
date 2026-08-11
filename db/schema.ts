@@ -44,6 +44,11 @@ export const usuario_plataforma = mysqlTable(
   },
   (table) => ({
     pk: uniqueIndex("pk_usuario_plataforma").on(table.id_usuario, table.id_plataforma),
+    // Las consultas de "notificar a todos los miembros de esta plataforma"
+    // (playlists.ts, listas.ts) filtran SOLO por id_plataforma — el índice
+    // compuesto de arriba no sirve de mucho ahí porque id_usuario es la
+    // primera columna. scripts/sql/008-indices-performance.sql.
+    idx_plataforma: index("idx_up_plataforma").on(table.id_plataforma),
   }),
 );
 
@@ -73,59 +78,101 @@ export const cronograma = mysqlTable(
   (table) => ({
     // Índice único sobre la columna virtual = a lo sumo un ACTIVO en toda la tabla.
     uq_un_solo_activo: uniqueIndex("uq_un_solo_activo").on(table.activo_unico),
+    // La consulta más común de la app: cola de una plataforma en un estado,
+    // ordenada por posición. scripts/sql/008-indices-performance.sql.
+    idx_plataforma_estado: index("idx_cronograma_plataforma_estado").on(
+      table.id_plataforma, table.estado_turno, table.orden,
+    ),
   }),
 );
 
 // ─── Canciones ───────────────────────────────────────────────────────────────
 
-export const canciones = mysqlTable("canciones", {
-  id_cancion:              int("id_cancion").autoincrement().primaryKey(),
-  nombre:                  varchar("nombre", { length: 255 }).notNull(),
-  artista:                 varchar("artista", { length: 255 }).notNull(),
-  bpm:                     int("bpm"),
-  metrica:                 varchar("metrica", { length: 10 }),
-  estado_aprobacion:       mysqlEnum("estado_aprobacion", ["APROBADA", "PENDIENTE", "RECHAZADA"]).notNull().default("PENDIENTE"),
-  motivo_rechazo:          text("motivo_rechazo"),
-  letra:                   text("letra"),
-  charts:                  text("charts"),
-  id_usuario_sugeridor:    int("id_usuario_sugeridor").references(() => usuarios.id_usuario, { onDelete: "set null" }),
-});
+export const canciones = mysqlTable(
+  "canciones",
+  {
+    id_cancion:              int("id_cancion").autoincrement().primaryKey(),
+    nombre:                  varchar("nombre", { length: 255 }).notNull(),
+    artista:                 varchar("artista", { length: 255 }).notNull(),
+    bpm:                     int("bpm"),
+    metrica:                 varchar("metrica", { length: 10 }),
+    estado_aprobacion:       mysqlEnum("estado_aprobacion", ["APROBADA", "PENDIENTE", "RECHAZADA"]).notNull().default("PENDIENTE"),
+    motivo_rechazo:          text("motivo_rechazo"),
+    letra:                   text("letra"),
+    charts:                  text("charts"),
+    id_usuario_sugeridor:    int("id_usuario_sugeridor").references(() => usuarios.id_usuario, { onDelete: "set null" }),
+  },
+  (table) => ({
+    // Casi toda consulta del catálogo filtra por este enum de 3 valores.
+    // scripts/sql/008-indices-performance.sql.
+    idx_estado: index("idx_canciones_estado").on(table.estado_aprobacion),
+  }),
+);
 
 // ─── Playlists ───────────────────────────────────────────────────────────────
 
-export const playlists = mysqlTable("playlists", {
-  id_playlist:        int("id_playlist").autoincrement().primaryKey(),
-  id_usuario:         int("id_usuario").notNull().references(() => usuarios.id_usuario),
-  id_plataforma:      int("id_plataforma").notNull().references(() => plataformas.id_plataforma),
-  nombre:             varchar("nombre", { length: 255 }).notNull(),
-  tipo:               mysqlEnum("tipo", ["PRESET", "EVENTO"]).notNull(),
-  estado:             mysqlEnum("estado", ["PREPARACION", "ENSAYO", "DEFINITIVA", "MAZO"]),
-  fecha_programada:   datetime("fecha_programada"),
-  actualizadoEn:      timestamp("actualizado_en").defaultNow().onUpdateNow(),
-});
+export const playlists = mysqlTable(
+  "playlists",
+  {
+    id_playlist:        int("id_playlist").autoincrement().primaryKey(),
+    id_usuario:         int("id_usuario").notNull().references(() => usuarios.id_usuario),
+    id_plataforma:      int("id_plataforma").notNull().references(() => plataformas.id_plataforma),
+    nombre:             varchar("nombre", { length: 255 }).notNull(),
+    tipo:               mysqlEnum("tipo", ["PRESET", "EVENTO"]).notNull(),
+    estado:             mysqlEnum("estado", ["PREPARACION", "ENSAYO", "DEFINITIVA", "MAZO"]),
+    fecha_programada:   datetime("fecha_programada"),
+    actualizadoEn:      timestamp("actualizado_en").defaultNow().onUpdateNow(),
+  },
+  (table) => ({
+    // Cubren las formas más comunes de consulta: "listas de esta plataforma
+    // en tal estado" e "mis listas de tal tipo/estado". scripts/sql/008-indices-performance.sql.
+    idx_plataforma_tipo_estado: index("idx_playlists_plataforma_tipo_estado").on(
+      table.id_plataforma, table.tipo, table.estado,
+    ),
+    idx_usuario_tipo_estado: index("idx_playlists_usuario_tipo_estado").on(
+      table.id_usuario, table.tipo, table.estado,
+    ),
+  }),
+);
 
 // ─── Notificaciones personales ───────────────────────────────────────────────
 
-export const notificaciones = mysqlTable("notificaciones", {
-  id_notificacion: int("id_notificacion").autoincrement().primaryKey(),
-  id_usuario:      int("id_usuario").notNull().references(() => usuarios.id_usuario, { onDelete: "cascade" }),
-  tipo:            mysqlEnum("tipo", ["TURNO_ASIGNADO", "TURNO_PROXIMO", "LISTA_PUBLICADA", "LISTA_RETIRADA", "CANCION_AGREGADA", "CANCION_APROBADA", "CANCION_RECHAZADA", "MENCION"]).notNull(),
-  titulo:          varchar("titulo", { length: 255 }).notNull(),
-  cuerpo:          text("cuerpo").notNull(),
-  leida:           tinyint("leida").notNull().default(0),
-  creadaEn:        timestamp("creada_en").defaultNow(),
-});
+export const notificaciones = mysqlTable(
+  "notificaciones",
+  {
+    id_notificacion: int("id_notificacion").autoincrement().primaryKey(),
+    id_usuario:      int("id_usuario").notNull().references(() => usuarios.id_usuario, { onDelete: "cascade" }),
+    tipo:            mysqlEnum("tipo", ["TURNO_ASIGNADO", "TURNO_PROXIMO", "LISTA_PUBLICADA", "LISTA_RETIRADA", "CANCION_AGREGADA", "CANCION_APROBADA", "CANCION_RECHAZADA", "MENCION"]).notNull(),
+    titulo:          varchar("titulo", { length: 255 }).notNull(),
+    cuerpo:          text("cuerpo").notNull(),
+    leida:           tinyint("leida").notNull().default(0),
+    creadaEn:        timestamp("creada_en").defaultNow(),
+  },
+  (table) => ({
+    // Ya existe en la BD real desde scripts/sql/006-notificaciones.sql — se
+    // declara acá para que schema.ts (fuente de verdad de Drizzle) no quede
+    // desincronizado de lo que hay aplicado.
+    idx_usuario_leida: index("idx_notif_usuario_leida").on(table.id_usuario, table.leida),
+  }),
+);
 
 // ─── Suscripciones Web Push ───────────────────────────────────────────────────
 
-export const push_suscripciones = mysqlTable("push_suscripciones", {
-  id_suscripcion: int("id_suscripcion").autoincrement().primaryKey(),
-  id_usuario:     int("id_usuario").notNull().references(() => usuarios.id_usuario, { onDelete: "cascade" }),
-  endpoint:       text("endpoint").notNull(),
-  p256dh:         text("p256dh").notNull(),
-  auth_key:       varchar("auth_key", { length: 255 }).notNull(),
-  creadaEn:       timestamp("creada_en").defaultNow(),
-});
+export const push_suscripciones = mysqlTable(
+  "push_suscripciones",
+  {
+    id_suscripcion: int("id_suscripcion").autoincrement().primaryKey(),
+    id_usuario:     int("id_usuario").notNull().references(() => usuarios.id_usuario, { onDelete: "cascade" }),
+    endpoint:       text("endpoint").notNull(),
+    p256dh:         text("p256dh").notNull(),
+    auth_key:       varchar("auth_key", { length: 255 }).notNull(),
+    creadaEn:       timestamp("creada_en").defaultNow(),
+  },
+  (table) => ({
+    // Ídem — ya existe en la BD real desde scripts/sql/006-notificaciones.sql.
+    idx_usuario: index("idx_push_usuario").on(table.id_usuario),
+  }),
+);
 
 // ─── Lista Canciones (Detalle / Pivot) ───────────────────────────────────────
 // PK autoincremental para permitir que un mismo tema aparezca más de una vez
@@ -145,5 +192,8 @@ export const lista_canciones = mysqlTable(
   (table) => ({
     uq_playlist_orden: uniqueIndex("uq_playlist_orden").on(table.id_playlist, table.orden),
     idx_playlist:      index("idx_playlist").on(table.id_playlist),
+    // eliminarCancion (uso-check) y admin/estadisticas hacen JOIN/WHERE por
+    // id_cancion sin este índice. scripts/sql/008-indices-performance.sql.
+    idx_cancion:       index("idx_lista_canciones_cancion").on(table.id_cancion),
   }),
 );

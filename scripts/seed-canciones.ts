@@ -1,3 +1,4 @@
+import { inArray } from "drizzle-orm";
 import { db } from "../db/index";
 import { canciones } from "../db/schema";
 
@@ -311,15 +312,30 @@ Great is Your name`,
   },
 ];
 
+// Idempotente (por nombre) y batcheado — antes insertaba una por una sin
+// chequear si ya existía, así que correrlo dos veces duplicaba el álbum entero.
 async function seed() {
   console.log(`\nSeed: ${ALBUM}\n`);
 
-  for (const cancion of DATA) {
-    await db.insert(canciones).values(cancion);
-    console.log(`  ✓ ${cancion.nombre}`);
+  const existentes = new Set(
+    (await db
+      .select({ nombre: canciones.nombre })
+      .from(canciones)
+      .where(inArray(canciones.nombre, DATA.map((c) => c.nombre))))
+      .map((r) => r.nombre),
+  );
+
+  const nuevas = DATA.filter((c) => !existentes.has(c.nombre));
+
+  for (const c of DATA) {
+    console.log(existentes.has(c.nombre) ? `  = ${c.nombre} (ya existía, salteada)` : `  ✓ ${c.nombre}`);
   }
 
-  console.log(`\n${DATA.length} canciones insertadas.\n`);
+  if (nuevas.length > 0) {
+    await db.insert(canciones).values(nuevas);
+  }
+
+  console.log(`\n${nuevas.length} canciones insertadas, ${existentes.size} salteadas.\n`);
   process.exit(0);
 }
 

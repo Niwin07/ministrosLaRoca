@@ -1,12 +1,18 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { db } from "@/db";
-import { canciones } from "@/db/schema";
-import { eq } from "drizzle-orm";
+// ============================================================================
+// Seed de canciones extraídas de PDFs aportados. Antes vivía como un endpoint
+// GET admin-only en app/api/admin/seed-canciones/route.ts — una tarea de
+// carga de datos de una sola vez no necesita ser una ruta HTTP permanente en
+// producción; se movió acá para que siga el mismo patrón que los demás
+// scripts/seed-canciones*.ts (idempotente por nombre, batcheado).
+//
+// Uso:  npx tsx --env-file=.env.local scripts/seed-canciones-pdfs.ts
+// ============================================================================
 
-// ─── Datos extraídos de los PDFs aportados ───────────────────────────────────
+import { inArray } from "drizzle-orm";
+import { db } from "../db/index";
+import { canciones } from "../db/schema";
 
-const CANCIONES = [
+const DATA = [
   // ── 1. Clamo a Cristo ──────────────────────────────────────────────────────
   {
     nombre: "Clamo a Cristo",
@@ -514,64 +520,33 @@ Eres Santo oh Señor`,
   },
 ];
 
-// ─── Endpoint ─────────────────────────────────────────────────────────────────
+// Idempotente (por nombre) y batcheado — igual patrón que los otros scripts/seed-canciones*.ts.
+async function seed() {
+  console.log(`\nSeed: ${DATA.length} canciones (PDFs aportados)\n`);
 
-export async function GET() {
-  const session = await auth();
-  if (!session?.user || session.user.rol !== "ADMINISTRADOR") {
-    return new Response("Sin permisos", { status: 403 });
-  }
-
-  const resultados: { nombre: string; estado: string }[] = [];
-
-  for (const cancion of CANCIONES) {
-    const existe = await db
-      .select({ id: canciones.id_cancion })
+  const existentes = new Set(
+    (await db
+      .select({ nombre: canciones.nombre })
       .from(canciones)
-      .where(eq(canciones.nombre, cancion.nombre))
-      .limit(1);
+      .where(inArray(canciones.nombre, DATA.map((c) => c.nombre))))
+      .map((r) => r.nombre),
+  );
 
-    if (existe.length > 0) {
-      resultados.push({ nombre: cancion.nombre, estado: "ya existía — saltada" });
-      continue;
-    }
+  const nuevas = DATA.filter((c) => !existentes.has(c.nombre));
 
-    await db.insert(canciones).values(cancion);
-    resultados.push({ nombre: cancion.nombre, estado: "✓ insertada" });
+  for (const c of DATA) {
+    console.log(existentes.has(c.nombre) ? `  = ${c.nombre} (ya existía, salteada)` : `  ✓ ${c.nombre}`);
   }
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Seed canciones</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 2rem auto; padding: 1rem; background: #09090b; color: #f4f4f5; }
-    h1 { font-size: 1.25rem; margin-bottom: 1.5rem; }
-    ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: .75rem; }
-    li { padding: .75rem 1rem; border-radius: .75rem; background: #18181b; border: 1px solid #27272a; }
-    .ok { border-color: #16a34a40; background: #16a34a10; }
-    .skip { border-color: #71717a40; }
-    .name { font-size: .9rem; font-weight: 600; }
-    .status { font-size: .75rem; color: #a1a1aa; margin-top: .25rem; }
-    a { display: inline-block; margin-top: 1.5rem; padding: .6rem 1.2rem; background: #7c3aed; color: white; border-radius: .5rem; text-decoration: none; font-size: .9rem; }
-  </style>
-</head>
-<body>
-  <h1>Seed de canciones</h1>
-  <ul>
-    ${resultados.map(r => `
-    <li class="${r.estado.startsWith("✓") ? "ok" : "skip"}">
-      <div class="name">${r.nombre}</div>
-      <div class="status">${r.estado}</div>
-    </li>`).join("")}
-  </ul>
-  <a href="/admin/canciones">Ir a canciones →</a>
-</body>
-</html>`;
+  if (nuevas.length > 0) {
+    await db.insert(canciones).values(nuevas);
+  }
 
-  return new Response(html, {
-    headers: { "Content-Type": "text/html; charset=utf-8" },
-  });
+  console.log(`\n${nuevas.length} canciones insertadas, ${existentes.size} salteadas.\n`);
+  process.exit(0);
 }
+
+seed().catch((err) => {
+  console.error("Error en seed:", err);
+  process.exit(1);
+});

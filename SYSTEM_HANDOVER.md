@@ -204,9 +204,16 @@ lib/
 
 ### Variables de entorno (`.env.local`)
 
+> ⚠️ **Este archivo tuvo el valor real de `AUTH_SECRET` commiteado acá abajo durante un tiempo.**
+> Ese secreto quedó expuesto en el historial de git y debe tratarse como **comprometido**:
+> generá uno nuevo (`openssl rand -base64 32`) y actualizalo en el entorno de producción
+> (Vercel → Environment Variables) lo antes posible. Un `AUTH_SECRET` filtrado permite
+> forjar cookies de sesión válidas para cualquier usuario/rol. Ver `.env.example` para
+> la lista completa de variables — nunca vuelvas a pegar un valor real en este documento.
+
 ```bash
-# Generada en esta sesión — NO regenerar salvo que se pierda
-AUTH_SECRET=+z4EdzBqS1RE6F2O1jOUpuMnrxKNXKJz3ky1/kaFRRg=
+# Ver .env.example para la lista completa de variables requeridas/opcionales.
+AUTH_SECRET=            # openssl rand -base64 32 — NO commitear el valor real
 
 # Base de datos MySQL
 DB_HOST=localhost
