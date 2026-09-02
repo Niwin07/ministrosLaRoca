@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { cronograma, lista_canciones, playlists, usuario_plataforma, plataformas } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
-import { resolverPlataforma } from "@/lib/plataforma";
+import { resolverPlataforma, PLATAFORMAS_LIST } from "@/lib/plataforma";
 import { getPlataformaEfectivaId } from "@/lib/get-plataforma-activa";
 import { getMisPlataformas } from "@/lib/usuario-request-cache";
 import { crearNotificacionMasiva } from "@/lib/notif";
@@ -193,6 +193,45 @@ export async function avanzarEstadoPlaylist(
       `"${playlist.nombre}" volvió a preparación.`,
     ).catch((err) => console.error("avanzarEstadoPlaylist: fallo notificando retiro:", err));
   }
+}
+
+// ── cambiarPlataformaPlaylist ─────────────────────────────────────────────────
+// Vía de rescate para listas que quedaron mal etiquetadas por el bug de
+// inferencia de plataforma al crearlas (ver resolverPlataformaParaCrear):
+// como hoy no hay otra forma de corregirlo salvo recrear la lista, permitimos
+// que un ADMINISTRADOR reasigne la plataforma de una lista existente. Solo
+// ADMINISTRADOR — coincide con "CRUD Completo siempre" de la matriz de roles
+// (arquitectura.md); un LIDER/MINISTRO no debería poder mover una lista
+// entre plataformas por su cuenta.
+
+export async function cambiarPlataformaPlaylist(
+  id_playlist: number,
+  id_plataforma: number,
+): Promise<void> {
+  const session = await auth();
+  if (!session?.user) throw new Error("No autenticado.");
+  if (session.user.rol !== "ADMINISTRADOR") {
+    throw new Error("Solo un administrador puede reasignar la plataforma de una lista.");
+  }
+
+  const idsValidos = new Set(PLATAFORMAS_LIST.map((p) => p.id));
+  if (!idsValidos.has(id_plataforma as 1 | 2)) {
+    throw new Error("Plataforma inválida.");
+  }
+
+  const [playlist] = await db
+    .select({ id_playlist: playlists.id_playlist })
+    .from(playlists)
+    .where(eq(playlists.id_playlist, id_playlist));
+  if (!playlist) throw new Error(`Playlist ${id_playlist} no encontrada.`);
+
+  await db
+    .update(playlists)
+    .set({ id_plataforma })
+    .where(eq(playlists.id_playlist, id_playlist));
+
+  revalidatePath(`/playlists/${id_playlist}`);
+  revalidatePath("/playlists");
 }
 
 // ── renombrarPlaylist ─────────────────────────────────────────────────────────

@@ -19,8 +19,9 @@ import {
   actualizarNotaCancion,
   reordenarLista,
 } from "@/app/actions/listas";
-import { clonarMazo, avanzarEstadoPlaylist } from "@/app/actions/playlists";
+import { clonarMazo, avanzarEstadoPlaylist, cambiarPlataformaPlaylist } from "@/app/actions/playlists";
 import { ESTADO_LABEL, ESTADO_DESC, ESTADO_NEXT_HINT } from "@/lib/estados";
+import { PLATAFORMAS_LIST, PLATAFORMA_LABELS } from "@/lib/plataforma";
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
@@ -265,6 +266,20 @@ export default async function PlaylistDetailPage(props: {
     redirect(destino);
   }
 
+  // Vía de rescate para listas mal etiquetadas por el bug de inferencia de
+  // plataforma al crearlas — reasignarla acá no requiere recrear la lista.
+  async function handleCambiarPlataforma(formData: FormData) {
+    "use server";
+    let destino = `/playlists/${id}`;
+    try {
+      const nuevaPlataforma = Number(formData.get("id_plataforma"));
+      await cambiarPlataformaPlaylist(id, nuevaPlataforma);
+    } catch (e) {
+      destino = urlError(id, e instanceof Error ? e.message : "No se pudo cambiar la plataforma.");
+    }
+    redirect(destino);
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -306,6 +321,36 @@ export default async function PlaylistDetailPage(props: {
             <span className="ml-1.5 text-gone">· {ESTADO_DESC[cabecera.estado]}</span>
           )}
         </p>
+
+        {/* Plataforma — solo ADMINISTRADOR puede reasignarla. Es la vía de
+            rescate para listas que quedaron mal etiquetadas (creadas antes del
+            fix de inferencia de plataforma) y por eso nunca encontraban al
+            director de turno correspondiente. */}
+        {rol === "ADMINISTRADOR" ? (
+          <form action={handleCambiarPlataforma} className="mt-2 flex items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-widest text-gone">Plataforma:</span>
+            <select
+              name="id_plataforma"
+              defaultValue={cabecera.id_plataforma}
+              aria-label="Reasignar plataforma de la lista"
+              className="rounded-lg border border-mark bg-input px-2 py-1 text-[11px] text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
+            >
+              {PLATAFORMAS_LIST.map((pla) => (
+                <option key={pla.id} value={pla.id}>{pla.nombre}</option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              className="rounded-lg border border-mark px-2 py-1 text-[11px] text-mid transition-colors hover:border-line hover:text-hi"
+            >
+              Guardar
+            </button>
+          </form>
+        ) : (
+          <p className="mt-2 text-[10px] uppercase tracking-widest text-gone">
+            {PLATAFORMA_LABELS[cabecera.id_plataforma] ?? "Plataforma desconocida"}
+          </p>
+        )}
 
         <div className="mt-4 flex flex-wrap gap-2">
           {items.length > 0 && (
