@@ -7,13 +7,18 @@ import { cronograma, lista_canciones, playlists, usuario_plataforma, plataformas
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { PLATAFORMA_IDS } from "@/lib/plataforma";
-import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
+import { getPlataformaEfectivaId } from "@/lib/get-plataforma-activa";
 import { crearNotificacionMasiva } from "@/lib/notif";
 
 async function getPlataformaActiva(): Promise<number> {
   const session = await auth();
   if (!session?.user) return PLATAFORMA_IDS.general;
-  return (await getPlataformaActivaId(session.user.id_usuario, session.user.rol)) ?? PLATAFORMA_IDS.general;
+  // getPlataformaEfectivaId (a diferencia de getPlataformaActivaId) respeta
+  // la plataforma seleccionada en el switcher también para ADMINISTRADOR —
+  // si no, toda lista creada por un admin quedaba etiquetada "General" sin
+  // importar qué plataforma tuviera activa, y luego avanzarEstadoPlaylist
+  // nunca encontraba coincidencia con el director de turno de Remanentes.
+  return getPlataformaEfectivaId(session.user.id_usuario);
 }
 
 // ── Guard de gestión (dueño o admin/líder) ────────────────────────────────────

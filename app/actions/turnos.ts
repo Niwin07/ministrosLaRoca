@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
-import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
+import { getPlataformaEfectivaId } from "@/lib/get-plataforma-activa";
 import { crearNotificacion } from "@/lib/notif";
 
 // Solo ADMINISTRADOR o LÍDER gestionan la cola.
@@ -45,7 +45,7 @@ export async function agregarACola(formData: FormData) {
     const fromForm = resolverPlataforma(formData.get("id_plataforma") as string | undefined);
     const session2 = await auth();
     const id_plataforma = fromForm
-      ?? (session2?.user ? await getPlataformaActivaId(session2.user.id_usuario, session2.user.rol) : undefined)
+      ?? (session2?.user ? await getPlataformaEfectivaId(session2.user.id_usuario) : undefined)
       ?? PLATAFORMA_IDS.general;
 
     // Transacción para que el cálculo de MAX(orden) + el INSERT sean atómicos
