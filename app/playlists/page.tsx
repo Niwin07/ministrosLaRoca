@@ -6,7 +6,9 @@ import { ESTADO_LABEL } from "@/lib/estados";
 import { db } from "@/db";
 import { canciones, cronograma, lista_canciones, playlists, usuarios } from "@/db/schema";
 import { auth } from "@/auth";
-import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
+import { getPlataformaActivaId, getPlataformaEfectivaId } from "@/lib/get-plataforma-activa";
+import { getMisPlataformas } from "@/lib/usuario-request-cache";
+import { PLATAFORMAS_LIST } from "@/lib/plataforma";
 import { crearPlaylist, instanciarPreset, clonarMazo, renombrarPlaylist, eliminarPlaylist } from "@/app/actions/playlists";
 import { HistorialListas } from "@/components/HistorialListas";
 import { ErrorBanner } from "@/components/ErrorBanner";
@@ -31,6 +33,17 @@ export default async function PlaylistsPage(props: {
   const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
 
   const plaId = await getPlataformaActivaId(id_usuario, rol);
+
+  // Plataformas donde el usuario puede crear contenido: para ADMINISTRADOR,
+  // cualquiera; para el resto, solo las que le asignaron en usuario_plataforma.
+  // Si tiene 2+, mostramos un selector explícito en "Nueva plantilla" — la
+  // cookie del switcher no es confiable como única fuente para esto (ver
+  // resolverPlataformaParaCrear en app/actions/playlists.ts).
+  const plataformasParaCrear =
+    rol === "ADMINISTRADOR"
+      ? PLATAFORMAS_LIST.map((p) => ({ id: p.id, nombre: p.nombre }))
+      : (await getMisPlataformas(id_usuario)).map((p) => ({ id: p.id_plataforma, nombre: p.nombre }));
+  const plataformaParaCrearDefault = plaId ?? (await getPlataformaEfectivaId(id_usuario));
 
   // El director de la semana = único turno ACTIVO en el cronograma (filtrado por plataforma).
   const [directorActivo] = await db
@@ -328,17 +341,46 @@ export default async function PlaylistsPage(props: {
           </summary>
 
           <div className="mt-3 rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
-            <form action={crearPlaylist} className="flex gap-2">
-              <input
-                name="nombre"
-                type="text"
-                placeholder="Nombre de la plantilla…"
-                required
-                className="min-w-0 flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-              />
-              <Button type="submit" shape="block" icon={<Plus size={15} strokeWidth={2.5} />}>
-                Crear
-              </Button>
+            <form action={crearPlaylist} className="flex flex-col gap-3">
+              {/* Selector explícito de plataforma — solo si el usuario puede crear
+                  en más de una. Evita depender de que la cookie del switcher ya
+                  haya llegado al server en este submit (ver comentario en
+                  resolverPlataformaParaCrear). */}
+              {plataformasParaCrear.length >= 2 && (
+                <div className="flex gap-2">
+                  {plataformasParaCrear.map((pla, i) => (
+                    <label
+                      key={pla.id}
+                      className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-mark bg-input px-3 py-2 text-xs font-medium has-[:checked]:border-violet-500 has-[:checked]:bg-violet-500/10 has-[:checked]:text-violet-600 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-violet-500/40"
+                    >
+                      <input
+                        type="radio"
+                        name="id_plataforma"
+                        value={pla.id}
+                        defaultChecked={
+                          plataformasParaCrear.some((p) => p.id === plataformaParaCrearDefault)
+                            ? pla.id === plataformaParaCrearDefault
+                            : i === 0
+                        }
+                        className="accent-violet-600"
+                      />
+                      {pla.nombre}
+                    </label>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  name="nombre"
+                  type="text"
+                  placeholder="Nombre de la plantilla…"
+                  required
+                  className="min-w-0 flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+                />
+                <Button type="submit" shape="block" icon={<Plus size={15} strokeWidth={2.5} />}>
+                  Crear
+                </Button>
+              </div>
             </form>
           </div>
         </details>

@@ -6,19 +6,35 @@ import { db } from "@/db";
 import { cronograma, lista_canciones, playlists, usuario_plataforma, plataformas } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
-import { PLATAFORMA_IDS } from "@/lib/plataforma";
+import { resolverPlataforma } from "@/lib/plataforma";
 import { getPlataformaEfectivaId } from "@/lib/get-plataforma-activa";
+import { getMisPlataformas } from "@/lib/usuario-request-cache";
 import { crearNotificacionMasiva } from "@/lib/notif";
 
-async function getPlataformaActiva(): Promise<number> {
-  const session = await auth();
-  if (!session?.user) return PLATAFORMA_IDS.general;
-  // getPlataformaEfectivaId (a diferencia de getPlataformaActivaId) respeta
-  // la plataforma seleccionada en el switcher también para ADMINISTRADOR —
-  // si no, toda lista creada por un admin quedaba etiquetada "General" sin
-  // importar qué plataforma tuviera activa, y luego avanzarEstadoPlaylist
-  // nunca encontraba coincidencia con el director de turno de Remanentes.
-  return getPlataformaEfectivaId(session.user.id_usuario);
+/**
+ * Resuelve la plataforma para una lista nueva. Preferimos el valor explícito
+ * del form (el selector en /playlists, visible cuando el usuario tiene 2+
+ * plataformas) por sobre inferirlo de la cookie: la cookie depende de que el
+ * switcher haya alcanzado a persistir el Set-Cookie antes de este submit, y
+ * en la práctica esa inferencia venía fallando (listas creadas con el
+ * switcher en Remanentes terminaban etiquetadas General). Un valor explícito
+ * en el form no tiene ese problema de timing — pero igual lo validamos
+ * contra las plataformas reales del usuario para que nadie pueda forzar por
+ * formData una plataforma a la que no pertenece.
+ */
+async function resolverPlataformaParaCrear(
+  formData: FormData,
+  id_usuario: number,
+  rol: string,
+): Promise<number> {
+  const elegida = resolverPlataforma(formData.get("id_plataforma") as string | undefined);
+  if (elegida === undefined) return getPlataformaEfectivaId(id_usuario);
+
+  if (rol === "ADMINISTRADOR") return elegida;
+
+  const propias = await getMisPlataformas(id_usuario);
+  const esPropia = propias.some((p) => p.id_plataforma === elegida);
+  return esPropia ? elegida : getPlataformaEfectivaId(id_usuario);
 }
 
 // ── Guard de gestión (dueño o admin/líder) ────────────────────────────────────
@@ -50,7 +66,11 @@ export async function crearPlaylist(formData: FormData): Promise<void> {
   const nombre = (formData.get("nombre") as string | null)?.trim();
   if (!nombre) throw new Error("El nombre de la lista es obligatorio.");
 
-  const id_plataforma = await getPlataformaActiva();
+  const id_plataforma = await resolverPlataformaParaCrear(
+    formData,
+    session.user.id_usuario,
+    session.user.rol,
+  );
 
   const [inserted] = await db
     .insert(playlists)
