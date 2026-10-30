@@ -171,7 +171,7 @@ export default async function CancionesPage(props: {
         <section className="flex flex-col gap-4 animate-fade-in-up">
           <div>
             <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold text-hi">Catálogo</h1>
+              <h1 className="font-display text-xl font-bold text-hi">Repertorio</h1>
               <span className="text-xs text-lo">{totalAprobadas} canciones</span>
             </div>
             <p className="mt-1 text-sm text-lo">Buscá una canción y mirá su letra y acordes.</p>

@@ -8,9 +8,9 @@ export interface InputProps extends ComponentProps<"input"> {
 }
 
 export const FIELD_CLS =
-  "w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 disabled:cursor-not-allowed disabled:opacity-50";
+  "min-h-[46px] w-full rounded-2xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder:text-gone outline-none transition-colors focus:border-fuego-500 focus:ring-2 focus:ring-fuego-500/30 disabled:cursor-not-allowed disabled:opacity-50";
 
-export const FIELD_LABEL_CLS = "text-xs font-medium uppercase tracking-wider text-lo";
+export const FIELD_LABEL_CLS = "text-[13px] font-medium text-mid";
 
 /**
  * Input de formulario estándar de la app: encapsula la clase Tailwind que

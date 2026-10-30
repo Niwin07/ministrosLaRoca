@@ -2,13 +2,16 @@ import type { ReactNode } from "react";
 
 export type BadgeTone = "success" | "warning" | "info" | "neutral" | "violet" | "danger";
 
+// Colores "funcionales" del sistema Zarza (SistemaVisual · se mantienen):
+// success = Preparación, warning = En ensayo, info = Definitiva,
+// violet = acento suave (bermellón), danger = Error.
 const TONE: Record<BadgeTone, string> = {
-  success: "border-green-300 bg-green-200 text-green-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-400",
-  warning: "border-amber-200 bg-amber-100 text-amber-800 dark:border-yellow-400/20 dark:bg-yellow-400/10 dark:text-yellow-400",
-  info:    "border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-400",
+  success: "border-[#e0cbb0] bg-[#f3e7d6] text-[#6e4c40] dark:border-[#5e472a] dark:bg-[#211815] dark:text-[#d6c2a8]",
+  warning: "border-[#f8c98a] bg-[#ffeccc] text-[#9a3c0a] dark:border-[#3c2e1b] dark:bg-[#251d11] dark:text-[#f8894f]",
+  info:    "border-[#f5b9a0] bg-[#fde4d8] text-[#94402a] dark:border-[#5c382a] dark:bg-[#1e1513] dark:text-[#d9846d]",
   neutral: "border-mark bg-input text-mid",
-  violet:  "border-violet-500/20 bg-violet-500/15 text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-400",
-  danger:  "border-red-300 bg-red-100 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400",
+  violet:  "border-fuego-600/20 bg-fuego-600/[0.12] text-[#94402a] dark:border-[rgba(226,104,60,0.32)] dark:bg-[rgba(226,104,60,0.16)] dark:text-[#df8067]",
+  danger:  "border-[#f5b5a0] bg-[#fde7e7] text-[#b91c1c] dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400",
 };
 
 export interface BadgeProps {

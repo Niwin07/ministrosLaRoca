@@ -314,7 +314,7 @@ export default async function PlaylistDetailPage(props: {
           )}
         </div>
 
-        <h1 className="text-xl font-bold text-hi">{cabecera.nombre}</h1>
+        <h1 className="font-display text-xl font-bold text-hi">{cabecera.nombre}</h1>
         <p className="mt-0.5 text-xs text-lo">
           {items.length} {items.length === 1 ? "canción" : "canciones"}
           {cabecera.estado && (

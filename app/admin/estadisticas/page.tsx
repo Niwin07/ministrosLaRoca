@@ -109,7 +109,7 @@ export default async function EstadisticasPage(props: {
         </span>
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-widest text-violet-600">Admin</p>
-          <h1 className="text-xl font-bold text-hi">Estadísticas del repertorio</h1>
+          <h1 className="font-display text-xl font-bold text-hi">Estadísticas del repertorio</h1>
         </div>
       </div>
 

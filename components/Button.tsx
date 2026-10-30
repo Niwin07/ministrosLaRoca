@@ -14,13 +14,13 @@ type Shape = "pill" | "block";
 // hover, para que sea un CTA que "pide" ser tocado. Cada una define reposo ·
 // hover · active para que el estado nunca quede ambiguo.
 const VARIANT: Record<Variant, string> = {
+  // "Llama": gradiente bermellón → vino del sistema Zarza (botón principal).
   primary:
-    "bg-gradient-to-b from-violet-500 to-violet-600 text-white ring-1 ring-inset ring-white/15 " +
-    "shadow-lg shadow-violet-600/35 hover:from-violet-400 hover:to-violet-500 " +
-    "hover:shadow-xl hover:shadow-violet-600/50 hover:-translate-y-0.5 " +
-    "active:translate-y-0 active:shadow-md active:from-violet-600 active:to-violet-700",
+    "bg-llama text-white ring-1 ring-inset ring-white/10 shadow-llama " +
+    "hover:brightness-110 hover:-translate-y-0.5 hover:shadow-[0_14px_24px_-8px_rgba(180,71,42,0.55)] " +
+    "active:translate-y-0 active:brightness-95",
   secondary:
-    "border border-mark bg-input text-mid shadow-sm hover:border-line hover:bg-card hover:text-hi",
+    "border border-mark bg-card text-[#4a2c22] shadow-sm hover:border-fuego-300 hover:text-hi dark:text-hi",
   ghost:
     "text-mid hover:bg-input hover:text-hi",
   danger:

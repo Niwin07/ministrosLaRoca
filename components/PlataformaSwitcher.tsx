@@ -22,17 +22,20 @@ export function PlataformaSwitcher({ plataformas, activaId }: Props) {
   }
 
   return (
-    <div className="flex items-center rounded-full border border-line bg-input p-0.5 gap-0.5">
+    <div role="tablist" aria-label="Plataforma" className="flex w-fit max-w-full items-center gap-0.5 rounded-full border border-line bg-input p-[3px]">
       {plataformas.map((p) => {
         const activa = p.id === activaId;
         return (
           <button
             key={p.id}
+            type="button"
+            role="tab"
+            aria-selected={activa}
             onClick={() => cambiar(p.id)}
             disabled={pending}
-            className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-all duration-150 disabled:opacity-60 ${
+            className={`min-h-[34px] rounded-full px-4 text-[13px] font-semibold transition-all duration-150 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuego-500/40 ${
               activa
-                ? "bg-violet-600 text-white shadow-sm"
+                ? "bg-fuego-600 text-white shadow-sm"
                 : "text-mid hover:text-hi"
             }`}
           >

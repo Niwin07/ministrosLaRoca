@@ -2,43 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Light mode (default) ──────────────────────────────────── */
-/* Blanco-sobre-gris suave: la página es gris muy claro y las tarjetas son
-   blancas, así resaltan con su sombra. Los textos cumplen WCAG sobre blanco:
-   mid = zinc-600 (~7:1 AAA), lo = zinc-500 (~4.8:1 AA). */
+/* ════════════════════════════════════════════════════════════════
+   Sistema visual "Zarza" · Ministros La Roca
+   Fuente de verdad: canvas de diseño (SistemaVisual · MenuLateral ·
+   BarraSuperior · *Contenido). Los nombres de token (base/card/…) se
+   mantienen para no tocar las ~300 clases existentes: sólo cambian los
+   valores. Ver también tailwind.config.ts (escala `fuego`).
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Modo claro (default) ──────────────────────────────────── */
 :root {
-  --base:  226 223 240;   /* #e2dff0 — lavanda-gris definido: las tarjetas resaltan */
-  --card:  255 255 255;   /* white    #ffffff — tarjeta blanca nítida              */
-  --input: 237 234 248;   /* #edeaf8 — input / superficie elevada                  */
-  --mark:  205 200 222;   /* #cdc8de — borde fuerte (violeta tenue)               */
-  --line:  216 212 230;   /* #d8d4e6 — borde estándar (violeta tenue)             */
-  --hi:    24  24  27;    /* zinc-900 #18181b — texto principal (~16:1)         */
-  --mid:   82  82  91;    /* zinc-600 #52525b — texto secundario (~7:1 AAA)     */
-  --lo:    113 113 122;   /* zinc-500 #71717a — texto apagado (~4.8:1 AA)       */
-  --gone:  161 161 170;   /* zinc-400 #a1a1aa — placeholder / muy sutil         */
+  --base:  247 239 226;   /* Crema      #F7EFE2 — fondo liso (detrás del fondo animado) */
+  --card:  253 246 237;   /* Superficie #FDF6ED — tarjetas                            */
+  --input: 243 231 214;   /* Arena      #F3E7D6 — inputs / superficie elevada         */
+  --mark:  224 203 176;   /* #E0CBB0           — borde fuerte                         */
+  --line:  234 219 198;   /* Borde      #EADBC6 — borde estándar                       */
+  --hi:    43  22  17;    /* Tinta      #2B1611 — texto principal                      */
+  --mid:   110 76  64;    /* Texto 2    #6E4C40 — texto secundario                     */
+  --lo:    122 84  68;    /* #7A5444            — texto apagado (≥4.5:1 sobre crema)   */
+  --gone:  143 110 96;    /* Texto 3    #8F6E60 — placeholder / muy sutil              */
+
+  --accent:      180 71 42;  /* Bermellón #B4472A */
+  --nav-bg:      251 243 232; /* barra inferior móvil */
+  --sidebar-bg:  255 236 214; /* menú lateral (vidrio cálido) */
 }
 
-/* ── Dark mode ─────────────────────────────────────────────── */
+/* ── Modo noche (Brasa) ────────────────────────────────────── */
 .dark {
-  --base:  9   9   11;    /* zinc-950 #09090b */
-  --card:  24  24  27;    /* zinc-900 #18181b */
-  --input: 39  39  42;    /* zinc-800 #27272a */
-  --mark:  63  63  70;    /* zinc-700 #3f3f46 */
-  --line:  39  39  42;    /* zinc-800 #27272a */
-  --hi:    255 255 255;   /* white    #ffffff */
-  --mid:   161 161 170;   /* zinc-400 #a1a1aa */
-  --lo:    113 113 122;   /* zinc-500 #71717a */
-  --gone:  82  82  91;    /* zinc-600 #52525b */
+  color-scheme: dark;
+  --base:  26  5   4;     /* #1A0504 — brasa */
+  --card:  27  19  17;    /* #1B1311 — superficie */
+  --input: 33  24  21;    /* #211815 */
+  --mark:  94  71  42;    /* #5E472A */
+  --line:  74  53  48;    /* #4A3530 */
+  --hi:    229 216 199;   /* #E5D8C7 */
+  --mid:   214 194 168;   /* #D6C2A8 */
+  --lo:    184 160 136;   /* #B8A088 */
+  --gone:  136 112 92;    /* #88705C */
+
+  --accent:      214 90 50;   /* #D65A32 */
+  --nav-bg:      27  19  17;
+  --sidebar-bg:  34  26  17;
 }
+
+html { background-color: rgb(var(--base)); }
 
 body {
-  background-color: rgb(var(--base));
+  /* Transparente: el fondo animado de cada sección (FondoSeccion) queda detrás. */
+  background-color: transparent;
   color: rgb(var(--hi));
-  font-family: var(--font-geist-sans), Arial, sans-serif;
+  font-family: "DM Sans Variable", "DM Sans", Arial, sans-serif;
   letter-spacing: -0.015em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Títulos de página con la display de marca (Bricolage Grotesque).
+   Los h2 de la app son mayormente "eyebrows" en mayúsculas: usan font-display
+   explícito donde corresponde. */
+h1 {
+  font-family: "Bricolage Grotesque Variable", "Bricolage Grotesque", Arial, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Enlaces de texto con el acento (los <Link> con clases propias no se ven afectados
+   porque siempre declaran su color). */
+.dark a:not([class]) { color: #ef7a4c; }
 
 details > summary {
   list-style: none;
@@ -47,9 +76,20 @@ details > summary::-webkit-details-marker {
   display: none;
 }
 
+/* ── Íconos de marca con versión clara / oscura ─────────────── */
+.ico-oscuro { display: none !important; }
+.dark .ico-claro { display: none !important; }
+.dark .ico-oscuro { display: block !important; }
+
 /* ── Scrollbar oculta (scroll funciona, barra invisible) ─────── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Layout con menú lateral plegable (desktop) ─────────────── */
+@media (min-width: 768px) {
+  .con-menu { padding-left: 256px; transition: padding-left 0.2s ease; }
+  html[data-menu="plegado"] .con-menu { padding-left: 76px; }
+}
 
 /* ── Accesibilidad: respeta la preferencia de menos movimiento ─── */
 @media (prefers-reduced-motion: reduce) {

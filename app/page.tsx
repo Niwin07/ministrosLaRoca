@@ -107,8 +107,13 @@ export default async function DashboardPage() {
 
       {/* ── GREETING ──────────────────────────────────────────────── */}
       <div className="pb-1 animate-fade-in-down">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-violet-600">Portal de Alabanza</p>
-        <h1 className="mt-1 text-[28px] font-bold leading-tight tracking-tight text-hi">
+        <p className="text-[15px] font-medium italic leading-snug tracking-[-0.005em] text-[#4a1408] dark:text-[#ecbf98]">
+          Lo que Dios enciende, no se gasta.
+        </p>
+        <p className="mt-1 text-xs tracking-[0.01em] text-[#5c2a18] opacity-85 dark:text-[#ddcdb8]">
+          Éxodo 3:2-5 · RVR1960
+        </p>
+        <h1 className="mt-2.5 font-display text-[30px] font-bold leading-[1.08] tracking-[-0.02em] text-hi">
           Hola, {primerNombre}
         </h1>
       </div>
@@ -210,7 +215,7 @@ export default async function DashboardPage() {
 
         {cancionesActivas.length === 0 && !listaActiva && (
           <p className="rounded-2xl border border-line bg-card px-4 py-5 text-sm text-lo">
-            No hay lista de ensayo activa esta semana.
+            No hay un servicio en ensayo esta semana.
           </p>
         )}
       </section>
@@ -225,7 +230,7 @@ export default async function DashboardPage() {
 
         <div className="flex items-center justify-between">
           <h2 className="text-[11px] font-semibold uppercase tracking-widest text-mid">
-            Mis listas
+            Mis servicios
           </h2>
           <Link
             href="/playlists"
@@ -239,7 +244,7 @@ export default async function DashboardPage() {
           <Link href="/playlists">
             <div className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-mark py-8 transition-all duration-200 hover:border-line hover:bg-card">
               <Plus size={15} className="text-lo" />
-              <span className="text-sm text-lo">Crear primera lista</span>
+              <span className="text-sm text-lo">Crear el primer servicio</span>
             </div>
           </Link>
         ) : (

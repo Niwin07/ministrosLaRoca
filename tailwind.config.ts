@@ -1,5 +1,22 @@
 import type { Config } from "tailwindcss";
 
+// Escala "Fuego" (sistema visual Zarza · Ministros La Roca).
+// 600 = Bermellón (acento principal), 400 = acento sobre modo oscuro,
+// 800 = Vino, 950 = Brasa.
+const FUEGO = {
+  50:  "#fdf1e8",
+  100: "#fde4d8",
+  200: "#f8c9b0",
+  300: "#f0a582",
+  400: "#df8067",
+  500: "#c7613a",
+  600: "#b4472a",
+  700: "#94402a",
+  800: "#7a2a26",
+  900: "#5e1f18",
+  950: "#4a1a10",
+};
+
 const config: Config = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,7 +26,22 @@ const config: Config = {
   darkMode: "class",
   theme: {
     extend: {
+      fontFamily: {
+        // Sistema "Zarza": DM Sans para lectura, Bricolage Grotesque para títulos,
+        // Geist Mono para datos/citas. Las fuentes se auto-hospedan (@fontsource).
+        sans:    ["'DM Sans Variable'", "'DM Sans'", "Arial", "sans-serif"],
+        display: ["'Bricolage Grotesque Variable'", "'Bricolage Grotesque'", "Arial", "sans-serif"],
+        mono:    ["var(--font-geist-mono)", "ui-monospace", "monospace"],
+      },
       colors: {
+        // ── Acento de marca ───────────────────────────────────────────
+        // La app usaba `violet-*` como acento en ~300 lugares. En vez de tocar
+        // cada clase, la escala `violet` se redefine con la paleta "Fuego" del
+        // sistema visual Zarza (bermellón #b4472a = 600). `fuego-*` es el alias
+        // nuevo a usar de acá en adelante.
+        violet: FUEGO,
+        fuego:  FUEGO,
+
         background: "var(--background)",
         foreground: "var(--foreground)",
 
@@ -47,10 +79,17 @@ const config: Config = {
         lo:    "rgb(var(--lo)    / <alpha-value>)",
         gone:  "rgb(var(--gone)  / <alpha-value>)",
       },
+      backgroundImage: {
+        // Gradiente "Llama": botones principales y avatares.
+        llama: "linear-gradient(135deg, #c8603a 0%, #a33a2c 55%, #5e1f18 100%)",
+      },
+      borderRadius: {
+        card: "28px",
+      },
       boxShadow: {
-        // Doble capa con tinte violeta: las tarjetas "flotan" sobre el fondo
-        // claro con un poco de carácter de marca (en dark se usa shadow-none).
-        card: "0 1px 2px rgba(24,24,40,0.06), 0 8px 24px -6px rgba(70,50,140,0.20)",
+        // Sombra cálida de tarjeta (sistema Zarza). En dark se usa shadow-none.
+        card:  "0 1px 2px rgba(43,22,17,0.06), 0 8px 24px -6px rgba(120,45,15,0.20)",
+        llama: "0 10px 20px -8px rgba(180,71,42,0.5)",
       },
       keyframes: {
         "fade-in": {

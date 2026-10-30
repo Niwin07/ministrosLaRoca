@@ -10,8 +10,8 @@ interface HeroCardProps {
 }
 
 const PASOS = [
-  { num: "1", label: "Creá una lista",    sub: "en la sección Listas",       href: "/playlists" },
-  { num: "2", label: "Agregá canciones",  sub: "del catálogo aprobado",      href: "/canciones"  },
+  { num: "1", label: "Creá un servicio",  sub: "en la sección Servicios",    href: "/playlists" },
+  { num: "2", label: "Agregá canciones",  sub: "del repertorio aprobado",    href: "/canciones"  },
   { num: "3", label: "Abrí en escenario", sub: "cuando arranque el servicio", href: "/playlists" },
 ] as const;
 
@@ -23,7 +23,11 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="relative overflow-hidden rounded-3xl border border-line bg-card p-6 shadow-card dark:shadow-none"
+      className="relative overflow-hidden rounded-card border border-line bg-card p-5 shadow-card sm:p-6 dark:shadow-none"
+      style={{
+        backgroundImage:
+          "radial-gradient(120% 140% at 0% 0%, rgba(232,160,96,0.16) 0%, rgba(232,160,96,0) 45%), radial-gradient(90% 120% at 100% 100%, rgba(122,42,38,0.08) 0%, rgba(122,42,38,0) 50%)",
+      }}
     >
       {/* ── Eyebrow ──────────────────────────────────────────────── */}
       <div className="relative mb-5 flex items-center gap-2">
@@ -38,8 +42,8 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
           />
         </span>
         <span
-          className={`text-[10px] font-semibold uppercase tracking-[0.15em] ${
-            tieneListaActiva ? "text-violet-600" : "text-lo"
+          className={`text-[11px] font-semibold uppercase tracking-[0.12em] ${
+            tieneListaActiva ? "text-fuego-600 dark:text-[#df8067]" : "text-lo"
           }`}
         >
           {tieneListaActiva ? "Evento activo" : `Hola, ${primerNombre}`}
@@ -50,9 +54,9 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
         /* ── Estado activo: título + CTA ──────────────────────── */
         <>
           <div className="relative mb-7">
-            <h1 className="text-[1.85rem] font-bold leading-tight tracking-tight text-hi">
+            <h2 className="font-display text-[30px] font-bold leading-[1.08] tracking-[-0.02em] text-hi">
               {listaActiva!.nombre}
-            </h1>
+            </h2>
             <p className="mt-2 text-sm text-mid">
               {Number(listaActiva!.total)}&nbsp;
               {Number(listaActiva!.total) === 1 ? "canción" : "canciones"}
@@ -63,7 +67,7 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
             <motion.div
               whileTap={{ scale: 0.97 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-violet-600 py-4 transition-colors duration-200 hover:bg-violet-500 active:bg-violet-700"
+              className="flex min-h-[52px] w-full items-center justify-center gap-3 rounded-2xl bg-llama shadow-llama transition-[filter] duration-200 hover:brightness-110 active:brightness-95"
             >
               <Tv2 size={20} className="text-white" strokeWidth={2} />
               <span className="text-[15px] font-semibold tracking-wide text-white">
@@ -76,9 +80,9 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
         /* ── Estado vacío: guía de 3 pasos ───────────────────── */
         <>
           <div className="relative mb-6">
-            <h1 className="text-xl font-bold text-hi">
+            <h2 className="font-display text-2xl font-bold leading-tight text-hi">
               ¿Por dónde empezás?
-            </h1>
+            </h2>
             <p className="mt-1 text-sm text-lo">
               Seguí estos pasos para preparar tu servicio.
             </p>
@@ -107,14 +111,14 @@ export function HeroCard({ listaActiva, primerNombre }: HeroCardProps) {
               className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-line bg-card py-3.5 text-sm font-semibold text-hi shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-500/40 active:translate-y-0 active:scale-[0.98] dark:bg-input"
             >
               <ListMusic size={16} className="text-violet-600" />
-              Mis listas
+              Mis servicios
             </Link>
             <Link
               href="/canciones"
               className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-line bg-card py-3.5 text-sm font-semibold text-hi shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-500/40 active:translate-y-0 active:scale-[0.98] dark:bg-input"
             >
               <BookOpen size={16} className="text-violet-600" />
-              Catálogo
+              Repertorio
             </Link>
           </div>
         </>

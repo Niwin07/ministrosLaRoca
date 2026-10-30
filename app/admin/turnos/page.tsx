@@ -87,11 +87,11 @@ export default async function AdminTurnosPage(props: {
         className="inline-flex items-center gap-1.5 text-sm text-lo transition-colors hover:text-hi"
       >
         <ArrowLeft size={15} />
-        Ver Cola
+        Ver turnos
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-hi">Gestión de Cola</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight text-hi">Gestión de turnos</h1>
         <p className="mt-1 text-sm text-lo">Administrá la rotación de ministros en servicio.</p>
       </div>
 
@@ -230,7 +230,7 @@ export default async function AdminTurnosPage(props: {
           <section key={plataforma.id} className="space-y-3">
             <div>
               <h2 className="text-xs font-semibold uppercase tracking-wider text-mid">
-                Cola — {plataforma.nombre}
+                Turnos — {plataforma.nombre}
               </h2>
               <p className="mt-0.5 text-[11px] text-lo">Arrastrá para reordenar quién sigue.</p>
             </div>

@@ -1,10 +1,16 @@
 "use client";
 
 import { useTransition } from "react";
-import { Sun, Moon } from "lucide-react";
+import { Sun } from "lucide-react";
 import { setTema } from "@/app/actions/tema";
+import { IconoMarca } from "@/components/zarza/IconoMarca";
 
-export function ThemeToggle({ tema, sidebar }: { tema: "claro" | "oscuro"; sidebar?: boolean }) {
+/**
+ * Alterna modo claro / noche. El estado se persiste en la cookie `tema`
+ * (Server Action existente) y se aplica al instante con la clase `dark`.
+ * Diseño Zarza: luna ilustrada en claro, sol de trazo en noche.
+ */
+export function ThemeToggle({ tema }: { tema: "claro" | "oscuro"; sidebar?: boolean }) {
   const [pending, start] = useTransition();
   const isDark = tema === "oscuro";
 
@@ -14,31 +20,18 @@ export function ThemeToggle({ tema, sidebar }: { tema: "claro" | "oscuro"; sideb
     start(() => setTema(next));
   }
 
-  if (sidebar) {
-    return (
-      <button
-        onClick={toggle}
-        disabled={pending}
-        aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-lo transition-colors hover:bg-input hover:text-mid disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
-      >
-        {isDark
-          ? <Sun  size={17} strokeWidth={1.8} className="shrink-0" />
-          : <Moon size={17} strokeWidth={1.8} className="shrink-0" />
-        }
-        <span>{isDark ? "Modo oscuro" : "Modo claro"}</span>
-      </button>
-    );
-  }
+  const label = isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
 
   return (
     <button
+      type="button"
       onClick={toggle}
       disabled={pending}
-      aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-      className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors hover:text-hi disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+      aria-label={label}
+      title={label}
+      className="flex h-11 w-11 items-center justify-center rounded-full text-[#4a2c22] transition-colors hover:bg-fuego-600/10 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuego-500/40 dark:text-[#decfba]"
     >
-      {isDark ? <Sun size={20} /> : <Moon size={20} />}
+      {isDark ? <Sun size={20} strokeWidth={2} aria-hidden /> : <IconoMarca nombre="luna" size={22} />}
     </button>
   );
 }

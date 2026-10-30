@@ -40,11 +40,11 @@ export default async function EditarCancionPage(props: {
         className="inline-flex items-center gap-1.5 text-xs text-lo transition-colors hover:text-hi"
       >
         <ArrowLeft size={13} />
-        Catálogo
+        Repertorio
       </Link>
 
       <div>
-        <h1 className="text-xl font-bold text-hi">Editar canción</h1>
+        <h1 className="font-display text-xl font-bold text-hi">Editar canción</h1>
         <p className="mt-0.5 text-xs text-lo">Corregí la letra, los acordes o los datos.</p>
       </div>
 

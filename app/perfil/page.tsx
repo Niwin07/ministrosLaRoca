@@ -60,7 +60,7 @@ export default async function PerfilPage(props: {
       <div className="flex items-center gap-4">
         <Avatar foto={usuario.foto} nombre={usuario.nombre} size={56} />
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-bold tracking-tight text-hi">{usuario.nombre}</h1>
+          <h1 className="font-display truncate text-2xl font-bold tracking-tight text-hi">{usuario.nombre}</h1>
           <p className="mt-0.5 inline-flex items-center gap-1.5 text-xs text-lo">
             <ShieldCheck size={12} />
             {ROL_LABEL[usuario.rol] ?? usuario.rol}

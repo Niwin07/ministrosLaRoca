@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { IconoMarca } from "@/components/zarza/IconoMarca";
 import {
   Bell,
   Calendar,
@@ -136,11 +137,15 @@ export function NotifBell({ sidebar }: { sidebar?: boolean } = {}) {
           onClick={abrir}
           aria-label={`Notificaciones${noLeidas > 0 ? ` (${noLeidas} nuevas)` : ""}`}
           aria-expanded={abierto}
-          className="relative flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
+          title="Notificaciones"
+          className="relative flex h-11 w-11 items-center justify-center rounded-full transition-colors duration-200 hover:bg-fuego-600/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuego-500/40"
         >
-          <Bell size={20} />
+          <IconoMarca nombre="notif" size={22} />
           {noLeidas > 0 && (
-            <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+            <span
+              aria-hidden="true"
+              className="absolute right-[7px] top-[6px] flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-base bg-red-600 px-0.5 text-[9px] font-bold leading-none text-white"
+            >
               {noLeidas > 9 ? "9+" : noLeidas}
             </span>
           )}

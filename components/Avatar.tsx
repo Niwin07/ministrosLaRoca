@@ -8,13 +8,13 @@ interface AvatarProps {
 
 /**
  * Avatar reutilizable: muestra la foto de perfil si existe, o la inicial del
- * nombre sobre fondo violeta. Server-safe (sin estado), sirve en cualquier lista
+ * nombre sobre el gradiente "Llama". Server-safe (sin estado), sirve en cualquier lista
  * que muestre personas (turnos, esta semana, admin, etc.).
  */
 export function Avatar({ foto, nombre, size = 36, className = "" }: AvatarProps) {
   return (
     <div
-      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-600 ${className}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-llama ${className}`}
       style={{ width: size, height: size }}
     >
       {foto ? (

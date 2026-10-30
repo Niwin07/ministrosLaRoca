@@ -46,7 +46,7 @@ export default async function AdminCancionesPage(props: {
           className="inline-flex items-center gap-1.5 text-xs text-lo transition-colors hover:text-hi"
         >
           <ArrowLeft size={13} />
-          Catálogo
+          Repertorio
         </Link>
         <Link
           href="/admin/estadisticas"
@@ -61,7 +61,7 @@ export default async function AdminCancionesPage(props: {
           <ShieldCheck size={16} className="text-violet-600" />
         </span>
         <div>
-          <h1 className="text-xl font-bold text-hi">Moderación</h1>
+          <h1 className="font-display text-xl font-bold text-hi">Moderación</h1>
           <p className="mt-0.5 text-xs text-lo">
             {pendientes.length}{" "}
             {pendientes.length === 1 ? "canción pendiente" : "canciones pendientes"}

@@ -1,25 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import Link from "next/link";
 import { cookies } from "next/headers";
-import { Settings, LogOut } from "lucide-react";
 import { NavWrapper } from "@/components/NavWrapper";
 import { SideNav } from "@/components/SideNav";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { NotifBell } from "@/components/NotifBell";
-import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
+import { BarraSuperior } from "@/components/BarraSuperior";
 import { PlataformaCookieSetter } from "@/components/PlataformaCookieSetter";
-import { Avatar } from "@/components/Avatar";
+import { FondoSeccion } from "@/components/zarza/FondoSeccion";
 import { auth, signOut } from "@/auth";
 import { getUsuarioFoto, getMisPlataformas } from "@/lib/usuario-request-cache";
 import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
+// Tipografías del sistema Zarza, auto-hospedadas (no dependen de Google Fonts en build).
+import "@fontsource-variable/dm-sans";
+import "@fontsource-variable/bricolage-grotesque";
 import "./globals.css";
-
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
+import "./zarza-fondos.css";
 
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
@@ -33,12 +27,15 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#09090b",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7efe2" },
+    { media: "(prefers-color-scheme: dark)",  color: "#1a0504" },
+  ],
 };
 
 export const metadata: Metadata = {
-  title: "Ministros | App de Alabanza",
-  description: "Gestión de turnos, listas y catálogo de canciones",
+  title: "Ministros La Roca | Portal de Alabanza",
+  description: "Gestión de turnos, servicios y repertorio de canciones",
   appleWebApp: {
     capable: true,
     title: "Ministros",
@@ -46,12 +43,17 @@ export const metadata: Metadata = {
   },
 };
 
+// Aplica el estado del menú lateral antes del primer pintado (evita el salto
+// de ancho al recargar con el menú plegado).
+const SCRIPT_MENU = `try{var m=localStorage.getItem('roca-menu');if(m==='plegado')document.documentElement.dataset.menu='plegado'}catch(e){}`;
+
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await auth();
   const jar = await cookies();
-  const tema = (jar.get("tema")?.value ?? "oscuro") as "claro" | "oscuro";
+  // El diseño Zarza parte del modo claro; quien ya eligió un tema lo conserva (cookie).
+  const tema = (jar.get("tema")?.value ?? "claro") as "claro" | "oscuro";
 
   let foto: string | null = null;
   let misPlataformas: { id: number; nombre: string }[] = [];
@@ -85,70 +87,36 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="es" className={tema === "oscuro" ? "dark" : ""}>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="es" className={tema === "oscuro" ? "dark" : ""} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_MENU }} />
+      </head>
+      <body className={`${geistMono.variable} font-sans antialiased`}>
 
-        {/* ── Sidebar (desktop) ────────────────────────────────────────── */}
+        {/* ── Fondo animado de la sección ("Zarza") ─────────────────── */}
+        <FondoSeccion />
+
+        {/* ── Menú lateral plegable (desktop) ───────────────────────── */}
         {session?.user && (
-          <SideNav
-            rol={session.user.rol}
-            nombre={session.user.name ?? ""}
-            foto={foto}
-            tema={tema}
-            logoutAction={logoutAction}
-            misPlataformas={misPlataformas}
-            plataformaActivaId={plataformaActivaId}
-          />
+          <SideNav rol={session.user.rol} nombre={session.user.name ?? ""} foto={foto} />
         )}
 
-        {/* ── Header — solo móvil; en desktop todo vive en el sidebar ──── */}
-        {session?.user && (
-          <header className="sticky top-0 z-50 border-b border-line/60 bg-base/95 backdrop-blur-xl animate-fade-in-down md:hidden">
-            <div
-              className="mx-auto flex max-w-md items-center justify-between px-4 py-2"
-              style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "max(1rem, env(safe-area-inset-left))", paddingRight: "max(1rem, env(safe-area-inset-right))" }}
-            >
-              <Link
-                href="/perfil"
-                aria-label="Mi perfil"
-                className="shrink-0 rounded-full transition-opacity hover:opacity-80"
-              >
-                <Avatar foto={foto} nombre={session.user.name ?? ""} size={40} />
-              </Link>
-
-              {misPlataformas.length >= 2 && (
-                <PlataformaSwitcher plataformas={misPlataformas} activaId={plataformaActivaId} />
-              )}
-
-              <div className="relative flex items-center">
-                <NotifBell />
-                <ThemeToggle tema={tema} />
-                {session.user.rol === "ADMINISTRADOR" && (
-                  <Link
-                    href="/admin/usuarios"
-                    aria-label="Gestión de usuarios"
-                    className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
-                  >
-                    <Settings size={20} />
-                  </Link>
-                )}
-                <form action={logoutAction}>
-                  <button
-                    type="submit"
-                    aria-label="Cerrar sesión"
-                    className="flex h-11 w-11 items-center justify-center rounded-full text-gone transition-colors duration-200 hover:text-hi"
-                  >
-                    <LogOut size={20} />
-                  </button>
-                </form>
-              </div>
+        {/* ── Contenido principal ──────────────────────────────────── */}
+        <div className={session?.user ? "con-menu" : ""}>
+          {session?.user && (
+            <div className="md:px-6">
+              <BarraSuperior
+                rol={session.user.rol}
+                nombre={session.user.name ?? ""}
+                foto={foto}
+                tema={tema}
+                logoutAction={logoutAction}
+                misPlataformas={misPlataformas}
+                plataformaActivaId={plataformaActivaId}
+              />
             </div>
-          </header>
-        )}
-
-        {/* ── Contenido principal ──────────────────────────────────────── */}
-        <div className={session?.user ? "md:pl-64" : ""}>
-          <div className="relative mx-auto min-h-dvh max-w-md pb-28 md:max-w-none md:pb-0 md:px-8 md:pt-8 xl:max-w-[1400px]">
+          )}
+          <div className="relative mx-auto min-h-dvh max-w-md pb-28 md:max-w-none md:px-8 md:pb-10 md:pt-2 xl:max-w-[1400px]">
             {children}
           </div>
         </div>

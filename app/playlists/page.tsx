@@ -219,7 +219,7 @@ export default async function PlaylistsPage(props: {
 
       {/* Encabezado */}
       <div className="animate-fade-in-down lg:mb-6">
-        <h1 className="text-2xl font-bold text-hi">Listas</h1>
+        <h1 className="font-display text-2xl font-bold text-hi">Mis servicios</h1>
         <p className="mt-1 text-sm text-lo">El servicio de la semana, lo que estás armando y tus plantillas.</p>
       </div>
 

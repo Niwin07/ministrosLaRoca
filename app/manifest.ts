@@ -2,14 +2,14 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Ministros | App de Alabanza",
+    name: "Ministros La Roca",
     short_name: "Ministros",
-    description: "Gestión de turnos, listas y catálogo de canciones",
+    description: "Gestión de turnos, servicios y repertorio de canciones",
     start_url: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#000000",
-    theme_color: "#09090b",
+    background_color: "#1a0504",
+    theme_color: "#1a0504",
     icons: [
       {
         src: "/icon-192.png",

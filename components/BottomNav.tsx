@@ -2,69 +2,46 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
-import { getNavItems } from "@/lib/nav-items";
+import { getNavItems, esRutaActiva } from "@/lib/nav-items";
+import { IconoMarca } from "@/components/zarza/IconoMarca";
 
+/**
+ * Barra de navegación inferior (móvil) — diseño "Main" del sistema Zarza:
+ * vidrio crema, íconos ilustrados y etiqueta; la activa en bermellón.
+ */
 export function BottomNav({ rol }: { rol?: string }) {
   const pathname = usePathname();
   const items = getNavItems(rol);
 
   return (
-    // Anchored tab bar — both modes. Centered on the max-w-md content column.
     <div className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 md:hidden">
       <nav
         aria-label="Navegación principal"
-        style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
-        className="flex items-center justify-around border-t-[1.5px] border-line bg-base/95 px-4 pt-2 backdrop-blur-xl"
+        style={{
+          paddingTop: 6,
+          paddingBottom: "max(14px, env(safe-area-inset-bottom))",
+          paddingLeft: "max(6px, env(safe-area-inset-left))",
+          paddingRight: "max(6px, env(safe-area-inset-right))",
+        }}
+        className="flex items-center justify-around gap-0.5 border-t-[1.5px] border-line bg-[rgb(var(--nav-bg)/0.8)] backdrop-blur-[14px]"
       >
         {items.map((item) => {
-          const isActive =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href);
-          const Icon = item.icon;
-
+          const activo = esRutaActiva(item.href, pathname);
           return (
             <Link
               key={item.href}
               href={item.href}
-              aria-label={item.label}
-              aria-current={isActive ? "page" : undefined}
-              className="group flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-[3px]"
+              aria-current={activo ? "page" : undefined}
+              className={[
+                "flex min-h-[48px] min-w-0 max-w-[88px] flex-1 basis-0 flex-col items-center justify-center gap-[3px] no-underline",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuego-500/40 rounded-xl",
+                activo ? "text-fuego-600 dark:text-[#df8067]" : "text-[#7a5444] dark:text-[#d4bfa3]",
+              ].join(" ")}
             >
-              {/* Icon — pill animado deslizante (layoutId) */}
-              <motion.span
-                animate={isActive ? { scale: 1.05 } : { scale: 1 }}
-                whileTap={{ scale: 0.9 }}
-                transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                className="relative flex items-center justify-center p-2"
-              >
-                {isActive && (
-                  <motion.span
-                    layoutId="nav-pill"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    className="absolute inset-0 rounded-full bg-violet-500/10 dark:bg-violet-400/10"
-                  />
-                )}
-                <Icon
-                  size={19}
-                  strokeWidth={isActive ? 2.5 : 1.8}
-                  className={`relative transition-colors duration-200 ${
-                    isActive
-                      ? "text-violet-600 dark:text-violet-400"
-                      : "text-lo group-hover:text-mid"
-                  }`}
-                />
-              </motion.span>
-
-              {/* Label */}
-              <span
-                className={`text-[10px] font-medium leading-none transition-colors duration-200 ${
-                  isActive
-                    ? "text-violet-600 dark:text-violet-400"
-                    : "text-lo"
-                }`}
-              >
+              <span className={`flex rounded-full p-2 transition-colors ${activo ? "bg-fuego-600/10" : ""}`}>
+                <IconoMarca nombre={item.icono} size={21} />
+              </span>
+              <span className={`max-w-full truncate text-[10px] leading-none ${activo ? "font-semibold" : "font-medium"}`}>
                 {item.label}
               </span>
             </Link>

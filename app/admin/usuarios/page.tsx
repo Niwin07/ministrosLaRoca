@@ -60,7 +60,7 @@ export default async function AdminUsuariosPage(props: {
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-hi">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-hi">
           Gestión de Usuarios
         </h1>
         <p className="mt-1 text-sm text-lo">

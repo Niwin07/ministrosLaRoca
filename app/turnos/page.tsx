@@ -46,7 +46,7 @@ export default async function TurnosPage() {
   return (
     <main className="px-4 pt-8 pb-6 space-y-6 lg:max-w-4xl">
 
-      <h1 className="text-2xl font-bold tracking-tight text-hi">
+      <h1 className="font-display text-2xl font-bold tracking-tight text-hi">
         Turnos
       </h1>
 
@@ -86,7 +86,7 @@ export default async function TurnosPage() {
               <div className="flex items-center gap-2">
                 <Clock size={13} className="shrink-0 text-violet-500" />
                 <p className="text-xs font-semibold uppercase tracking-wider text-mid">
-                  Cola de Espera
+                  Próximos turnos
                 </p>
               </div>
               <div className="flex flex-col gap-2">
