@@ -1,13 +1,13 @@
 "use server";
 
 // Prepara la base de datos para los módulos nuevos (Calentamiento, Protocolo,
-// Quiero mejorar y Turnos de sonido) desde la app, para no depender de correr
+// Quiero mejorar, Turnos de sonido y estilo/tono del repertorio) desde la app, para no depender de correr
 // `npm run db:migrate` en una consola. Sólo ADMINISTRADOR.
 
 import mysql from "mysql2/promise";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { SQL_MODULOS_ZARZA } from "@/lib/migracion-modulos";
+import { SQL_CANCIONES_ESTILO, SQL_MODULOS_ZARZA } from "@/lib/migracion-modulos";
 import type { ResultadoAccion } from "@/app/actions/contenido";
 
 export async function prepararModulos(): Promise<ResultadoAccion> {
@@ -33,6 +33,13 @@ export async function prepararModulos(): Promise<ResultadoAccion> {
       multipleStatements: true,
     });
     await conn.query(SQL_MODULOS_ZARZA);
+    try {
+      await conn.query(SQL_CANCIONES_ESTILO);
+    } catch (e) {
+      // Ya aplicada (columna o índice existente): se saltea.
+      const code = (e as { code?: string }).code;
+      if (code !== "ER_DUP_FIELDNAME" && code !== "ER_DUP_KEYNAME") throw e;
+    }
   } catch (e) {
     console.error("[prepararModulos]", e);
     return { ok: false, error: "No se pudo preparar la base de datos. Revisá los logs del servidor." };
@@ -40,7 +47,7 @@ export async function prepararModulos(): Promise<ResultadoAccion> {
     await conn?.end().catch(() => {});
   }
 
-  for (const ruta of ["/calentamiento", "/protocolo", "/mejorar", "/admin/turnos", "/turnos", "/"]) {
+  for (const ruta of ["/canciones", "/calentamiento", "/protocolo", "/mejorar", "/admin/turnos", "/turnos", "/"]) {
     revalidatePath(ruta);
   }
   return { ok: true };

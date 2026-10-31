@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { canciones, playlists } from "@/db/schema";
-import { and, desc, eq, inArray, isNotNull, like, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, like, or, sql, type SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { CheckCircle2, Sparkles } from "lucide-react";
@@ -9,9 +9,12 @@ import { CatalogoCanciones } from "@/components/CatalogoCanciones";
 import { CargarCancion } from "@/components/CargarCancion";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { cls } from "@/components/zarza/ui";
-import { agregarCancionALista } from "@/app/actions/listas";
+import { agregarCancionALista, eliminarCancionDeLista } from "@/app/actions/listas";
 import { sugerirCancion as crearSugerencia } from "@/app/actions/canciones";
-import { METRICAS } from "@/lib/metricas";
+import { ESTILOS, TONOS_CANCION, estilosDeParam } from "@/lib/estilos";
+import { esColumnaFaltante } from "@/lib/modulos";
+import { AvisoMigracion } from "@/components/zarza/ui";
+import { SelectorZarza } from "@/components/zarza/SelectorZarza";
 
 const POR_PAGINA = 15;
 
@@ -21,9 +24,7 @@ export default async function CancionesPage(props: {
     editada?:   string;
     error?:     string;
     q?:         string;
-    artista?:   string;
-    metrica?:   string;
-    contenido?: string;
+    estilo?:    string;
     pagina?:    string;
   }>;
 }) {
@@ -41,15 +42,12 @@ export default async function CancionesPage(props: {
   // cliente — crecía sin límite con cada canción nueva). El estado de los
   // filtros vive en la URL, así que es la única fuente de verdad tanto para
   // la query como para lo que ve CatalogoCanciones.
-  const q         = (searchParams.q ?? "").trim();
-  const artista   = searchParams.artista ?? "";
-  const metrica   = searchParams.metrica ?? "";
-  const contenido = searchParams.contenido === "charts" || searchParams.contenido === "letra"
-    ? searchParams.contenido
-    : null;
-  const pagina = Math.max(1, Number(searchParams.pagina) || 1);
+  const q       = (searchParams.q ?? "").trim();
+  // Filtro del diseño: estilos (varios a la vez), separados por coma en la URL.
+  const estilos = estilosDeParam(searchParams.estilo);
+  const pagina  = Math.max(1, Number(searchParams.pagina) || 1);
 
-  const condiciones = [eq(canciones.estado_aprobacion, "APROBADA")];
+  const condiciones: SQL[] = [eq(canciones.estado_aprobacion, "APROBADA")];
 
   if (q) {
     // Escapar comodines de LIKE para que una búsqueda tipo "50%" busque el
@@ -59,60 +57,44 @@ export default async function CancionesPage(props: {
     const clause = or(like(canciones.nombre, patron), like(canciones.artista, patron));
     if (clause) condiciones.push(clause);
   }
-  if (artista) condiciones.push(eq(canciones.artista, artista));
-  if (metrica) condiciones.push(eq(canciones.metrica, metrica));
-  if (contenido === "charts") {
-    condiciones.push(isNotNull(canciones.charts), ne(canciones.charts, ""));
+
+  const campos = {
+    id_cancion: canciones.id_cancion,
+    nombre:     canciones.nombre,
+    artista:    canciones.artista,
+    bpm:        canciones.bpm,
+    letra:      canciones.letra,
+    charts:     canciones.charts,
+  };
+
+  async function consultar(conEstilo: boolean) {
+    const where = and(...condiciones, ...(conEstilo && estilos.length ? [inArray(canciones.estilo, estilos)] : []))!;
+    const filas = conEstilo
+      ? db.select({ ...campos, estilo: canciones.estilo, tono: canciones.tono })
+      : db.select({ ...campos, estilo: sql<string | null>`NULL`, tono: sql<string | null>`NULL` });
+    return Promise.all([
+      filas.from(canciones).where(where).orderBy(canciones.nombre).limit(POR_PAGINA).offset((pagina - 1) * POR_PAGINA),
+      db.select({ count: sql<number>`COUNT(*)` }).from(canciones).where(where),
+      db.select({ count: sql<number>`COUNT(*)` }).from(canciones).where(eq(canciones.estado_aprobacion, "APROBADA")),
+    ]);
   }
-  if (contenido === "letra") {
-    condiciones.push(isNotNull(canciones.letra), ne(canciones.letra, ""));
+
+  // Si todavía no se corrió la migración 010 (estilo/tono), el repertorio
+  // sigue andando sin ese filtro y se avisa a quien puede prepararla.
+  let faltaMigracion = false;
+  let resultado: Awaited<ReturnType<typeof consultar>>;
+  try {
+    resultado = await consultar(true);
+  } catch (e) {
+    if (!esColumnaFaltante(e)) throw e;
+    faltaMigracion = true;
+    resultado = await consultar(false);
   }
-
-  const whereClause = and(...condiciones)!;
-
-  const [aprobadas, totalRows, totalAprobadasRows, artistaRows, metricaRows] = await Promise.all([
-    db
-      .select({
-        id_cancion: canciones.id_cancion,
-        nombre:     canciones.nombre,
-        artista:    canciones.artista,
-        bpm:        canciones.bpm,
-        metrica:    canciones.metrica,
-        letra:      canciones.letra,
-        charts:     canciones.charts,
-      })
-      .from(canciones)
-      .where(whereClause)
-      .orderBy(canciones.nombre)
-      .limit(POR_PAGINA)
-      .offset((pagina - 1) * POR_PAGINA),
-
-    db.select({ count: sql<number>`COUNT(*)` }).from(canciones).where(whereClause),
-
-    db.select({ count: sql<number>`COUNT(*)` })
-      .from(canciones)
-      .where(eq(canciones.estado_aprobacion, "APROBADA")),
-
-    // Listas para los dropdowns de filtro — siempre sobre el catálogo
-    // completo aprobado, no sobre el resultado ya filtrado (igual que antes).
-    db.select({ artista: canciones.artista })
-      .from(canciones)
-      .where(eq(canciones.estado_aprobacion, "APROBADA"))
-      .groupBy(canciones.artista)
-      .orderBy(canciones.artista),
-
-    db.select({ metrica: canciones.metrica })
-      .from(canciones)
-      .where(and(eq(canciones.estado_aprobacion, "APROBADA"), isNotNull(canciones.metrica)))
-      .groupBy(canciones.metrica)
-      .orderBy(canciones.metrica),
-  ]);
+  const [aprobadas, totalRows, totalAprobadasRows] = resultado;
 
   const total          = Number(totalRows[0]?.count ?? 0);
   const totalAprobadas = Number(totalAprobadasRows[0]?.count ?? 0);
   const totalPaginas   = Math.max(1, Math.ceil(total / POR_PAGINA));
-  const artistas       = artistaRows.map((r) => r.artista);
-  const metricas       = metricaRows.map((r) => r.metrica).filter((m): m is string => !!m);
 
   const sugeridaOk = searchParams.sugerida === "1";
   const editadaOk  = searchParams.editada === "1";
@@ -136,7 +118,8 @@ export default async function CancionesPage(props: {
         nombre,
         artista,
         bpm:     bpm !== undefined && Number.isFinite(bpm) ? bpm : undefined,
-        metrica: clean(formData.get("metrica")),
+        estilo:  clean(formData.get("estilo")),
+        tono:    clean(formData.get("tono")),
         letra:   clean(formData.get("letra")),
         charts:  clean(formData.get("charts")),
       });
@@ -168,14 +151,26 @@ export default async function CancionesPage(props: {
     .orderBy(desc(playlists.actualizadoEn))
     .limit(8);
 
-  async function handleAgregarALista(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  async function handleAgregarALista(formData: FormData): Promise<{ ok: boolean; error?: string; id_lista_cancion?: number }> {
     "use server";
     try {
-      await agregarCancionALista(Number(formData.get("id_playlist")), Number(formData.get("id_cancion")));
+      const r = await agregarCancionALista(Number(formData.get("id_playlist")), Number(formData.get("id_cancion")));
+      revalidatePath(`/playlists/${Number(formData.get("id_playlist"))}`);
+      return { ok: true, id_lista_cancion: r.id_lista_cancion };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "No se pudo agregar." };
+    }
+  }
+
+  // "Deshacer" del aviso "Agregada a …": quita la canción recién agregada.
+  async function handleDeshacer(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+    "use server";
+    try {
+      await eliminarCancionDeLista(Number(formData.get("id_lista_cancion")));
       revalidatePath(`/playlists/${Number(formData.get("id_playlist"))}`);
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : "No se pudo agregar." };
+      return { ok: false, error: e instanceof Error ? e.message : "No se pudo deshacer." };
     }
   }
 
@@ -184,6 +179,7 @@ export default async function CancionesPage(props: {
 
       <section className="flex min-w-0 flex-col gap-4">
         <ErrorBanner message={errorMsg} />
+        {puedeEditar && <AvisoMigracion visible={faltaMigracion} />}
         {editadaOk && (
           <div role="status" className="flex items-center gap-2 rounded-xl border border-green-600/30 bg-green-600/10 px-4 py-3 text-sm text-green-800 dark:text-green-400">
             <CheckCircle2 size={15} className="shrink-0" aria-hidden /> Cambios guardados.
@@ -201,11 +197,10 @@ export default async function CancionesPage(props: {
           canciones={aprobadas}
           total={total}
           totalAprobadas={totalAprobadas}
-          artistas={artistas}
-          metricas={metricas}
           pagina={pagina}
           totalPaginas={totalPaginas}
-          filtros={{ q, artista, metrica, contenido }}
+          filtros={{ q, estilos }}
+          conEstilos={!faltaMigracion}
           puedeEditar={puedeEditar}
           misListas={misListas.map((l) => ({
             id_playlist: l.id_playlist,
@@ -213,6 +208,7 @@ export default async function CancionesPage(props: {
             cuando: l.tipo === "PRESET" ? "Plantilla" : l.estado === "ENSAYO" ? "Servicio en ensayo" : "Servicio en preparación",
           }))}
           onAgregarALista={handleAgregarALista}
+          onDeshacer={handleDeshacer}
         />
       </section>
 
@@ -243,17 +239,10 @@ export default async function CancionesPage(props: {
               Artista
               <input name="artista" required className={cls.campo} />
             </label>
-            <div className="flex gap-2">
-              <label className={`${cls.etiqueta} flex-1`}>
-                Métrica
-                <select name="metrica" defaultValue="" className={`${cls.campo} [&>option]:bg-card`}>
-                  <option value="">Sin definir</option>
-                  {METRICAS.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </label>
-              <label className={`${cls.etiqueta} w-24`}>
+            {!faltaMigracion && <SelectorZarza name="estilo" label="Estilo" opciones={ESTILOS} />}
+            <div className="flex items-end gap-2">
+              {!faltaMigracion && <SelectorZarza name="tono" label="Tono" opciones={TONOS_CANCION} className="flex-1" />}
+              <label className={`${cls.etiqueta} ${faltaMigracion ? "w-full" : "w-24"}`}>
                 BPM
                 <input name="bpm" type="number" min={1} max={300} inputMode="numeric" className={`${cls.campo} px-2 text-center`} />
               </label>
@@ -261,7 +250,7 @@ export default async function CancionesPage(props: {
             <CargarCancion />
             <p className="text-[11px] text-lo">Queda pendiente hasta que un líder la apruebe.</p>
             <button type="submit" className={`${cls.btnLlama} self-start`}>
-              <Sparkles size={15} aria-hidden /> Sugerir
+              Enviar sugerencia
             </button>
           </form>
         </div>

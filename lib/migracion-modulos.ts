@@ -1,5 +1,5 @@
 // ============================================================================
-// Copia de scripts/sql/009-modulos-zarza.sql para poder aplicarla desde la app
+// Copias de las migraciones de scripts/sql/ que se pueden aplicar desde la app
 // (botón "Preparar base de datos" de los módulos nuevos), sin consola.
 // Es aditiva e idempotente: sólo CREATE TABLE IF NOT EXISTS y la carga
 // inicial de categorías cuando la tabla está vacía.
@@ -114,4 +114,18 @@ SELECT * FROM (
   SELECT 'Comunicación de equipo', 'comunicacion', 'arcilla', 7
 ) AS iniciales
 WHERE NOT EXISTS (SELECT 1 FROM mejorar_categorias);
+`;
+
+// Copia de scripts/sql/010-canciones-estilo-tono.sql (estilo y tono por canción).
+export const SQL_CANCIONES_ESTILO = `
+-- ============================================================================
+-- 010 · Estilo y tono de cada canción del repertorio (diseño "Repertorio").
+-- Aditiva: agrega dos columnas opcionales y un índice para filtrar por estilo.
+-- Si ya se aplicó, MySQL responde ER_DUP_FIELDNAME y el migrador la saltea.
+-- ============================================================================
+
+ALTER TABLE canciones
+  ADD COLUMN estilo VARCHAR(40) NULL,
+  ADD COLUMN tono   VARCHAR(4)  NULL,
+  ADD INDEX idx_canciones_estilo (estilo);
 `;

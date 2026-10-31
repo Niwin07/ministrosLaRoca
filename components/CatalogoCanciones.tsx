@@ -3,89 +3,92 @@
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, ChevronDown, ChevronLeft, ChevronRight, X, Pencil, SlidersHorizontal, Loader2, Check, Plus } from "lucide-react";
+import { Search, ChevronDown, ChevronLeft, ChevronRight, X, Pencil, Loader2, Check, Plus } from "lucide-react";
 import { IconoMarca } from "@/components/zarza/IconoMarca";
 import { ChartViewerInteractivo } from "@/components/ChartViewerInteractivo";
 import { LyricViewer } from "@/components/LyricViewer";
 import { IconButton } from "@/components/ui/IconButton";
+import { ESTILOS } from "@/lib/estilos";
 
 interface Cancion {
   id_cancion: number;
   nombre:     string;
   artista:    string;
   bpm:        number | null;
-  metrica:    string | null;
+  estilo:     string | null;
+  tono:       string | null;
   letra:      string | null;
   charts:     string | null;
 }
 
-type FiltroContenido = "charts" | "letra" | null;
-
 interface Filtros {
-  q:         string;
-  artista:   string;
-  metrica:   string;
-  contenido: FiltroContenido;
+  q:       string;
+  estilos: string[];
 }
+
+type Agregada =
+  | { nombre: string; id_playlist: number; id_lista_cancion?: number; cuando: string }
+  | { error: string };
 
 interface CatalogoCancionesProps {
   /** Página actual ya resuelta por el servidor (búsqueda/filtros/paginación viven en la URL). */
   canciones:      Cancion[];
-  /** Cuántas canciones matchean los filtros actuales (para "X de Y"). */
+  /** Cuántas canciones matchean los filtros actuales. */
   total:          number;
   /** Total de canciones aprobadas sin filtrar. */
   totalAprobadas: number;
-  /** Todos los artistas/métricas del catálogo completo (para los dropdowns). */
-  artistas:       string[];
-  metricas:       string[];
   pagina:         number;
   totalPaginas:   number;
   filtros:        Filtros;
+  /** false mientras falte la migración de estilo/tono: se ocultan los filtros. */
+  conEstilos?:    boolean;
   puedeEditar?:   boolean;
   /** Servicios/plantillas editables del usuario para "Agregar a…" */
   misListas?:     { id_playlist: number; nombre: string; cuando: string }[];
-  onAgregarALista?: (fd: FormData) => Promise<{ ok: boolean; error?: string }>;
+  onAgregarALista?: (fd: FormData) => Promise<{ ok: boolean; error?: string; id_lista_cancion?: number }>;
+  onDeshacer?:      (fd: FormData) => Promise<{ ok: boolean; error?: string }>;
 }
 
+/**
+ * Repertorio (diseño "Repertorio" · Zarza): búsqueda + botón "Filtros" que
+ * despliega los estilos como chips (varios a la vez), resumen "Mostrando…" con
+ * "Limpiar filtros", y tarjetas con tono, estilo, BPM y "Agregar a…" con
+ * "Deshacer".
+ */
 export function CatalogoCanciones({
   canciones,
   total,
   totalAprobadas,
-  artistas,
-  metricas,
   pagina,
   totalPaginas,
   filtros,
+  conEstilos = true,
   puedeEditar = false,
   misListas = [],
   onAgregarALista,
+  onDeshacer,
 }: CatalogoCancionesProps) {
-  const [menuAbierto, setMenuAbierto] = useState<number | null>(null);
-  const [agregada, setAgregada] = useState<Record<number, { nombre: string; id: number } | { error: string }>>({});
-  const [agregando, startAgregar] = useTransition();
-
-  function agregarA(c: { id_cancion: number }, l: { id_playlist: number; nombre: string }) {
-    if (!onAgregarALista) return;
-    const fd = new FormData();
-    fd.set("id_playlist", String(l.id_playlist));
-    fd.set("id_cancion", String(c.id_cancion));
-    setMenuAbierto(null);
-    startAgregar(async () => {
-      const r = await onAgregarALista(fd);
-      setAgregada((a) => ({ ...a, [c.id_cancion]: r.ok ? { nombre: l.nombre, id: l.id_playlist } : { error: r.error ?? "No se pudo agregar." } }));
-    });
-  }
   const router       = useRouter();
   const pathname     = usePathname();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
 
-  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState<number | null>(null);
+  const [agregada, setAgregada] = useState<Record<number, Agregada>>({});
+  const [agregando, startAgregar] = useTransition();
+
+  // Los chips se abren solos si se llega con estilos ya elegidos (URL).
+  const [mostrarFiltros, setMostrarFiltros] = useState(filtros.estilos.length > 0);
   // Estado local del input de búsqueda: se debounce antes de navegar, así
   // el usuario escribe fluido y no se dispara una navegación por tecla.
   const [qLocal, setQLocal] = useState(filtros.q);
+  // Selección optimista de estilos: el chip cambia al toque, la lista llega después.
+  const [seleccion, setSeleccion] = useState<string[]>(filtros.estilos);
+  const clave = filtros.estilos.join(",");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setSeleccion(filtros.estilos); }, [clave]);
 
-  const filtrosActivos = [filtros.q, filtros.artista, filtros.metrica, filtros.contenido].filter(Boolean).length;
+  const n = seleccion.length;
 
   function navegar(cambios: Record<string, string | null>, resetPagina = true) {
     const params = new URLSearchParams(searchParams.toString());
@@ -112,22 +115,65 @@ export function CatalogoCanciones({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qLocal]);
 
-  function limpiarFiltros() {
-    setQLocal("");
-    navegar({ q: null, artista: null, metrica: null, contenido: null });
+  function alternarEstilo(e: string) {
+    const nueva = seleccion.includes(e) ? seleccion.filter((x) => x !== e) : [...seleccion, e];
+    // Se guarda en el orden del diseño para que la URL sea estable.
+    const ordenada = ESTILOS.filter((x) => nueva.includes(x));
+    setSeleccion(ordenada);
+    navegar({ estilo: ordenada.length ? ordenada.join(",") : null });
   }
 
-  const chip = (on: boolean) =>
-    `flex min-h-[36px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[13px] font-medium transition-colors ${
-      on ? "border-fuego-600 bg-fuego-600 text-white" : "border-line bg-card text-mid hover:border-mark hover:text-hi"
-    }`;
+  function limpiarFiltros() {
+    setSeleccion([]);
+    navegar({ estilo: null });
+  }
+
+  function agregarA(c: Cancion, l: { id_playlist: number; nombre: string; cuando: string }) {
+    if (!onAgregarALista) return;
+    const fd = new FormData();
+    fd.set("id_playlist", String(l.id_playlist));
+    fd.set("id_cancion", String(c.id_cancion));
+    setMenuAbierto(null);
+    startAgregar(async () => {
+      const r = await onAgregarALista(fd);
+      setAgregada((a) => ({
+        ...a,
+        [c.id_cancion]: r.ok
+          ? { nombre: l.nombre, id_playlist: l.id_playlist, id_lista_cancion: r.id_lista_cancion, cuando: l.cuando }
+          : { error: r.error ?? "No se pudo agregar." },
+      }));
+    });
+  }
+
+  function deshacer(c: Cancion) {
+    const estado = agregada[c.id_cancion];
+    if (!onDeshacer || !estado || "error" in estado || !estado.id_lista_cancion) return;
+    const fd = new FormData();
+    fd.set("id_lista_cancion", String(estado.id_lista_cancion));
+    fd.set("id_playlist", String(estado.id_playlist));
+    startAgregar(async () => {
+      const r = await onDeshacer(fd);
+      setAgregada((a) => {
+        const copia = { ...a };
+        if (r.ok) delete copia[c.id_cancion];
+        else copia[c.id_cancion] = { error: r.error ?? "No se pudo deshacer." };
+        return copia;
+      });
+    });
+  }
+
+  const resumen = n
+    ? `Mostrando ${total} ${total === 1 ? "canción" : "canciones"} · ${seleccion.join(", ")}`
+    : filtros.q
+      ? `Mostrando ${total} de ${totalAprobadas} canciones`
+      : "Mostrando todas las canciones";
 
   return (
     <div className={`flex flex-col gap-4 transition-opacity ${pending ? "opacity-60" : ""}`}>
       {/* ── Búsqueda + Filtros ─────────────────────────────────────── */}
       <div className="flex gap-2">
         <label className="relative flex flex-1">
-          <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-lo" aria-hidden />
+          <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-lo" aria-hidden />
           <input
             type="search"
             value={qLocal}
@@ -142,67 +188,70 @@ export function CatalogoCanciones({
             </button>
           )}
         </label>
-        <button
-          type="button"
-          onClick={() => setMostrarFiltros((v) => !v)}
-          aria-expanded={mostrarFiltros}
-          className={`relative flex min-h-[46px] items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold transition-colors ${
-            mostrarFiltros || filtrosActivos > 0 ? "border-fuego-600 bg-fuego-600/10 text-fuego-600 dark:text-[#df8067]" : "border-mark bg-card text-mid hover:text-hi"
-          }`}
-        >
-          <SlidersHorizontal size={15} aria-hidden /> Filtros
-          {filtrosActivos > 0 && (
-            <span className="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-[1.5px] border-fuego-600 bg-card px-1 text-[10px] font-bold text-fuego-600">
-              {filtrosActivos}
-            </span>
-          )}
-        </button>
+        {conEstilos && (
+          <button
+            type="button"
+            onClick={() => setMostrarFiltros((v) => !v)}
+            aria-expanded={mostrarFiltros}
+            className={`relative flex min-h-[46px] items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors duration-200 ${
+              mostrarFiltros
+                ? "border-fuego-600 bg-fuego-600 text-white"
+                : n
+                  ? "border-fuego-600 bg-fuego-600/10 text-fuego-600 dark:text-[#df8067]"
+                  : "border-mark bg-[#fcf5eb] text-mid hover:text-hi dark:bg-card"
+            }`}
+          >
+            {/* Ícono de filtro del diseño: tres líneas que se acortan. */}
+            <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18" /><path d="M7 12h10" /><path d="M10 18h4" />
+            </svg>
+            Filtros
+            {n > 0 && (
+              <span
+                key={n}
+                className={`animate-pop absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-[1.5px] border-fuego-600 px-1 text-[10px] font-bold ${
+                  mostrarFiltros ? "bg-[#fcf5eb] text-fuego-600 dark:bg-card" : "bg-fuego-600 text-white"
+                }`}
+              >
+                {n}
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
-      {mostrarFiltros && (
-        <div className="flex flex-col gap-2.5">
-          <div role="group" aria-label="Filtrar" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar md:mx-0 md:flex-wrap md:px-0">
-            {(["charts", "letra"] as const).map((tipo) => {
-              const on = filtros.contenido === tipo;
-              return (
-                <button key={tipo} type="button" aria-pressed={on} onClick={() => navegar({ contenido: on ? null : tipo })} className={chip(on)}>
-                  {on && <Check size={13} aria-hidden />}
-                  {tipo === "charts" ? "Con acordes" : "Con letra"}
-                </button>
-              );
-            })}
-            {metricas.map((m) => {
-              const on = filtros.metrica === m;
-              return (
-                <button key={m} type="button" aria-pressed={on} onClick={() => navegar({ metrica: on ? null : m })} className={chip(on)}>
-                  {on && <Check size={13} aria-hidden />}
-                  {m}
-                </button>
-              );
-            })}
-          </div>
-          <label className="flex max-w-xs flex-col gap-1.5 text-[13px] font-medium text-mid">
-            Artista
-            <select
-              value={filtros.artista}
-              onChange={(e) => navegar({ artista: e.target.value || null })}
-              className="min-h-[42px] rounded-full border border-mark bg-input px-4 text-sm text-hi outline-none focus:border-fuego-500 [&>option]:bg-card"
-            >
-              <option value="">Todos</option>
-              {artistas.map((a) => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
-          </label>
+      {conEstilos && mostrarFiltros && (
+        <div
+          role="group"
+          aria-label="Filtrar por estilo"
+          className="animate-desplegar -mx-4 flex snap-x snap-proximity flex-nowrap gap-2 overflow-x-auto px-4 pb-1 pt-0.5 no-scrollbar md:mx-0 md:px-0"
+        >
+          {ESTILOS.map((e) => {
+            const on = seleccion.includes(e);
+            return (
+              <button
+                key={e}
+                type="button"
+                aria-pressed={on}
+                onClick={() => alternarEstilo(e)}
+                className={`flex min-h-[36px] shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[13px] font-medium transition-colors duration-200 ${
+                  on ? "border-fuego-600 bg-fuego-600 text-white" : "border-mark bg-[#fcf5eb] text-mid hover:text-hi dark:bg-card"
+                }`}
+              >
+                {on && <Check size={13} strokeWidth={2.5} aria-hidden className="animate-pop" />}
+                {e}
+              </button>
+            );
+          })}
         </div>
       )}
 
       <div className="flex min-h-5 items-center justify-between gap-3">
         <p className="flex items-center gap-1.5 text-xs text-lo">
           {pending && <Loader2 size={11} className="animate-spin" aria-hidden />}
-          {total === totalAprobadas ? `${totalAprobadas} canciones` : `${total} de ${totalAprobadas} canciones`}
+          {resumen}
         </p>
-        {filtrosActivos > 0 && (
+        {n > 0 && (
           <button type="button" onClick={limpiarFiltros} className="text-xs font-medium text-fuego-600 hover:underline dark:text-[#df8067]">
             Limpiar filtros
           </button>
@@ -211,7 +260,7 @@ export function CatalogoCanciones({
 
       {canciones.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-mark bg-card/60 px-4 py-8 text-center text-sm text-lo">
-          {filtrosActivos > 0 ? "Ninguna canción coincide con la búsqueda." : "Sin canciones aprobadas aún."}
+          {n > 0 || filtros.q ? "Ninguna canción coincide con la búsqueda." : "Sin canciones aprobadas aún."}
         </p>
       ) : (
         <div className="escalonar grid items-start gap-2.5 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
@@ -219,22 +268,30 @@ export function CatalogoCanciones({
             const tieneDetalle = Boolean(c.letra || c.charts);
             const estado = agregada[c.id_cancion];
             const abierto = menuAbierto === c.id_cancion;
+            const yaAgregada = !!estado && "nombre" in estado && !abierto;
             return (
               <article
                 key={c.id_cancion}
                 className={`tarjeta-viva flex min-w-0 flex-col gap-2.5 rounded-2xl border bg-card p-3 shadow-[0_1px_2px_rgba(43,22,17,0.06),0_6px_18px_-8px_rgba(120,45,15,0.18)] dark:shadow-none ${abierto ? "border-fuego-600" : "border-line"}`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center">
-                    <IconoMarca nombre="canciones" size={26} />
-                  </span>
+                  {c.tono ? (
+                    <span aria-label={`Tono ${c.tono}`} className="flex h-[42px] w-[42px] shrink-0 flex-col items-center justify-center leading-none text-[#94402a] dark:text-[#d9846d]">
+                      <span className="text-base font-extrabold">{c.tono}</span>
+                      <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-fuego-600 dark:text-[#df8067]">Tono</span>
+                    </span>
+                  ) : (
+                    <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center">
+                      <IconoMarca nombre="canciones" size={26} />
+                    </span>
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-hi">{c.nombre}</p>
                     <p className="mt-px truncate text-xs text-lo">{c.artista}</p>
-                    {(c.metrica || c.bpm) && (
+                    {(c.estilo || c.bpm) && (
                       <div className="mt-1.5 flex flex-wrap gap-1">
-                        {c.metrica && <span className="rounded-full bg-input px-2 py-px text-[11px] font-medium text-mid">{c.metrica}</span>}
-                        {c.bpm && <span className="rounded-full bg-input px-2 py-px text-[11px] font-medium text-mid">{c.bpm} BPM</span>}
+                        {c.estilo && <span className="rounded-full bg-input px-[7px] py-px text-[11px] font-medium text-mid">{c.estilo}</span>}
+                        {c.bpm && <span className="rounded-full bg-input px-[7px] py-px text-[11px] font-medium text-mid">{c.bpm} BPM</span>}
                       </div>
                     )}
                   </div>
@@ -251,11 +308,9 @@ export function CatalogoCanciones({
                       aria-label={`Agregar ${c.nombre} a un servicio`}
                       title="Agregar a un servicio"
                       disabled={agregando}
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors ${
-                        estado && "nombre" in estado ? "border-transparent bg-fuego-600/10 text-fuego-600" : "border-fuego-600/40 text-fuego-600 hover:bg-fuego-600 hover:text-white dark:text-[#df8067]"
-                      }`}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-fuego-600 transition-colors hover:bg-fuego-600/10 dark:text-[#df8067]"
                     >
-                      {estado && "nombre" in estado ? <Check size={16} aria-hidden className="animate-pop" /> : <Plus size={17} aria-hidden />}
+                      {yaAgregada ? <Check size={16} strokeWidth={2.5} aria-hidden className="animate-pop" /> : <Plus size={16} strokeWidth={2.2} aria-hidden />}
                     </button>
                   )}
                 </div>
@@ -276,18 +331,24 @@ export function CatalogoCanciones({
                           <span className="block text-[11px] text-lo">{l.cuando}</span>
                           <span className="block truncate text-[13px] font-semibold text-hi">{l.nombre}</span>
                         </span>
-                        <Plus size={15} className="shrink-0 text-fuego-600" aria-hidden />
+                        <Plus size={14} strokeWidth={2.2} className="shrink-0 text-fuego-600" aria-hidden />
                       </button>
                     ))}
                   </div>
                 )}
 
-                {estado && (
+                {estado && !abierto && (
                   "nombre" in estado ? (
                     <div role="status" className="animate-desplegar flex items-center gap-2 rounded-[10px] bg-[#fde4d8] px-2.5 py-2 text-xs font-semibold text-[#94402a] dark:bg-[#1e1513] dark:text-[#d9846d]">
-                      <Check size={14} aria-hidden />
-                      <span className="min-w-0 flex-1">Agregada a {estado.nombre}</span>
-                      <Link href={`/playlists/${estado.id}`} className="underline underline-offset-2">Ver</Link>
+                      <Check size={13} strokeWidth={2.5} className="shrink-0" aria-hidden />
+                      <span className="min-w-0 flex-1">
+                        Agregada a <Link href={`/playlists/${estado.id_playlist}`} className="underline-offset-2 hover:underline">{estado.nombre}</Link> ({estado.cuando.toLowerCase()})
+                      </span>
+                      {onDeshacer && estado.id_lista_cancion && (
+                        <button type="button" onClick={() => deshacer(c)} disabled={agregando} className="font-semibold underline underline-offset-2 disabled:opacity-50">
+                          Deshacer
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <p role="alert" className="rounded-[10px] bg-red-500/10 px-2.5 py-2 text-xs text-red-700 dark:text-red-400">{estado.error}</p>

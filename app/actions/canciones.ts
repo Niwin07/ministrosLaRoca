@@ -7,6 +7,8 @@ import { crearNotificacion } from "@/lib/notif";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { esEstilo, esTonoCancion } from "@/lib/estilos";
+import { esColumnaFaltante } from "@/lib/modulos";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -15,6 +17,8 @@ interface SugerirCancionInput {
   artista:  string;
   bpm?:     number;
   metrica?: string;
+  estilo?:  string;
+  tono?:    string;
   letra?:   string;
   charts?:  string;
 }
@@ -30,21 +34,30 @@ export async function sugerirCancion(
 ): Promise<{ id_cancion: number }> {
   const session = await auth();
 
-  const [inserted] = await db
-    .insert(canciones)
-    .values({
-      nombre:               input.nombre,
-      artista:              input.artista,
-      bpm:                  input.bpm     ?? null,
-      metrica:              input.metrica ?? null,
-      letra:                input.letra   ?? null,
-      charts:               input.charts  ?? null,
-      estado_aprobacion:    "PENDIENTE",
-      id_usuario_sugeridor: session?.user?.id_usuario ?? null,
-    })
-    .$returningId();
+  const base = {
+    nombre:               input.nombre,
+    artista:              input.artista,
+    bpm:                  input.bpm     ?? null,
+    metrica:              input.metrica ?? null,
+    letra:                input.letra   ?? null,
+    charts:               input.charts  ?? null,
+    estado_aprobacion:    "PENDIENTE" as const,
+    id_usuario_sugeridor: session?.user?.id_usuario ?? null,
+  };
+  const extra = {
+    ...(esEstilo(input.estilo) ? { estilo: input.estilo } : {}),
+    ...(esTonoCancion(input.tono) ? { tono: input.tono } : {}),
+  };
 
-  return { id_cancion: inserted.id_cancion };
+  try {
+    const [inserted] = await db.insert(canciones).values({ ...base, ...extra }).$returningId();
+    return { id_cancion: inserted.id_cancion };
+  } catch (e) {
+    // Sin la migración 010 todavía: se guarda sin estilo/tono.
+    if (!esColumnaFaltante(e) || Object.keys(extra).length === 0) throw e;
+    const [inserted] = await db.insert(canciones).values(base).$returningId();
+    return { id_cancion: inserted.id_cancion };
+  }
 }
 
 /**
@@ -72,17 +85,26 @@ export async function actualizarCancion(formData: FormData): Promise<void> {
     const bpmRaw = formData.get("bpm");
     const bpm = typeof bpmRaw === "string" && bpmRaw.trim() ? Number(bpmRaw) : NaN;
 
-    await db
-      .update(canciones)
-      .set({
-        nombre,
-        artista,
-        bpm:     Number.isFinite(bpm) ? bpm : null,
-        metrica: (formData.get("metrica") as string | null)?.trim() || null,
-        letra:   norm(formData.get("letra")),
-        charts:  norm(formData.get("charts")),
-      })
-      .where(eq(canciones.id_cancion, id_cancion));
+    const datos = {
+      nombre,
+      artista,
+      bpm:     Number.isFinite(bpm) ? bpm : null,
+      metrica: (formData.get("metrica") as string | null)?.trim() || null,
+      letra:   norm(formData.get("letra")),
+      charts:  norm(formData.get("charts")),
+    };
+    const estilo = formData.get("estilo");
+    const tono   = formData.get("tono");
+    try {
+      await db
+        .update(canciones)
+        .set({ ...datos, estilo: esEstilo(estilo) ? estilo : null, tono: esTonoCancion(tono) ? tono : null })
+        .where(eq(canciones.id_cancion, id_cancion));
+    } catch (e) {
+      // Sin la migración 010 todavía: se guarda sin estilo/tono.
+      if (!esColumnaFaltante(e)) throw e;
+      await db.update(canciones).set(datos).where(eq(canciones.id_cancion, id_cancion));
+    }
 
     revalidatePath("/canciones");
     revalidatePath(`/admin/canciones/${id_cancion}`);

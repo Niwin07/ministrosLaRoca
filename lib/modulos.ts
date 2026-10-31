@@ -11,6 +11,12 @@ export function esTablaFaltante(e: unknown): boolean {
   return err?.code === "ER_NO_SUCH_TABLE" || err?.cause?.code === "ER_NO_SUCH_TABLE";
 }
 
+/** La consulta usa una columna que todavía no existe (falta una migración). */
+export function esColumnaFaltante(e: unknown): boolean {
+  const err = e as { code?: string; cause?: { code?: string } };
+  return err?.code === "ER_BAD_FIELD_ERROR" || err?.cause?.code === "ER_BAD_FIELD_ERROR";
+}
+
 /**
  * Ejecuta una consulta de un módulo nuevo. Si las tablas todavía no existen
  * (falta correr `npm run db:migrate`), devuelve `fallback` y marca

@@ -98,6 +98,9 @@ export const canciones = mysqlTable(
     artista:                 varchar("artista", { length: 255 }).notNull(),
     bpm:                     int("bpm"),
     metrica:                 varchar("metrica", { length: 10 }),
+    // scripts/sql/010-canciones-estilo-tono.sql
+    estilo:                  varchar("estilo", { length: 40 }),
+    tono:                    varchar("tono", { length: 4 }),
     estado_aprobacion:       mysqlEnum("estado_aprobacion", ["APROBADA", "PENDIENTE", "RECHAZADA"]).notNull().default("PENDIENTE"),
     motivo_rechazo:          text("motivo_rechazo"),
     letra:                   text("letra"),

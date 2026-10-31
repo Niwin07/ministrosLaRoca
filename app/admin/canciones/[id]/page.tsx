@@ -9,6 +9,9 @@ import { CargarCancion } from "@/components/CargarCancion";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { actualizarCancion } from "@/app/actions/canciones";
 import { METRICAS } from "@/lib/metricas";
+import { ESTILOS, TONOS_CANCION } from "@/lib/estilos";
+import { esColumnaFaltante } from "@/lib/modulos";
+import { SelectorZarza } from "@/components/zarza/SelectorZarza";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
@@ -29,7 +32,29 @@ export default async function EditarCancionPage(props: {
 
   const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
 
-  const [c] = await db.select().from(canciones).where(eq(canciones.id_cancion, id));
+  const campos = {
+    id_cancion: canciones.id_cancion,
+    nombre:     canciones.nombre,
+    artista:    canciones.artista,
+    bpm:        canciones.bpm,
+    metrica:    canciones.metrica,
+    letra:      canciones.letra,
+    charts:     canciones.charts,
+  };
+  type Fila = {
+    id_cancion: number; nombre: string; artista: string; bpm: number | null; metrica: string | null;
+    letra: string | null; charts: string | null; estilo?: string | null; tono?: string | null;
+  };
+  let c: Fila | undefined;
+  let sinEstilo = false;
+  try {
+    [c] = await db.select({ ...campos, estilo: canciones.estilo, tono: canciones.tono }).from(canciones).where(eq(canciones.id_cancion, id));
+  } catch (e) {
+    // Sin la migración 010 todavía: se edita sin estilo/tono.
+    if (!esColumnaFaltante(e)) throw e;
+    sinEstilo = true;
+    [c] = await db.select(campos).from(canciones).where(eq(canciones.id_cancion, id));
+  }
   if (!c) notFound();
 
   return (
@@ -57,6 +82,13 @@ export default async function EditarCancionPage(props: {
           <Input id="nombre" name="nombre" defaultValue={c.nombre} label="Nombre de la canción" required />
           <Input id="artista" name="artista" defaultValue={c.artista} label="Artista" required />
         </div>
+
+        {!sinEstilo && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SelectorZarza name="estilo" label="Estilo" opciones={ESTILOS} defaultValue={c.estilo ?? ""} />
+            <SelectorZarza name="tono" label="Tono" opciones={TONOS_CANCION} defaultValue={c.tono ?? ""} />
+          </div>
+        )}
 
         <div className="flex gap-2">
           <div className="flex-1 flex flex-col gap-1.5">
