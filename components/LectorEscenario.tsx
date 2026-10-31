@@ -359,7 +359,7 @@ function PresentadorMode({
         </div>
 
         {/* Content — scrollable */}
-        <div key={indice} className="flex-1 overflow-y-auto px-5 py-5 md:px-10 md:py-8">
+        <div key={indice} className="animate-aparecer flex-1 overflow-y-auto px-5 py-5 md:px-10 md:py-8">
           {modoContenido === "charts" && cancion.charts ? (
             <ChartViewerInteractivo charts={cancion.charts} notaInicial={cancion.nota} />
           ) : cancion.letra ? (

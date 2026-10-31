@@ -60,20 +60,20 @@ export function EtapasServicio({
           {ETAPAS.map((e, i) => {
             const hecho = i < idx;
             const actual = i === idx;
-            const lineaIzq = i === 0 ? "transparent" : i <= idx ? "#b4472a" : "#eadbc6";
-            const lineaDer = i === ETAPAS.length - 1 ? "transparent" : i < idx ? "#b4472a" : "#eadbc6";
             return (
               <li key={e} aria-current={actual ? "step" : undefined} className="flex min-w-0 flex-col items-center gap-1 text-center">
                 <div className="flex w-full items-center">
-                  <span className="h-0.5 flex-1" style={{ background: lineaIzq }} />
+                  <Linea vacia={i === 0} llena={i <= idx} demora={i * 0.22} />
                   <span
-                    className={`flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold ${
-                      hecho ? "border-fuego-600 bg-fuego-600 text-white" : actual ? "border-fuego-600 bg-card text-fuego-600" : "border-line bg-card text-gone"
+                    key={`${e}-${estado}`}
+                    style={{ animationDelay: `${i * 0.22}s` }}
+                    className={`flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold transition-colors duration-300 ${
+                      hecho ? "animate-pop border-fuego-600 bg-fuego-600 text-white" : actual ? "animate-pop border-fuego-600 bg-card text-fuego-600 shadow-[0_0_0_4px_rgba(180,71,42,0.14)]" : "border-line bg-card text-gone"
                     }`}
                   >
                     {hecho ? <Check size={13} strokeWidth={3} aria-hidden /> : i + 1}
                   </span>
-                  <span className="h-0.5 flex-1" style={{ background: lineaDer }} />
+                  <Linea vacia={i === ETAPAS.length - 1} llena={i < idx} demora={i * 0.22 + 0.11} />
                 </div>
                 <span className={`text-xs ${actual ? "font-semibold text-hi" : "font-medium text-lo"}`}>{NOMBRE[e]}</span>
               </li>
@@ -89,7 +89,7 @@ export function EtapasServicio({
 
       <div className="order-last flex w-full flex-col gap-2.5 border-t border-[#f1e5d4] pt-3 dark:border-line">
         {ayuda && AYUDA[estado] && (
-          <div className="relative rounded-xl border border-fuego-600/25 bg-[#fbf1e4] py-2.5 pl-3.5 pr-10 dark:bg-fuego-600/10">
+          <div className="animate-desplegar relative rounded-xl border border-fuego-600/25 bg-[#fbf1e4] py-2.5 pl-3.5 pr-10 dark:bg-fuego-600/10">
             <p className="text-[13px] leading-relaxed text-[#4a2c22] dark:text-mid">{AYUDA[estado]}</p>
             <button type="button" onClick={() => cambiarAyuda(false)} aria-label="Ocultar ayuda" className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full text-lo hover:text-hi">
               <X size={15} aria-hidden />
@@ -117,5 +117,20 @@ export function EtapasServicio({
         </div>
       </div>
     </>
+  );
+}
+
+/** Tramo entre etapas: se llena de izquierda a derecha al avanzar. */
+function Linea({ vacia, llena, demora }: { vacia: boolean; llena: boolean; demora: number }) {
+  if (vacia) return <span className="h-0.5 flex-1" />;
+  return (
+    <span className="relative h-0.5 flex-1 overflow-hidden bg-[#eadbc6] dark:bg-line">
+      {llena && (
+        <span
+          className="animate-crecer-x absolute inset-0 bg-fuego-600"
+          style={{ animationDelay: `${demora}s`, animationDuration: "0.5s" }}
+        />
+      )}
+    </span>
   );
 }

@@ -214,7 +214,7 @@ export function CatalogoCanciones({
           {filtrosActivos > 0 ? "Ninguna canción coincide con la búsqueda." : "Sin canciones aprobadas aún."}
         </p>
       ) : (
-        <div className="grid items-start gap-2.5 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
+        <div className="escalonar grid items-start gap-2.5 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
           {canciones.map((c) => {
             const tieneDetalle = Boolean(c.letra || c.charts);
             const estado = agregada[c.id_cancion];
@@ -222,7 +222,7 @@ export function CatalogoCanciones({
             return (
               <article
                 key={c.id_cancion}
-                className={`flex min-w-0 flex-col gap-2.5 rounded-2xl border bg-card p-3 shadow-[0_1px_2px_rgba(43,22,17,0.06),0_6px_18px_-8px_rgba(120,45,15,0.18)] dark:shadow-none ${abierto ? "border-fuego-600" : "border-line"}`}
+                className={`tarjeta-viva flex min-w-0 flex-col gap-2.5 rounded-2xl border bg-card p-3 shadow-[0_1px_2px_rgba(43,22,17,0.06),0_6px_18px_-8px_rgba(120,45,15,0.18)] dark:shadow-none ${abierto ? "border-fuego-600" : "border-line"}`}
               >
                 <div className="flex items-center gap-3">
                   <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center">
@@ -255,13 +255,13 @@ export function CatalogoCanciones({
                         estado && "nombre" in estado ? "border-transparent bg-fuego-600/10 text-fuego-600" : "border-fuego-600/40 text-fuego-600 hover:bg-fuego-600 hover:text-white dark:text-[#df8067]"
                       }`}
                     >
-                      {estado && "nombre" in estado ? <Check size={16} aria-hidden /> : <Plus size={17} aria-hidden />}
+                      {estado && "nombre" in estado ? <Check size={16} aria-hidden className="animate-pop" /> : <Plus size={17} aria-hidden />}
                     </button>
                   )}
                 </div>
 
                 {abierto && (
-                  <div role="listbox" aria-label="Agregar a…" className="flex flex-col gap-1 rounded-xl border border-[#f5cbb3] bg-[#fbf3e8] p-2 dark:border-line dark:bg-input">
+                  <div role="listbox" aria-label="Agregar a…" className="animate-desplegar flex flex-col gap-1 rounded-xl border border-[#f5cbb3] bg-[#fbf3e8] p-2 dark:border-line dark:bg-input">
                     <p className="mx-1 mb-1 mt-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-lo">Agregar a…</p>
                     {misListas.map((l) => (
                       <button
@@ -284,7 +284,7 @@ export function CatalogoCanciones({
 
                 {estado && (
                   "nombre" in estado ? (
-                    <div role="status" className="flex items-center gap-2 rounded-[10px] bg-[#fde4d8] px-2.5 py-2 text-xs font-semibold text-[#94402a] dark:bg-[#1e1513] dark:text-[#d9846d]">
+                    <div role="status" className="animate-desplegar flex items-center gap-2 rounded-[10px] bg-[#fde4d8] px-2.5 py-2 text-xs font-semibold text-[#94402a] dark:bg-[#1e1513] dark:text-[#d9846d]">
                       <Check size={14} aria-hidden />
                       <span className="min-w-0 flex-1">Agregada a {estado.nombre}</span>
                       <Link href={`/playlists/${estado.id}`} className="underline underline-offset-2">Ver</Link>

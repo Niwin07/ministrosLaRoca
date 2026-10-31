@@ -12,7 +12,7 @@ import { IconoMarca, type IconoMarcaNombre } from "@/components/zarza/IconoMarca
 export const cls = {
   pagina:      "flex flex-col gap-5 px-4 pb-8 pt-6 md:px-0 md:pt-2",
   btnLlama:
-    "inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full bg-llama px-4 text-sm font-semibold text-white shadow-llama transition-[filter,transform] hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuego-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-base",
+    "btn-brillo inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full bg-llama px-4 text-sm font-semibold text-white shadow-llama transition-[filter,box-shadow] hover:brightness-110 hover:shadow-[0_14px_26px_-10px_rgba(180,71,42,0.6)] disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuego-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-base",
   btnSec:
     "inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full border border-mark bg-card px-4 text-sm font-semibold text-[#4a2c22] transition-colors hover:border-fuego-300 active:scale-[0.98] disabled:opacity-50 dark:text-hi focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuego-500/40",
   btnIcono:
@@ -31,7 +31,7 @@ export const cls = {
   chipTono:
     "inline-flex shrink-0 items-center rounded-full border border-fuego-600/30 bg-fuego-600/10 px-2 py-0.5 text-[11px] font-bold text-fuego-600 dark:text-[#df8067]",
   panelForm:
-    "flex max-w-[560px] flex-col gap-3 rounded-[18px] border border-line bg-card p-[18px] shadow-[0_12px_32px_-12px_rgba(120,45,15,0.3)] dark:shadow-none",
+    "animate-desplegar flex max-w-[560px] flex-col gap-3 rounded-[18px] border border-line bg-card p-[18px] shadow-[0_12px_32px_-12px_rgba(120,45,15,0.3)] dark:shadow-none",
 };
 
 /** Encabezado de pantalla: volver · ícono · título · subtítulo · acciones. */

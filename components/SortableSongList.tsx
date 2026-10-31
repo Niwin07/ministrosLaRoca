@@ -94,7 +94,7 @@ export function SortableSongList({
       axis="y"
       values={orden}
       onReorder={setOrden}
-      className={`flex flex-col gap-2 ${guardando ? "pointer-events-none opacity-70" : ""}`}
+      className={`escalonar flex flex-col gap-2 transition-opacity ${guardando ? "pointer-events-none opacity-70" : ""}`}
     >
       {orden.map((item, idx) => (
         <SortableRow
@@ -183,7 +183,7 @@ function TonoPopover({
         <ChevronsUpDown size={12} strokeWidth={2.4} aria-hidden />
       </button>
       {abierto && (
-        <div role="listbox" aria-label="Elegir tono" className="absolute right-0 top-[calc(100%-4px)] z-30 w-[232px] rounded-[14px] border border-line bg-card p-2.5 shadow-[0_12px_32px_-8px_rgba(120,45,15,0.35)] dark:shadow-black/60">
+        <div role="listbox" aria-label="Elegir tono" className="animate-desplegar origin-top-right absolute right-0 top-[calc(100%-4px)] z-30 w-[232px] rounded-[14px] border border-line bg-card p-2.5 shadow-[0_12px_32px_-8px_rgba(120,45,15,0.35)] dark:shadow-black/60">
           {[{ t: "Mayores", n: NOTAS.slice(0, 12) }, { t: "Menores", n: NOTAS.slice(12) }].map((g) => (
             <div key={g.t} className="mb-2">
               <p className="mb-1.5 ml-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-lo">{g.t}</p>
@@ -245,7 +245,7 @@ function SortableRow({
         setArrastrando(false);
         onDragEnd();
       }}
-      whileDrag={{ scale: 1.02 }}
+      whileDrag={{ scale: 1.03, rotate: -0.6 }}
       transition={{ type: "spring", stiffness: 600, damping: 40 }}
       className={`relative rounded-2xl border bg-card transition-shadow ${
         arrastrando ? "z-10 border-fuego-500/50 shadow-xl shadow-black/20" : "border-line"

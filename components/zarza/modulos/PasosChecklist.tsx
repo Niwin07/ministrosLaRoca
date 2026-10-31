@@ -112,14 +112,14 @@ export function PasosChecklist({
       {!editando && pasos.length > 0 && (
         <div className="flex items-center gap-3">
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={progreso} aria-valuemin={0} aria-valuemax={100} aria-label="Progreso">
-            <div className={`h-full rounded-full transition-[width] duration-300 ${tilde.barra}`} style={{ width: `${progreso}%` }} />
+            <div className={`h-full rounded-full transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${tilde.barra}`} style={{ width: `${progreso}%` }} />
           </div>
-          <span className="text-[13px] font-semibold text-[#7a2410] dark:text-[#e6d1cc]">{listos} de {pasos.length}</span>
+          <span key={listos} className={`text-[13px] font-semibold text-[#7a2410] dark:text-[#e6d1cc] ${listos > 0 ? "animate-rebote inline-block" : ""}`}>{listos === pasos.length ? "¡Listo! " : ""}{listos} de {pasos.length}</span>
           <button type="button" onClick={() => guardarTildes({})} className={cls.btnTexto}>Reiniciar</button>
         </div>
       )}
 
-      <ol className="flex flex-col gap-2.5">
+      <ol className="escalonar flex flex-col gap-2.5">
         {pasos.map((p, i) => {
           const hecho = !editando && !!hechos[p.id];
           return (
@@ -136,7 +136,7 @@ export function PasosChecklist({
                   onClick={() => guardarTildes({ ...hechos, [p.id]: !hechos[p.id] })}
                   className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-white transition-colors ${hecho ? tilde.on : tilde.off}`}
                 >
-                  {hecho && <Check size={16} strokeWidth={3} aria-hidden />}
+                  {hecho && <Check size={16} strokeWidth={3} aria-hidden className="animate-pop" />}
                 </button>
               ) : (
                 <span aria-hidden className="flex h-8 w-5 items-center justify-center text-gone">

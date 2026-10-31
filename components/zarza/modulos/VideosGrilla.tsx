@@ -109,7 +109,7 @@ export function VideosGrilla({
       )}
 
       {variante === "cuadro" ? (
-        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-[18px]">
+        <div className="escalonar grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-[18px]">
           {videos.map((v, i) => (
             <div key={v.id} className="relative flex min-w-0 flex-col gap-2">
               <a
@@ -117,7 +117,7 @@ export function VideosGrilla({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`${v.titulo} (abre YouTube)`}
-                className="group relative block aspect-square overflow-hidden rounded-3xl bg-llama shadow-[0_1px_2px_rgba(43,22,17,0.06),0_10px_24px_-12px_rgba(199,97,58,0.35)]"
+                className="tarjeta-viva group relative block aspect-square overflow-hidden rounded-3xl bg-llama shadow-[0_1px_2px_rgba(43,22,17,0.06),0_10px_24px_-12px_rgba(199,97,58,0.35)]"
               >
                 <img src={youtubeMiniatura(v.youtube_id)} alt="" loading="lazy" className="h-full w-full object-cover opacity-90 transition-transform duration-300 group-hover:scale-105" />
                 <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#5e1f18]/70 via-transparent to-transparent" />
@@ -139,11 +139,11 @@ export function VideosGrilla({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
+        <div className="escalonar grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
           {videos.map((v, i) => (
-            <article key={v.id} className="flex flex-col overflow-hidden rounded-[20px] border border-line bg-card shadow-[0_1px_2px_rgba(43,22,17,0.06),0_8px_24px_-12px_rgba(120,45,15,0.2)] dark:shadow-none">
+            <article key={v.id} className="tarjeta-viva group flex flex-col overflow-hidden rounded-[20px] border border-line bg-card shadow-[0_1px_2px_rgba(43,22,17,0.06),0_8px_24px_-12px_rgba(120,45,15,0.2)] dark:shadow-none">
               <div className="relative aspect-video bg-llama">
-                <img src={youtubeMiniatura(v.youtube_id)} alt="" loading="lazy" className="h-full w-full object-cover" />
+                <img src={youtubeMiniatura(v.youtube_id)} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 <span aria-hidden className="absolute inset-0 flex items-center justify-center text-white drop-shadow">
                   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="4" /><path d="m10 9 5 3-5 3z" fill="currentColor" /></svg>
                 </span>

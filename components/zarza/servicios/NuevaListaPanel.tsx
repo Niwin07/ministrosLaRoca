@@ -27,8 +27,8 @@ function Opcion({ on, onClick, titulo, sub }: { on: boolean; onClick: () => void
       role="radio"
       aria-checked={on}
       onClick={onClick}
-      className={`flex min-h-[64px] flex-col items-start gap-0.5 rounded-2xl border px-4 py-3.5 text-left transition-colors ${
-        on ? "border-fuego-600 bg-[#fbf1e4] dark:bg-fuego-600/10" : "border-line bg-[#fcf5eb] hover:border-mark dark:bg-input"
+      className={`flex min-h-[64px] flex-col items-start gap-0.5 rounded-2xl border px-4 py-3.5 text-left transition-[color,background-color,border-color,box-shadow] duration-200 ${
+        on ? "border-fuego-600 bg-[#fbf1e4] shadow-[0_0_0_3px_rgba(180,71,42,0.12)] dark:bg-fuego-600/10" : "border-line bg-[#fcf5eb] hover:border-mark dark:bg-input"
       }`}
     >
       <span className={`text-[15px] font-semibold ${on ? "text-fuego-600 dark:text-[#df8067]" : "text-hi"}`}>{titulo}</span>
@@ -63,14 +63,14 @@ export function NuevaListaPanel(p: Props) {
         aria-controls="panel-nueva"
         className={`${cls.btnLlama} min-h-[48px] px-6 text-[15px] max-sm:w-full`}
       >
-        <Plus size={18} strokeWidth={2.4} aria-hidden /> Armar lista nueva
+        <Plus size={18} strokeWidth={2.4} aria-hidden className={`transition-transform duration-300 ${abierto ? "rotate-45" : ""}`} /> Armar lista nueva
       </button>
 
       {abierto && (
         <section
           id="panel-nueva"
           aria-labelledby="nueva-lista"
-          className="order-last col-span-full flex w-full flex-col gap-[18px] rounded-[22px] border border-fuego-600 bg-card p-5 shadow-[0_1px_2px_rgba(43,22,17,0.06),0_12px_30px_-12px_rgba(120,45,15,0.28)] dark:shadow-none sm:p-6"
+          className="animate-desplegar order-last col-span-full flex w-full flex-col gap-[18px] rounded-[22px] border border-fuego-600 bg-card p-5 shadow-[0_1px_2px_rgba(43,22,17,0.06),0_12px_30px_-12px_rgba(120,45,15,0.28)] dark:shadow-none sm:p-6"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -91,7 +91,7 @@ export function NuevaListaPanel(p: Props) {
           </div>
 
           {destino === "servicio" && (
-            <div className="flex flex-col gap-2.5">
+            <div className="animate-desplegar flex flex-col gap-2.5">
               <p className="text-[13px] font-semibold text-[#4a2c22] dark:text-hi"><span className="text-fuego-600">2</span>&nbsp;&nbsp;¿Cómo querés empezar?</p>
               <div role="radiogroup" aria-label="Cómo empezar" className="grid gap-2.5 sm:grid-cols-3">
                 <Opcion on={camino === "cero"} onClick={() => setCamino("cero")} titulo="De cero" sub="Elegís canción por canción" />
@@ -102,7 +102,7 @@ export function NuevaListaPanel(p: Props) {
           )}
 
           {(destino === "plantilla" || camino === "cero") && (
-            <form action={destino === "plantilla" ? p.crearPlantilla : p.crearServicio} className="flex flex-col gap-3">
+            <form key={destino} action={destino === "plantilla" ? p.crearPlantilla : p.crearServicio} className="animate-desplegar flex flex-col gap-3">
               {selectorPlataforma}
               <label className={cls.etiqueta}>
                 {destino === "plantilla" ? "Nombre de la plantilla" : "Nombre del servicio"}
@@ -120,7 +120,7 @@ export function NuevaListaPanel(p: Props) {
             p.plantillas.length === 0 ? (
               <p className="text-[13px] text-lo">No tenés plantillas guardadas todavía.</p>
             ) : (
-              <div className="grid gap-2 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
+              <div className="escalonar grid gap-2 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
                 {p.plantillas.map((pl) => (
                   <form key={pl.id_playlist} action={p.usarPlantilla} className="flex items-center gap-2.5 rounded-[14px] border border-line bg-card px-3.5 py-3">
                     <input type="hidden" name="id_preset" value={pl.id_playlist} />
@@ -136,7 +136,7 @@ export function NuevaListaPanel(p: Props) {
             p.anteriores.length === 0 ? (
               <p className="text-[13px] text-lo">Todavía no hay servicios anteriores para repetir.</p>
             ) : (
-              <div className="grid gap-2 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
+              <div className="escalonar grid gap-2 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
                 {p.anteriores.slice(0, 12).map((a) => (
                   <form key={a.id_playlist} action={p.repetirServicio} className="flex items-center gap-2.5 rounded-[14px] border border-line bg-card px-3.5 py-3">
                     <input type="hidden" name="id_playlist" value={a.id_playlist} />

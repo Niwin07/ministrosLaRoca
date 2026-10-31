@@ -74,7 +74,7 @@ export default async function TurnosPage() {
           {cola.length === 0 ? (
             <p className="rounded-[14px] border border-dashed border-mark px-4 py-4 text-[13px] text-lo">Todavía no hay próximos turnos cargados.</p>
           ) : (
-            <ol className="flex flex-col gap-2">
+            <ol className="escalonar flex flex-col gap-2">
               {cola.map((c, i) => (
                 <li key={c.id_turno} className={`flex items-center gap-3 rounded-[14px] border bg-card px-3.5 py-3 ${c.id === yo ? "border-fuego-600/40" : "border-line"}`}>
                   <Avatar foto={c.foto} nombre={c.nombre} size={34} />
@@ -92,7 +92,7 @@ export default async function TurnosPage() {
         <section aria-labelledby="t-sonido" className="flex min-w-0 flex-col gap-3">
           {cabecera("auriculares", "t-sonido", "Sonido", "Sonidista y auxiliar")}
 
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="escalonar grid grid-cols-2 gap-2.5">
             <div className="flex items-center gap-2.5 rounded-2xl border border-[rgba(122,42,38,0.3)] bg-[#fbede6] p-3.5 dark:bg-[#1e1513]">
               <Inicial nombre={ahoraSonido?.principal?.nombre ?? "S"} size={36} tono="vino" />
               <div className="min-w-0">
@@ -110,7 +110,7 @@ export default async function TurnosPage() {
           </div>
 
           <p className="mt-1 text-xs font-semibold text-mid">Próximas semanas</p>
-          <ol className="flex flex-col gap-2">
+          <ol className="escalonar flex flex-col gap-2">
             {proximoSonido.map((s, i) => (
               <li key={s.semana} className="flex items-center gap-3 rounded-[14px] border border-line bg-card px-3.5 py-3">
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5 text-[13px] text-hi">

@@ -103,8 +103,8 @@ export function NotifBell({ sidebar }: { sidebar?: boolean } = {}) {
   }
 
   const dropdownCls = sidebar
-    ? "absolute left-full top-0 z-50 ml-2 w-80 rounded-2xl border border-line bg-card shadow-xl dark:shadow-none"
-    : "absolute right-0 top-full z-50 mt-1 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-card shadow-xl dark:shadow-none";
+    ? "animate-desplegar absolute left-full top-0 z-50 ml-2 w-80 rounded-2xl border border-line bg-card shadow-xl dark:shadow-none"
+    : "animate-desplegar absolute right-0 top-full z-50 mt-1 w-80 max-w-[calc(100vw-2rem)] origin-top-right rounded-2xl border border-line bg-card shadow-xl dark:shadow-none";
 
   return (
     <div ref={ref} className={sidebar ? "relative" : undefined}>
@@ -140,11 +140,13 @@ export function NotifBell({ sidebar }: { sidebar?: boolean } = {}) {
           title="Notificaciones"
           className="relative flex h-11 w-11 items-center justify-center rounded-full transition-colors duration-200 hover:bg-fuego-600/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuego-500/40"
         >
-          <IconoMarca nombre="notif" size={22} />
+          <span key={noLeidas > 0 ? "suena" : "quieta"} className={`flex ${noLeidas > 0 ? "campana-suena" : ""}`}>
+            <IconoMarca nombre="notif" size={22} />
+          </span>
           {noLeidas > 0 && (
             <span
               aria-hidden="true"
-              className="absolute right-[7px] top-[6px] flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-base bg-red-600 px-0.5 text-[9px] font-bold leading-none text-white"
+              className="animate-pop absolute right-[7px] top-[6px] flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-base bg-red-600 px-0.5 text-[9px] font-bold leading-none text-white"
             >
               {noLeidas > 9 ? "9+" : noLeidas}
             </span>
@@ -168,7 +170,7 @@ export function NotifBell({ sidebar }: { sidebar?: boolean } = {}) {
             </button>
           </div>
 
-          <div className="max-h-96 overflow-y-auto">
+          <div className="escalonar max-h-96 overflow-y-auto">
             {cargando && notifs.length === 0 && (
               <p className="px-4 py-6 text-center text-xs text-gone">Cargando…</p>
             )}

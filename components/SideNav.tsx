@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu, Users } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { IconoMarca } from "@/components/zarza/IconoMarca";
+import { PildoraActiva } from "@/components/zarza/PildoraActiva";
 import { getNavItems, ocultarNav, esRutaActiva } from "@/lib/nav-items";
 import { ROL_LABEL } from "@/lib/roles";
 
@@ -48,10 +49,10 @@ export function SideNav({ rol, nombre = "", foto }: Props) {
 
   const itemCls = (activo: boolean) =>
     [
-      "flex min-h-[46px] items-center gap-3 rounded-xl text-[15px] transition-colors",
+      "group relative flex min-h-[46px] items-center gap-3 rounded-xl text-[15px] transition-colors",
       plegado ? "justify-center px-0" : "justify-start px-3.5",
       activo
-        ? "bg-fuego-600/[0.12] font-semibold text-fuego-600 dark:bg-[rgba(226,104,60,0.19)] dark:text-[#d65a32]"
+        ? "font-semibold text-fuego-600 dark:text-[#d65a32]"
         : "font-medium text-[#6e4c40] hover:bg-fuego-600/[0.06] dark:text-[#d6c2a8] dark:hover:bg-[rgba(226,104,60,0.10)]",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuego-500/40",
     ].join(" ");
@@ -95,7 +96,7 @@ export function SideNav({ rol, nombre = "", foto }: Props) {
         >
           <Avatar foto={foto ?? null} nombre={nombre} size={40} />
           {!plegado && (
-            <span className="min-w-0">
+            <span className="min-w-0 animate-aparecer">
               <span className="block truncate text-sm font-bold leading-tight">{nombre}</span>
               <span className="mt-0.5 block text-xs text-lo">{rolLabel}</span>
             </span>
@@ -117,8 +118,11 @@ export function SideNav({ rol, nombre = "", foto }: Props) {
               title={item.label}
               className={itemCls(activo)}
             >
-              <IconoMarca nombre={item.icono} size={21} />
-              {!plegado && <span className="whitespace-nowrap">{item.label}</span>}
+              {activo && <PildoraActiva id="nav-lateral" className="rounded-xl bg-fuego-600/[0.12] dark:bg-[rgba(226,104,60,0.19)]" />}
+              <span className="relative flex transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-rotate-6 group-hover:scale-110">
+                <IconoMarca nombre={item.icono} size={21} />
+              </span>
+              {!plegado && <span className="relative animate-aparecer whitespace-nowrap">{item.label}</span>}
             </Link>
           );
         })}
@@ -131,8 +135,11 @@ export function SideNav({ rol, nombre = "", foto }: Props) {
             title="Usuarios"
             className={itemCls(pathname.startsWith("/admin/usuarios"))}
           >
-            <Users size={19} strokeWidth={pathname.startsWith("/admin/usuarios") ? 2.4 : 1.8} aria-hidden />
-            {!plegado && <span className="whitespace-nowrap">Usuarios</span>}
+            {pathname.startsWith("/admin/usuarios") && <PildoraActiva id="nav-lateral" className="rounded-xl bg-fuego-600/[0.12] dark:bg-[rgba(226,104,60,0.19)]" />}
+            <span className="relative flex transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110">
+              <Users size={19} strokeWidth={pathname.startsWith("/admin/usuarios") ? 2.4 : 1.8} aria-hidden />
+            </span>
+            {!plegado && <span className="relative animate-aparecer whitespace-nowrap">Usuarios</span>}
           </Link>
         )}
       </nav>

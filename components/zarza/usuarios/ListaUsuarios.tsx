@@ -76,9 +76,9 @@ export function ListaUsuarios({ usuarios }: { usuarios: Usuario[] }) {
       {visibles.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-mark px-5 py-6 text-center text-sm text-lo">Nadie coincide con este filtro.</p>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div key={filtro} className="escalonar grid gap-2 sm:grid-cols-2">
           {visibles.map((u) => (
-            <div key={u.id_usuario} className="flex min-w-0 items-start gap-2.5 rounded-2xl border border-line bg-card p-4 shadow-card dark:shadow-none">
+            <div key={u.id_usuario} className="tarjeta-viva flex min-w-0 items-start gap-2.5 rounded-2xl border border-line bg-card p-4 shadow-card dark:shadow-none">
               <Avatar foto={u.foto} nombre={u.nombre} size={36} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-hi">{u.nombre}</p>

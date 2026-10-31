@@ -1,0 +1,207 @@
+/* ════════════════════════════════════════════════════════════════
+   Movimiento "Zarza" — animaciones de la interfaz.
+   Reglas de rendimiento: sólo se animan transform / opacity (GPU) salvo
+   piezas chicas; las entradas usan fill-mode "backwards" para que al
+   terminar no quede ningún transform aplicado (no rompe position:fixed
+   ni los popovers). Todo se apaga con "reducir movimiento".
+   ════════════════════════════════════════════════════════════════ */
+
+:root {
+  --z-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --z-ease-io: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@keyframes z-subir {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes z-aparecer {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes z-desplegar {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes z-pop {
+  0%   { opacity: 0; transform: scale(0.4); }
+  60%  { opacity: 1; transform: scale(1.18); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes z-rebote {
+  0%   { transform: translateY(0) scale(1); }
+  35%  { transform: translateY(-4px) scale(1.12); }
+  70%  { transform: translateY(1px) scale(0.97); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes z-girar-entra {
+  from { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+  to   { opacity: 1; transform: rotate(0) scale(1); }
+}
+@keyframes z-campana {
+  0%, 100% { transform: rotate(0); }
+  12% { transform: rotate(16deg); }
+  26% { transform: rotate(-13deg); }
+  40% { transform: rotate(9deg); }
+  54% { transform: rotate(-6deg); }
+  68% { transform: rotate(3deg); }
+  80% { transform: rotate(0); }
+}
+@keyframes z-latido {
+  0%   { transform: scale(1);   opacity: 0.55; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@keyframes z-brasa {
+  0%, 100% { opacity: 0.55; transform: translate3d(0, 0, 0) scale(1); }
+  50%      { opacity: 1;    transform: translate3d(4%, -3%, 0) scale(1.08); }
+}
+@keyframes z-ascua {
+  0%   { transform: translate3d(0, 0, 0); opacity: 0; }
+  15%  { opacity: 0.9; }
+  100% { transform: translate3d(var(--deriva, 12px), -340px, 0); opacity: 0; }
+}
+@keyframes z-aparecer-desenfoque {
+  from { opacity: 0; filter: blur(8px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+@keyframes z-crecer-x {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* ── Entrada de cada pantalla (app/template.tsx) ────────────────────
+   Los bloques de la pantalla suben en cascada al navegar. */
+.entrada-pagina > * > * {
+  animation: z-subir 0.6s var(--z-ease) backwards;
+}
+.entrada-pagina > * > :nth-child(2)  { animation-delay: 60ms; }
+.entrada-pagina > * > :nth-child(3)  { animation-delay: 120ms; }
+.entrada-pagina > * > :nth-child(4)  { animation-delay: 180ms; }
+.entrada-pagina > * > :nth-child(5)  { animation-delay: 240ms; }
+.entrada-pagina > * > :nth-child(6)  { animation-delay: 300ms; }
+.entrada-pagina > * > :nth-child(n+7) { animation-delay: 360ms; }
+
+/* Mientras corre la bienvenida, la pantalla espera y entra al final. */
+html[data-intro] .entrada-pagina > * > * { animation-play-state: paused; }
+
+/* ── Listas y grillas que entran en cascada ────────────────────── */
+.escalonar > * {
+  animation: z-subir 0.5s var(--z-ease) backwards;
+}
+.escalonar > :nth-child(1)  { animation-delay: 80ms; }
+.escalonar > :nth-child(2)  { animation-delay: 120ms; }
+.escalonar > :nth-child(3)  { animation-delay: 160ms; }
+.escalonar > :nth-child(4)  { animation-delay: 200ms; }
+.escalonar > :nth-child(5)  { animation-delay: 240ms; }
+.escalonar > :nth-child(6)  { animation-delay: 280ms; }
+.escalonar > :nth-child(7)  { animation-delay: 320ms; }
+.escalonar > :nth-child(8)  { animation-delay: 360ms; }
+.escalonar > :nth-child(9)  { animation-delay: 400ms; }
+.escalonar > :nth-child(10) { animation-delay: 440ms; }
+.escalonar > :nth-child(n+11) { animation-delay: 480ms; }
+
+/* ── Piezas que aparecen (paneles, menús, avisos) ──────────────── */
+.animate-desplegar { animation: z-desplegar 0.32s var(--z-ease) backwards; transform-origin: top center; }
+.animate-pop       { animation: z-pop 0.42s var(--z-ease) backwards; }
+.animate-rebote    { animation: z-rebote 0.5s var(--z-ease); }
+.animate-girar-entra { animation: z-girar-entra 0.45s var(--z-ease) backwards; }
+.animate-aparecer  { animation: z-aparecer 0.4s ease-out backwards; }
+.animate-crecer-x  { animation: z-crecer-x 0.9s var(--z-ease) backwards; transform-origin: left center; }
+
+/* Contenido de los <details> al abrirse (letra/acordes, plegables). */
+details[open] > :not(summary) { animation: z-desplegar 0.3s var(--z-ease) backwards; }
+details > summary svg { transition: transform 0.25s var(--z-ease); }
+
+/* ── Tarjetas vivas: se elevan al pasar y se hunden al tocar ───── */
+.tarjeta-viva {
+  transition: transform 0.28s var(--z-ease), box-shadow 0.28s var(--z-ease), border-color 0.2s ease, background-color 0.2s ease;
+}
+@media (hover: hover) {
+  .tarjeta-viva:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 2px 4px rgba(43, 22, 17, 0.06), 0 16px 32px -12px rgba(120, 45, 15, 0.34);
+  }
+  .dark .tarjeta-viva:hover { box-shadow: 0 16px 32px -14px rgba(0, 0, 0, 0.6); border-color: rgb(var(--mark)); }
+}
+.tarjeta-viva:active { transform: translateY(0) scale(0.985); transition-duration: 0.1s; }
+
+/* ── Botón Llama: destello que cruza al pasar ──────────────────── */
+.btn-brillo { position: relative; overflow: hidden; isolation: isolate; }
+.btn-brillo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 236, 214, 0.38) 50%, transparent 70%);
+  transform: translateX(-130%);
+}
+@media (hover: hover) {
+  .btn-brillo:hover::after { transform: translateX(130%); transition: transform 0.75s var(--z-ease); }
+}
+
+/* ── Presión táctil en todos los botones ───────────────────────── */
+button:not(:disabled):not([data-sin-presion]):active { scale: 0.96; transition: scale 0.08s ease-out; }
+
+/* ── Tarjeta "Esta semana": brasa que respira detrás ───────────── */
+.tarjeta-brasa { position: relative; isolation: isolate; overflow: hidden; }
+.tarjeta-brasa::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -30% -20% auto auto;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgba(232, 128, 72, 0.22), rgba(232, 128, 72, 0));
+  animation: z-brasa 7s ease-in-out infinite;
+}
+.dark .tarjeta-brasa::before { background: radial-gradient(closest-side, rgba(214, 90, 50, 0.20), rgba(214, 90, 50, 0)); }
+
+/* Punto "en vivo" con onda (próximo servicio, turno actual). */
+.punto-vivo { position: relative; display: inline-flex; width: 8px; height: 8px; border-radius: 9999px; background: #c7613a; }
+.punto-vivo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  animation: z-latido 1.8s var(--z-ease) infinite;
+}
+
+/* ── Campana con notificaciones sin leer ───────────────────────── */
+.campana-suena { transform-origin: 50% 8%; animation: z-campana 1.2s ease-in-out 0.8s 2; }
+
+/* ── Bienvenida: ascuas que suben ──────────────────────────────── */
+.ascua {
+  position: absolute;
+  bottom: -10px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #f3a862;
+  box-shadow: 0 0 8px 2px rgba(240, 140, 70, 0.7);
+  animation: z-ascua 3.4s ease-in infinite;
+  will-change: transform, opacity;
+}
+.intro-logo-entra { animation: z-aparecer-desenfoque 1.1s ease-out both; }
+
+/* ── Cambio de tema: revelado circular (View Transitions) ──────── */
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+
+/* ── Reducir movimiento ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .entrada-pagina > * > *,
+  .escalonar > *,
+  .animate-desplegar, .animate-pop, .animate-rebote, .animate-girar-entra,
+  .animate-aparecer, .animate-crecer-x,
+  details[open] > :not(summary),
+  .tarjeta-brasa::before, .punto-vivo::after, .campana-suena, .ascua, .intro-logo-entra {
+    animation: none !important;
+  }
+  .tarjeta-viva, .tarjeta-viva:hover, .tarjeta-viva:active { transform: none !important; }
+  .btn-brillo::after { display: none; }
+  button:active { scale: none !important; }
+}

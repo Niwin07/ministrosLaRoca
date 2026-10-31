@@ -71,11 +71,11 @@ export function AgregarCancion({
         {resultados.length === 0 ? (
           <p className="py-2 text-[13px] text-lo">No hay canciones que coincidan.</p>
         ) : (
-          <div className="grid gap-2 sm:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
+          <div key={q.trim()} className="escalonar grid gap-2 sm:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
             {resultados.map((c) => {
               const agregada = yaEsta.has(c.id_cancion);
               return (
-                <div key={c.id_cancion} className="flex min-w-0 items-center gap-3 rounded-[14px] border border-[#f1e5d4] bg-[#fbf3e8] py-2.5 pl-3.5 pr-2.5 dark:border-line dark:bg-input">
+                <div key={c.id_cancion} className="tarjeta-viva flex min-w-0 items-center gap-3 rounded-[14px] border border-[#f1e5d4] bg-[#fbf3e8] py-2.5 pl-3.5 pr-2.5 dark:border-line dark:bg-input">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-hi">{c.nombre}</p>
                     <p className="mt-0.5 truncate text-xs text-lo">{c.artista}</p>

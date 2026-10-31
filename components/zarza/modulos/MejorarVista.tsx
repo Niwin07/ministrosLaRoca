@@ -147,7 +147,7 @@ export function MejorarVista({ categorias, puedeEditar }: { categorias: Categori
           {puedeEditar ? "Tocá Editar para crear la primera." : "Cuando se carguen, las vas a ver acá."}
         </Vacio>
       ) : (
-        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-[18px]">
+        <div className="escalonar grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-[18px]">
           {categorias.map((c) => {
             const col = COLORES_CATEGORIA[c.color] ?? COLORES_CATEGORIA.llama;
             return (
@@ -155,7 +155,7 @@ export function MejorarVista({ categorias, puedeEditar }: { categorias: Categori
                 <Link
                   href={`/mejorar/${c.id}`}
                   aria-label={`${c.nombre}, ${c.videos} ${c.videos === 1 ? "video" : "videos"}`}
-                  className="flex aspect-square items-center justify-center rounded-[26px] border border-fuego-600/20 shadow-[0_10px_24px_-14px_rgba(163,58,44,0.45)] transition-transform hover:-translate-y-0.5 dark:!bg-card"
+                  className="flex aspect-square items-center justify-center rounded-[26px] border border-fuego-600/20 shadow-[0_10px_24px_-14px_rgba(163,58,44,0.45)] tarjeta-viva dark:!bg-card"
                   style={{ background: col.fondo }}
                 >
                   <IconoMarca nombre={(c.icono as IconoMarcaNombre) ?? "mejorar"} size={60} />

@@ -294,7 +294,7 @@ export default async function PlaylistsPage(props: {
       {misServicios.length > 0 || sinListaParaMiTurno ? (
         <section aria-labelledby="proximos" className="flex flex-col gap-3.5">
           <h2 id="proximos" className={cls.seccion}>Tus próximos servicios</h2>
-          <div className="grid gap-3.5 lg:grid-cols-2">
+          <div className="escalonar grid gap-3.5 lg:grid-cols-2">
             {misServicios.map((s) => {
               const [arriba, abajo] = chipSemana(miTurno);
               const publicado = s.estado !== "PREPARACION";
@@ -363,7 +363,7 @@ export default async function PlaylistsPage(props: {
           {estaSemana
             .filter((l) => !misServicios.some((m) => m.id_playlist === l.id_playlist))
             .map((lista) => (
-              <Link key={lista.id_playlist} href={`/playlists/${lista.id_playlist}`} className={`${cls.tarjeta} flex items-center gap-4 px-5 py-4 transition-transform hover:-translate-y-0.5`}>
+              <Link key={lista.id_playlist} href={`/playlists/${lista.id_playlist}`} className={`${cls.tarjeta} flex items-center gap-4 px-5 py-4 tarjeta-viva`}>
                 <Avatar foto={lista.foto} nombre={lista.nombre_usuario} size={40} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-base font-semibold text-hi">{lista.nombre}</p>
@@ -377,8 +377,8 @@ export default async function PlaylistsPage(props: {
       )}
 
       {/* ── Más opciones ──────────────────────────────────────────────── */}
-      <nav aria-label="Más opciones de servicios" className="grid gap-2.5 sm:grid-cols-2">
-        <a href="#plantillas" className="flex min-h-[72px] items-center gap-3.5 rounded-[18px] border border-line bg-card px-5 text-hi transition-colors hover:border-mark">
+      <nav aria-label="Más opciones de servicios" className="escalonar grid gap-2.5 sm:grid-cols-2">
+        <a href="#plantillas" className="tarjeta-viva flex min-h-[72px] items-center gap-3.5 rounded-[18px] border border-line bg-card px-5 text-hi hover:border-mark">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center text-fuego-600"><ListMusic size={22} aria-hidden /></span>
           <span className="flex-1">
             <span className="block text-[15px] font-semibold">Mis plantillas</span>
@@ -386,7 +386,7 @@ export default async function PlaylistsPage(props: {
           </span>
           <ChevronRight size={18} className="text-gone" aria-hidden />
         </a>
-        <a href="#anteriores" className="flex min-h-[72px] items-center gap-3.5 rounded-[18px] border border-line bg-card px-5 text-hi transition-colors hover:border-mark">
+        <a href="#anteriores" className="tarjeta-viva flex min-h-[72px] items-center gap-3.5 rounded-[18px] border border-line bg-card px-5 text-hi hover:border-mark">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center text-mid"><Archive size={22} aria-hidden /></span>
           <span className="flex-1">
             <span className="block text-[15px] font-semibold">Servicios anteriores</span>
@@ -404,7 +404,7 @@ export default async function PlaylistsPage(props: {
           {plantillas.length === 0 ? (
             <p className={`${cls.tarjeta} px-5 py-5 text-sm text-lo`}>No tenés plantillas todavía. Creá una con “Armar lista nueva” → Sin fecha.</p>
           ) : (
-            <div className="flex flex-col gap-1.5">
+            <div className="escalonar flex flex-col gap-1.5">
               {plantillas.map((lista) => (
                 <PlaylistRowItem
                   key={lista.id_playlist}
@@ -421,7 +421,7 @@ export default async function PlaylistsPage(props: {
           {enPreparacion.length > 0 && (
             <>
               <h3 className="mt-3 text-[13px] font-semibold text-mid">Borrar servicios en preparación</h3>
-              <div className="flex flex-col gap-1.5">
+              <div className="escalonar flex flex-col gap-1.5">
                 {enPreparacion.map((lista) => (
                   <PlaylistRowItem
                     key={lista.id_playlist}

@@ -80,7 +80,7 @@ export function ColaTurnos({ turnos, onReordenar, onActivar, onQuitar }: Props) 
       axis="y"
       values={orden}
       onReorder={setOrden}
-      className={`flex flex-col gap-2 ${guardando ? "pointer-events-none opacity-70" : ""}`}
+      className={`escalonar flex flex-col gap-2 transition-opacity ${guardando ? "pointer-events-none opacity-70" : ""}`}
     >
       {orden.map((t, idx) => (
         <Fila
@@ -123,7 +123,7 @@ function Fila({ turno, pos, esPrimero, esUltimo, onDragStart, onDragEnd, onMover
       dragControls={controls}
       onDragStart={() => { setArrastrando(true); onDragStart(); }}
       onDragEnd={() => { setArrastrando(false); onDragEnd(); }}
-      whileDrag={{ scale: 1.02 }}
+      whileDrag={{ scale: 1.03, rotate: -0.6 }}
       transition={{ type: "spring", stiffness: 600, damping: 40 }}
       className={`flex items-center gap-3 rounded-[14px] border bg-card px-3 py-2.5 ${
         arrastrando ? "z-10 border-violet-500/50 shadow-xl shadow-black/25 dark:shadow-black/60" : "border-line"

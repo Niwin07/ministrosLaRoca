@@ -1,6 +1,9 @@
 "use client";
 
+import { useId } from "react";
+import { LayoutGroup } from "framer-motion";
 import { Check, Pencil, Plus } from "lucide-react";
+import { PildoraActiva } from "@/components/zarza/PildoraActiva";
 import { cls } from "@/components/zarza/ui";
 
 /** Botones "Agregar …" + "Editar / Listo" del encabezado de los módulos editables. */
@@ -18,12 +21,12 @@ export function BotonesEdicion({
   return (
     <>
       {editando && (
-        <button type="button" onClick={onAgregar} className={cls.btnLlama}>
+        <button type="button" onClick={onAgregar} className={`${cls.btnLlama} animate-pop`}>
           <Plus size={16} strokeWidth={2.4} aria-hidden /> {agregarTxt}
         </button>
       )}
       <button type="button" onClick={() => setEditando(!editando)} aria-pressed={editando} className={cls.btnSec}>
-        {editando ? <Check size={16} aria-hidden /> : <Pencil size={15} aria-hidden />}
+        {editando ? <Check key="ok" size={16} aria-hidden className="animate-girar-entra" /> : <Pencil key="ed" size={15} aria-hidden className="animate-girar-entra" />}
         {editando ? "Listo" : "Editar"}
       </button>
     </>
@@ -42,7 +45,9 @@ export function Segmentado<T extends string>({
   onChange: (v: T) => void;
   label: string;
 }) {
+  const grupo = useId();
   return (
+    <LayoutGroup id={grupo}>
     <div role="tablist" aria-label={label} className="flex w-fit max-w-full gap-0.5 rounded-full border border-line bg-input p-[3px]">
       {opciones.map((o) => {
         const on = o.valor === valor;
@@ -53,14 +58,16 @@ export function Segmentado<T extends string>({
             role="tab"
             aria-selected={on}
             onClick={() => onChange(o.valor)}
-            className={`min-h-[38px] rounded-full px-[18px] text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuego-500/40 ${
-              on ? "bg-fuego-600 text-white" : "text-mid hover:text-hi"
+            className={`relative min-h-[38px] rounded-full px-[18px] text-[13px] font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuego-500/40 ${
+              on ? "text-white" : "text-mid hover:text-hi"
             }`}
           >
-            {o.texto}
+            {on && <PildoraActiva />}
+            <span className="relative">{o.texto}</span>
           </button>
         );
       })}
     </div>
+    </LayoutGroup>
   );
 }

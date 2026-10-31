@@ -14,6 +14,7 @@ import "@fontsource-variable/dm-sans";
 import "@fontsource-variable/bricolage-grotesque";
 import "./globals.css";
 import "./zarza-fondos.css";
+import "./zarza-movimiento.css";
 
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",

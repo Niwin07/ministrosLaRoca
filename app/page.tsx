@@ -130,7 +130,7 @@ export default async function InicioPage() {
   const sonidoSemana = sonido.semanas[0];
 
   const listaCanciones = (
-    <ol className="divide-y divide-[#f1e5d4] dark:divide-line">
+    <ol className="escalonar divide-y divide-[#f1e5d4] dark:divide-line">
       {cancionesServicio.map((c) => (
         <li key={c.id} className="flex items-center gap-3.5 px-[18px] py-3">
           <span className="w-[22px] shrink-0 text-right text-xs font-semibold tabular-nums text-[#b9998a]">
@@ -169,7 +169,7 @@ export default async function InicioPage() {
       {/* ── Esta semana ──────────────────────────────────────────── */}
       <section
         aria-labelledby="servicio-semana"
-        className={`grid min-w-0 gap-x-9 gap-y-5 rounded-card border border-line bg-card p-4 shadow-card sm:p-6 dark:shadow-none ${conCanciones ? "lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]" : ""}`}
+        className={`tarjeta-brasa grid min-w-0 gap-x-9 gap-y-5 rounded-card border border-line bg-card p-4 shadow-card sm:p-6 dark:shadow-none ${conCanciones ? "lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]" : ""}`}
         style={{
           backgroundImage:
             "radial-gradient(120% 140% at 0% 0%, rgba(232,160,96,0.16) 0%, rgba(232,160,96,0) 45%), radial-gradient(90% 120% at 100% 100%, rgba(122,42,38,0.08) 0%, rgba(122,42,38,0) 50%)",
@@ -177,7 +177,8 @@ export default async function InicioPage() {
       >
         <div className="flex min-w-0 flex-col gap-[18px]">
           <div className="flex items-center justify-between gap-3">
-            <p id="servicio-semana" className={cls.eyebrow}>
+            <p id="servicio-semana" className={`${cls.eyebrow} flex items-center gap-2`}>
+              {servicio && <span aria-hidden className="punto-vivo" />}
               Esta semana{dia ? ` · ${dia}` : ""}
             </p>
             {servicio && (
@@ -287,7 +288,7 @@ export default async function InicioPage() {
           <Link
             href="/turnos"
             aria-label={`La semana que viene dirige ${proximo.nombre}. Ver turnos`}
-            className="flex items-center gap-3.5 rounded-[22px] px-5 py-[18px] text-[#fff7ec] shadow-[0_14px_30px_-12px_rgba(94,31,24,0.55)] transition-[filter] hover:brightness-110"
+            className="flex items-center gap-3.5 rounded-[22px] px-5 py-[18px] text-[#fff7ec] shadow-[0_14px_30px_-12px_rgba(94,31,24,0.55)] tarjeta-viva hover:brightness-110"
             style={{ background: "radial-gradient(80% 140% at 100% 0%, rgba(217,134,74,0.6) 0%, rgba(217,134,74,0) 60%), linear-gradient(120deg, #5a1a12 0%, #7a2a26 45%, #a8492c 100%)" }}
           >
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-[rgba(255,247,236,0.6)] bg-[rgba(255,247,236,0.12)] text-[15px] font-bold">
@@ -312,12 +313,12 @@ export default async function InicioPage() {
       {/* ── Con excelencia ───────────────────────────────────────── */}
       <section aria-labelledby="para-equipo" className="flex flex-col gap-3">
         <h2 id="para-equipo" className={cls.seccion}>Con excelencia</h2>
-        <div className="grid gap-2.5 sm:grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
+        <div className="escalonar grid gap-2.5 sm:grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
           {EXCELENCIA.map((e) => (
             <Link
               key={e.href}
               href={e.href}
-              className="flex items-center gap-3.5 rounded-2xl border border-line bg-card py-3.5 pl-4 pr-3.5 text-hi shadow-[0_1px_2px_rgba(43,22,17,0.06),0_8px_24px_-10px_rgba(120,45,15,0.18)] transition-transform hover:-translate-y-0.5 dark:shadow-none"
+              className="tarjeta-viva flex items-center gap-3.5 rounded-2xl border border-line bg-card py-3.5 pl-4 pr-3.5 text-hi shadow-[0_1px_2px_rgba(43,22,17,0.06),0_8px_24px_-10px_rgba(120,45,15,0.18)] transition-transform hover:-translate-y-0.5 dark:shadow-none"
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
                 <IconoMarca nombre={e.icono} size={33} />
