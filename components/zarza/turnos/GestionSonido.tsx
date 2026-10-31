@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Minus, Plus, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cls, Inicial } from "@/components/zarza/ui";
+import { SelectorPersona } from "@/components/zarza/SelectorPersona";
 import { useConfirmar } from "@/components/zarza/Confirmacion";
 import { SALIDA_ITEM } from "@/components/zarza/ListaAnimada";
 import { agregarSonidista, quitarSonidista, asignarSonido, guardarSemanasPlanificadas } from "@/app/actions/sonido";
@@ -61,23 +62,16 @@ function SelectPersona({
   tono: "vino" | "arcilla";
 }) {
   return (
-    <label className={`relative flex min-w-0 flex-1 flex-col gap-0.5 overflow-hidden rounded-[14px] border px-3 py-2 ${tono === "vino" ? "border-[#efc7b3] dark:border-[#573827]" : "border-mark"}`}>
-      {/* Destello al elegir a alguien */}
-      {valor && <span key={valor.id} aria-hidden className="animate-destello pointer-events-none absolute inset-0 bg-fuego-500/20" />}
-      <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#7a2a26] dark:text-[#d69271]">{label}</span>
-      <select
-        value={valor?.id ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        aria-label={label}
-        className="w-full truncate bg-transparent text-sm font-semibold text-hi outline-none [&>option]:bg-card"
-      >
-        <option value="">Sin asignar</option>
-        {opciones.map((o) => (
-          <option key={o.id} value={o.id}>{o.nombre}{o.id === sugeridoId ? " · sigue en la rotación" : ""}</option>
-        ))}
-      </select>
-    </label>
+    <SelectorPersona
+      etiqueta={label}
+      titulo={`Elegir ${label.toLowerCase()}`}
+      valor={valor ? String(valor.id) : ""}
+      opciones={opciones.map((o) => ({ id: o.id, nombre: o.nombre, nota: o.id === sugeridoId ? "Sigue en la rotación" : undefined }))}
+      onChange={onChange}
+      disabled={disabled}
+      tono={tono}
+      className="flex-1"
+    />
   );
 }
 
@@ -170,12 +164,16 @@ export function GestionSonido({
           </ul>
         )}
         <div className="flex gap-2">
-          <select value={nuevo} onChange={(e) => setNuevo(e.target.value)} aria-label="Elegir persona" className={`${cls.campo} flex-1 [&>option]:bg-card`}>
-            <option value="">Elegir persona…</option>
-            {disponibles.map((u) => (
-              <option key={u.id} value={u.id}>{u.nombre}</option>
-            ))}
-          </select>
+          <SelectorPersona
+            titulo="Agregar sonidista"
+            vacio="Elegir persona…"
+            permitirVacio={false}
+            valor={nuevo}
+            onChange={setNuevo}
+            opciones={disponibles}
+            tono="arcilla"
+            className="flex-1"
+          />
           <button
             type="button"
             disabled={!nuevo || pending}

@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Check, ChevronDown, ChevronUp, GripVertical, Pencil, PlayCircle, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cls } from "@/components/zarza/ui";
-import { useConfirmar } from "@/components/zarza/Confirmacion";
+import { BotonConfirmado } from "@/components/zarza/Confirmacion";
 import { SALIDA_ITEM } from "@/components/zarza/ListaAnimada";
 import type { ResultadoAccion } from "@/app/actions/contenido";
 import { youtubeUrl } from "@/lib/youtube";
@@ -47,7 +47,6 @@ export function PasosChecklist({
   const [hechos, setHechos] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const confirmar = useConfirmar();
   const reducir = useReducedMotion();
 
   useEffect(() => {
@@ -173,15 +172,19 @@ export function PasosChecklist({
                     <button type="submit" disabled={pending || i === pasos.length - 1} aria-label="Bajar" className={cls.btnIcono}><ChevronDown size={18} aria-hidden /></button>
                   </form>
                   <button type="button" onClick={() => setFormAbierto(p.id)} aria-label={`Editar ${rotulo.toLowerCase()}`} className={cls.btnIcono}><Pencil size={16} aria-hidden /></button>
-                  <form action={async (fd) => {
-                    const ok = await confirmar({
-                      titulo: `¿Eliminar este ${rotulo.toLowerCase()}?`,
-                      mensaje: <>Se va a borrar <strong className="font-semibold text-hi">“{p.titulo}”</strong> para todo el equipo.</>,
-                    });
-                    if (ok) enviar(eliminar, fd);
-                  }}>
+                  <form action={(fd) => enviar(eliminar, fd)}>
                     <input type="hidden" name="id" value={p.id} />
-                    <button type="submit" disabled={pending} aria-label={`Eliminar ${rotulo.toLowerCase()}`} className={`${cls.btnIcono} text-gone hover:text-red-600`}><Trash2 size={16} aria-hidden /></button>
+                    <BotonConfirmado
+                      confirmacion={{
+                        titulo: `¿Eliminar este ${rotulo.toLowerCase()}?`,
+                        mensaje: <>Se va a borrar <strong className="font-semibold text-hi">“{p.titulo}”</strong> para todo el equipo.</>,
+                      }}
+                      disabled={pending}
+                      aria-label={`Eliminar ${rotulo.toLowerCase()}`}
+                      className={`${cls.btnIcono} text-gone hover:text-red-600`}
+                    >
+                      <Trash2 size={16} aria-hidden />
+                    </BotonConfirmado>
                   </form>
                 </div>
               )}

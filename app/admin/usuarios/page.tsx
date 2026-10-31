@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SelectorZarza } from "@/components/zarza/SelectorZarza";
 import { redirect } from "next/navigation";
 import { ArrowLeft, UserPlus } from "lucide-react";
 import { auth } from "@/auth";
@@ -8,7 +9,6 @@ import { asc, eq } from "drizzle-orm";
 import { crearUsuario } from "@/app/actions/usuarios";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/ui/Input";
-import { Label } from "@/components/ui/Label";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { nombrePlataforma } from "@/lib/plataforma";
 import { ListaUsuarios } from "@/components/zarza/usuarios/ListaUsuarios";
@@ -105,18 +105,7 @@ export default async function AdminUsuariosPage(props: {
           />
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rol">Rol</Label>
-            <select
-              id="rol"
-              name="rol"
-              required
-              className="min-h-[46px] rounded-full border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-fuego-500 focus:ring-2 focus:ring-fuego-500/30 [&>option]:bg-card"
-            >
-              <option value="">— Seleccionar rol —</option>
-              <option value="ADMINISTRADOR">Administrador</option>
-              <option value="LIDER">Líder</option>
-              <option value="MINISTRO">Ministro</option>
-            </select>
+            <SelectorZarza name="rol" label="Rol" required vacio="Seleccionar rol" opciones={[{ valor: "ADMINISTRADOR", texto: "Administrador" }, { valor: "LIDER", texto: "Líder" }, { valor: "MINISTRO", texto: "Ministro" }]} />
             <span className="text-[11px] text-lo">El rol define qué puede hacer en la app.</span>
           </div>
 

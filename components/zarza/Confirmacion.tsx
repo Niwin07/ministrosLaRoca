@@ -59,7 +59,10 @@ export function ProveedorConfirmacion({ children }: { children: ReactNode }) {
   const confirmar = useCallback((o: OpcionesConfirmacion) => {
     return new Promise<boolean>((resolver) => {
       foco.current = document.activeElement as HTMLElement | null;
-      setPedido({ ...o, resolver });
+      // Fuera del ciclo actual: si se llama desde una acción de formulario
+      // (que React corre como transición), el diálogo igual se muestra al
+      // instante en vez de quedar esperando a que termine la acción.
+      setTimeout(() => setPedido({ ...o, resolver }), 0);
     });
   }, []);
 

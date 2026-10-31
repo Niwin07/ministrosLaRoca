@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cls } from "@/components/zarza/ui";
-import { useConfirmar } from "@/components/zarza/Confirmacion";
+import { BotonConfirmado } from "@/components/zarza/Confirmacion";
 import { SALIDA_ITEM } from "@/components/zarza/ListaAnimada";
 import type { ResultadoAccion } from "@/app/actions/contenido";
 import { youtubeMiniatura, youtubeUrl } from "@/lib/youtube";
@@ -44,7 +44,6 @@ export function VideosGrilla({
 }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const confirmar = useConfirmar();
   const reducir = useReducedMotion();
 
   function enviar(accion: Accion, fd: FormData, alTerminar?: () => void) {
@@ -74,18 +73,20 @@ export function VideosGrilla({
       <button type="button" onClick={() => setFormAbierto(v.id)} aria-label="Editar video" className="flex h-9 w-9 items-center justify-center rounded-full bg-card text-mid shadow-[0_2px_6px_rgba(0,0,0,0.15)]">
         <Pencil size={14} aria-hidden />
       </button>
-      <form action={async (fd) => {
-        const ok = await confirmar({
-          titulo: "¿Quitar este video?",
-          mensaje: <>“{v.titulo}” deja de aparecer en esta sección.</>,
-          confirmar: "Quitar",
-        });
-        if (ok) enviar(eliminar, fd);
-      }}>
+      <form action={(fd) => enviar(eliminar, fd)}>
         <Ocultos extra={extra} /><input type="hidden" name="id" value={v.id} />
-        <button type="submit" disabled={pending} aria-label="Quitar video" className="flex h-9 w-9 items-center justify-center rounded-full bg-card text-red-600 shadow-[0_2px_6px_rgba(0,0,0,0.15)]">
+        <BotonConfirmado
+          confirmacion={{
+            titulo: "¿Quitar este video?",
+            mensaje: <>“{v.titulo}” deja de aparecer en esta sección.</>,
+            confirmar: "Quitar",
+          }}
+          disabled={pending}
+          aria-label="Quitar video"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-card text-red-600 shadow-[0_2px_6px_rgba(0,0,0,0.15)]"
+        >
           <Trash2 size={14} aria-hidden />
-        </button>
+        </BotonConfirmado>
       </form>
     </div>
   );

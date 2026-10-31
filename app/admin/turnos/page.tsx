@@ -17,6 +17,7 @@ import { getSemanasPlanificadas, getSonidistas, getTurnosSonido } from "@/lib/so
 import { PLATAFORMAS_LIST, nombrePlataforma } from "@/lib/plataforma";
 import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
 import { BotonConfirmado } from "@/components/zarza/Confirmacion";
+import { SelectorPersona } from "@/components/zarza/SelectorPersona";
 import { getPlataformaEfectivaId } from "@/lib/get-plataforma-activa";
 
 const FEEDBACK: Record<string, string> = {
@@ -128,18 +129,22 @@ export default async function AdminTurnosPage(props: {
             <p className="text-sm font-semibold text-hi">Agregar a los turnos de {plaNombre}</p>
             <form action={agregarACola} className="flex flex-col gap-2">
               <input type="hidden" name="id_plataforma" value={plaSel.id} />
-              <label className={cls.etiqueta}>
+              <div className={cls.etiqueta}>
                 Ministro
-                <div className="flex gap-2">
-                  <select name="id_usuario" required className={`${cls.campo} flex-1 [&>option]:bg-card`}>
-                    <option value="">— Seleccionar ministro —</option>
-                    {listaUsuarios.map((u) => (
-                      <option key={u.id_usuario} value={u.id_usuario}>{u.nombre}</option>
-                    ))}
-                  </select>
+                <div className="relative flex gap-2">
+                  <SelectorPersona
+                    name="id_usuario"
+                    required
+                    titulo="Elegir ministro"
+                    vacio="Seleccionar ministro…"
+                    permitirVacio={false}
+                    opciones={listaUsuarios.map((u) => ({ id: u.id_usuario, nombre: u.nombre }))}
+                    tono="arcilla"
+                    className="flex-1"
+                  />
                   <button type="submit" className={cls.btnLlama}>Agregar</button>
                 </div>
-              </label>
+              </div>
             </form>
           </section>
 
@@ -212,12 +217,16 @@ export default async function AdminTurnosPage(props: {
             </div>
             <p className="text-xs text-lo">Enviá una notificación de prueba a cualquier usuario para verificar que le llegue al dispositivo.</p>
             <form action={probarNotificacion} className="flex gap-2">
-              <label className="sr-only" htmlFor="id_usuario_probar">Usuario</label>
-              <select id="id_usuario_probar" name="id_usuario" required className={`${cls.campo} flex-1 [&>option]:bg-card`}>
-                {listaUsuarios.map((u) => (
-                  <option key={u.id_usuario} value={u.id_usuario}>{u.nombre}</option>
-                ))}
-              </select>
+              <SelectorPersona
+                name="id_usuario"
+                required
+                titulo="Probar notificaciones a…"
+                vacio="Elegir persona…"
+                permitirVacio={false}
+                opciones={listaUsuarios.map((u) => ({ id: u.id_usuario, nombre: u.nombre }))}
+                tono="arcilla"
+                className="flex-1"
+              />
               <button type="submit" className={cls.btnSec}>Probar</button>
             </form>
           </section>

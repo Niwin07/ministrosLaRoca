@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { SelectorZarza } from "@/components/zarza/SelectorZarza";
 import { and, eq } from "drizzle-orm";
 import { ArrowLeft, Music2, Copy, ListMusic, Archive, Lock } from "lucide-react";
 import Link from "next/link";
@@ -20,7 +21,7 @@ import {
 } from "@/app/actions/listas";
 import { clonarMazo, avanzarEstadoPlaylist, cambiarPlataformaPlaylist } from "@/app/actions/playlists";
 import { ESTADO_LABEL } from "@/lib/estados";
-import { PLATAFORMAS_LIST, PLATAFORMA_LABELS } from "@/lib/plataforma";
+import { nombrePlataforma, PLATAFORMAS_LIST, PLATAFORMA_LABELS } from "@/lib/plataforma";
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
@@ -352,16 +353,15 @@ export default async function PlaylistDetailPage(props: {
         {rol === "ADMINISTRADOR" && (
           <form action={handleCambiarPlataforma} className="flex flex-wrap items-center gap-2 border-t border-[#f1e5d4] pt-3 dark:border-line">
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-lo">Plataforma</span>
-            <select
+            <SelectorZarza
               name="id_plataforma"
-              defaultValue={cabecera.id_plataforma}
-              aria-label="Reasignar plataforma de la lista"
-              className="min-h-[36px] rounded-full border border-mark bg-input px-3 text-[13px] text-hi outline-none focus:border-fuego-500 [&>option]:bg-card"
-            >
-              {PLATAFORMAS_LIST.map((pla) => (
-                <option key={pla.id} value={pla.id}>{pla.nombre}</option>
-              ))}
-            </select>
+              label="Reasignar plataforma de la lista"
+              ocultarLabel
+              compacto
+              sinVacio
+              defaultValue={String(cabecera.id_plataforma)}
+              opciones={PLATAFORMAS_LIST.map((pla) => ({ valor: String(pla.id), texto: nombrePlataforma(pla.nombre) }))}
+            />
             <button type="submit" className="min-h-[36px] rounded-full border border-mark px-3 text-[13px] font-semibold text-mid hover:text-hi">Guardar</button>
           </form>
         )}

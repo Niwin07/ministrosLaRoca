@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SelectorZarza } from "@/components/zarza/SelectorZarza";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
@@ -10,10 +11,9 @@ import { enviarMencion } from "@/app/actions/notificaciones";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/ui/Input";
-import { Label } from "@/components/ui/Label";
 import { Textarea } from "@/components/ui/Textarea";
 import { Badge } from "@/components/ui/Badge";
-import { PLATAFORMAS_LIST } from "@/lib/plataforma";
+import { nombrePlataforma, PLATAFORMAS_LIST } from "@/lib/plataforma";
 import { ErrorBanner } from "@/components/ErrorBanner";
 
 const SUCCESS_MSG: Record<string, string> = {
@@ -103,20 +103,7 @@ export default async function EditarUsuarioPage(props: {
             label="Contraseña"
           />
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rol">Rol</Label>
-            <select
-              id="rol"
-              name="rol"
-              required
-              defaultValue={usuario.rol}
-              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
-            >
-              <option value="ADMINISTRADOR">Administrador</option>
-              <option value="LIDER">Líder</option>
-              <option value="MINISTRO">Ministro</option>
-            </select>
-          </div>
+          <SelectorZarza name="rol" label="Rol" required sinVacio defaultValue={usuario.rol} opciones={[{ valor: "ADMINISTRADOR", texto: "Administrador" }, { valor: "LIDER", texto: "Líder" }, { valor: "MINISTRO", texto: "Ministro" }]} />
 
           <div className="flex items-center gap-3 pt-1">
             <Button type="submit">
@@ -164,20 +151,13 @@ export default async function EditarUsuarioPage(props: {
             })}
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="principal">Plataforma principal</Label>
-            <select
-              id="principal"
-              name="principal"
-              defaultValue={principalId ?? ""}
-              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
-            >
-              <option value="">— Sin definir —</option>
-              {PLATAFORMAS_LIST.map((pla) => (
-                <option key={pla.id} value={pla.id}>{pla.nombre}</option>
-              ))}
-            </select>
-          </div>
+          <SelectorZarza
+            name="principal"
+            label="Plataforma principal"
+            vacio="Sin definir"
+            defaultValue={principalId ? String(principalId) : ""}
+            opciones={PLATAFORMAS_LIST.map((pla) => ({ valor: String(pla.id), texto: nombrePlataforma(pla.nombre) }))}
+          />
 
           <Button type="submit" variant="secondary">
             Guardar plataformas
