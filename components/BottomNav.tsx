@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { getNavItems, esRutaActiva } from "@/lib/nav-items";
 import { IconoMarca } from "@/components/zarza/IconoMarca";
@@ -13,6 +14,11 @@ import { PildoraActiva } from "@/components/zarza/PildoraActiva";
 export function BottomNav({ rol }: { rol?: string }) {
   const pathname = usePathname();
   const items = getNavItems(rol);
+  // Respuesta inmediata al tocar: la pastilla se mueve ya, sin esperar a que
+  // llegue la pantalla nueva del servidor.
+  const [destino, setDestino] = useState<string | null>(null);
+  useEffect(() => { setDestino(null); }, [pathname]);
+  const ruta = destino ?? pathname;
 
   return (
     <div className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 md:hidden">
@@ -27,12 +33,13 @@ export function BottomNav({ rol }: { rol?: string }) {
         className="flex items-center justify-around gap-0.5 border-t-[1.5px] border-line bg-[rgb(var(--nav-bg)/0.96)]"
       >
         {items.map((item) => {
-          const activo = esRutaActiva(item.href, pathname);
+          const activo = esRutaActiva(item.href, ruta);
           return (
             <Link
               key={item.href}
               href={item.href}
               aria-current={activo ? "page" : undefined}
+              onClick={() => setDestino(item.href)}
               className={[
                 "flex min-h-[48px] min-w-0 max-w-[88px] flex-1 basis-0 flex-col items-center justify-center gap-[3px] no-underline transition-colors duration-200 active:scale-95",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuego-500/40 rounded-xl",

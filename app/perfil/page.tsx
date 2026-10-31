@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { fotoUrl } from "@/lib/foto";
 import Link from "next/link";
 import { ArrowLeft, User, KeyRound, Mail, Bell } from "lucide-react";
 import { auth } from "@/auth";
@@ -35,7 +36,7 @@ export default async function PerfilPage(props: {
       nombre: usuarios.nombre,
       email:  usuarios.email,
       rol:    usuarios.rol,
-      foto:   usuarios.foto,
+      foto:   fotoUrl(),
     })
     .from(usuarios)
     .where(eq(usuarios.id_usuario, session.user.id_usuario))

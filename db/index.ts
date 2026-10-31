@@ -27,6 +27,12 @@ const pool =
     // Acotado para serverless: muchas instancias × pool no deben agotar el
     // max_connections del MySQL gestionado.
     connectionLimit: 5,
+    // Conexiones vivas entre pedidos: evita reabrir TLS con la base (lo más
+    // caro de cada consulta cuando la base está lejos).
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10_000,
+    maxIdle: 5,
+    idleTimeout: 60_000,
   });
 
 // Cachear el pool en el global también en producción: en serverless (Vercel)

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { fotoUrl } from "@/lib/foto";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { cronograma, usuarios } from "@/db/schema";
@@ -7,7 +8,7 @@ import { Avatar } from "@/components/Avatar";
 import { IconoMarca } from "@/components/zarza/IconoMarca";
 import { Inicial } from "@/components/zarza/ui";
 import { getPlataformaEfectivaId } from "@/lib/get-plataforma-activa";
-import { getSemanasPlanificadas, getTurnosSonido } from "@/lib/sonido";
+import { armarSemanas, getFilasSonido, getSemanasPlanificadas } from "@/lib/sonido";
 
 const etiqueta = (i: number) => (i === 0 ? "Próxima semana" : `En ${i + 1} semanas`);
 
@@ -17,24 +18,26 @@ export default async function TurnosPage() {
 
   // Los turnos son por plataforma: siempre mostramos la que el usuario tiene elegida.
   const plaId = await getPlataformaEfectivaId(session.user.id_usuario);
-  const semanas = await getSemanasPlanificadas(plaId);
-
-  const [[activo], cola, sonido] = await Promise.all([
+  // Todo en una sola tanda en paralelo (antes las semanas se pedían primero).
+  const [semanas, [activo], colaCompleta, filasSonido] = await Promise.all([
+    getSemanasPlanificadas(plaId),
     db
-      .select({ nombre: usuarios.nombre, foto: usuarios.foto, id: usuarios.id_usuario })
+      .select({ nombre: usuarios.nombre, foto: fotoUrl(), id: usuarios.id_usuario })
       .from(cronograma)
       .innerJoin(usuarios, eq(cronograma.id_usuario, usuarios.id_usuario))
       .where(and(eq(cronograma.estado_turno, "ACTIVO"), eq(cronograma.id_plataforma, plaId)))
       .limit(1),
     db
-      .select({ id_turno: cronograma.id_turno, nombre: usuarios.nombre, foto: usuarios.foto, id: usuarios.id_usuario })
+      .select({ id_turno: cronograma.id_turno, nombre: usuarios.nombre, foto: fotoUrl(), id: usuarios.id_usuario })
       .from(cronograma)
       .innerJoin(usuarios, eq(cronograma.id_usuario, usuarios.id_usuario))
       .where(and(eq(cronograma.estado_turno, "EN_ESPERA"), eq(cronograma.id_plataforma, plaId)))
       .orderBy(asc(cronograma.orden))
-      .limit(semanas),
-    getTurnosSonido(plaId, semanas + 1),
+      .limit(12),
+    getFilasSonido(plaId),
   ]);
+  const cola = colaCompleta.slice(0, semanas);
+  const sonido = { semanas: armarSemanas(filasSonido.filas, semanas + 1), faltaMigracion: filasSonido.faltaMigracion };
 
   const yo = session.user.id_usuario;
   const ahoraSonido = sonido.semanas[0];

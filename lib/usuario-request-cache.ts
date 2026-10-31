@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { fotoUrl } from "@/lib/foto";
 import { db } from "@/db";
 import { usuarios, usuario_plataforma, plataformas } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -11,7 +12,7 @@ import { eq } from "drizzle-orm";
 
 export const getUsuarioFoto = cache(async (id_usuario: number): Promise<string | null> => {
   const [row] = await db
-    .select({ foto: usuarios.foto })
+    .select({ foto: fotoUrl() })
     .from(usuarios)
     .where(eq(usuarios.id_usuario, id_usuario))
     .limit(1);

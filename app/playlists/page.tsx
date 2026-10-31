@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { fotoUrl } from "@/lib/foto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
@@ -42,45 +43,75 @@ export default async function PlaylistsPage(props: {
   // Si tiene 2+, mostramos un selector explícito en "Nueva plantilla" — la
   // cookie del switcher no es confiable como única fuente para esto (ver
   // resolverPlataformaParaCrear en app/actions/playlists.ts).
-  const plataformasParaCrear =
+  const plataformasParaCrearP =
     rol === "ADMINISTRADOR"
-      ? PLATAFORMAS_LIST.map((p) => ({ id: p.id, nombre: p.nombre }))
-      : (await getMisPlataformas(id_usuario)).map((p) => ({ id: p.id_plataforma, nombre: p.nombre }));
-  const plataformaParaCrearDefault = plaId ?? (await getPlataformaEfectivaId(id_usuario));
+      ? Promise.resolve(PLATAFORMAS_LIST.map((p) => ({ id: p.id, nombre: p.nombre })))
+      : getMisPlataformas(id_usuario).then((r) => r.map((p) => ({ id: p.id_plataforma, nombre: p.nombre })));
+  const plataformaParaCrearDefaultP = plaId ? Promise.resolve(plaId) : getPlataformaEfectivaId(id_usuario);
 
-  // El director de la semana = único turno ACTIVO en el cronograma (filtrado por plataforma).
-  const [directorActivo] = await db
-    .select({ id_usuario: cronograma.id_usuario })
-    .from(cronograma)
-    .where(and(
-      eq(cronograma.estado_turno, "ACTIVO"),
-      ...(plaId ? [eq(cronograma.id_plataforma, plaId)] : []),
-    ))
-    .limit(1);
+  // Mis servicios en curso y mi lugar en la rotación: arrancan ya, en
+  // paralelo con el resto (antes esperaban a que terminara todo lo anterior).
+  const misServiciosYTurnoP = Promise.all([
+    db
+      .select({
+        id_playlist: playlists.id_playlist,
+        nombre:      playlists.nombre,
+        estado:      playlists.estado,
+        total:       sql<number>`COUNT(${lista_canciones.id_lista_cancion})`,
+      })
+      .from(playlists)
+      .leftJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
+      .where(and(
+        eq(playlists.tipo, "EVENTO"),
+        eq(playlists.id_usuario, id_usuario),
+        inArray(playlists.estado, ["PREPARACION", "ENSAYO", "DEFINITIVA"]),
+        ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
+      ))
+      .groupBy(playlists.id_playlist, playlists.nombre, playlists.estado, playlists.actualizadoEn)
+      .orderBy(desc(playlists.actualizadoEn)),
+    (async () => {
+      const filas = await db
+        .select({ id_usuario: cronograma.id_usuario, estado: cronograma.estado_turno, orden: cronograma.orden })
+        .from(cronograma)
+        .where(and(
+          inArray(cronograma.estado_turno, ["ACTIVO", "EN_ESPERA"]),
+          ...(plaId ? [eq(cronograma.id_plataforma, plaId)] : []),
+        ))
+        .orderBy(cronograma.orden);
+      if (filas.some((f) => f.estado === "ACTIVO" && f.id_usuario === id_usuario)) return 0;
+      const cola = filas.filter((f) => f.estado === "EN_ESPERA");
+      const i = cola.findIndex((f) => f.id_usuario === id_usuario);
+      return i >= 0 ? i + 1 : null;
+    })(),
+  ]);
+  misServiciosYTurnoP.catch(() => {}); // si falla otra consulta primero, que no quede sin manejar
 
-  const [estaSemana, enPreparacion, plantillas, historial] = await Promise.all([
-    // ESTA SEMANA — el set publicado del director activo (en ensayo o definitiva).
-    directorActivo
-      ? db
-          .select({
-            id_playlist:    playlists.id_playlist,
-            nombre:         playlists.nombre,
-            estado:         playlists.estado,
-            nombre_usuario: usuarios.nombre,
-            foto:           usuarios.foto,
-          })
-          .from(playlists)
-          .innerJoin(usuarios, eq(playlists.id_usuario, usuarios.id_usuario))
-          .where(
-            and(
-              eq(playlists.tipo, "EVENTO"),
-              or(eq(playlists.estado, "ENSAYO"), eq(playlists.estado, "DEFINITIVA")),
-              eq(playlists.id_usuario, directorActivo.id_usuario),
-              ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
-            ),
-          )
-          .orderBy(desc(playlists.actualizadoEn))
-      : Promise.resolve([]),
+  const [estaSemana, enPreparacion, plantillas, historial, plataformasParaCrear, plataformaParaCrearDefault] = await Promise.all([
+    // ESTA SEMANA — el set publicado del director activo (en ensayo o
+    // definitiva). Se une con el cronograma en la misma consulta.
+    db
+      .select({
+        id_playlist:    playlists.id_playlist,
+        nombre:         playlists.nombre,
+        estado:         playlists.estado,
+        nombre_usuario: usuarios.nombre,
+        foto:           fotoUrl(),
+      })
+      .from(playlists)
+      .innerJoin(usuarios, eq(playlists.id_usuario, usuarios.id_usuario))
+      .innerJoin(cronograma, and(
+        eq(cronograma.id_usuario, playlists.id_usuario),
+        eq(cronograma.estado_turno, "ACTIVO"),
+        eq(cronograma.id_plataforma, playlists.id_plataforma),
+      ))
+      .where(
+        and(
+          eq(playlists.tipo, "EVENTO"),
+          or(eq(playlists.estado, "ENSAYO"), eq(playlists.estado, "DEFINITIVA")),
+          ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
+        ),
+      )
+      .orderBy(desc(playlists.actualizadoEn)),
 
     // EN PREPARACIÓN — servicios que estás armando vos.
     db
@@ -135,6 +166,8 @@ export default async function PlaylistsPage(props: {
       // HistorialListas; el resto del histórico sigue en la base, solo no
       // se lista en esta vista rápida.
       .limit(100),
+    plataformasParaCrearP,
+    plataformaParaCrearDefaultP,
   ]);
 
   // Canciones de las listas archivadas (una sola query) para el preview inline.
@@ -218,39 +251,7 @@ export default async function PlaylistsPage(props: {
   // ── Mis próximos servicios (rediseño Zarza) ─────────────────────────────────
   // Servicios propios en curso (preparación / ensayo / definitiva) y mi lugar
   // en la rotación, para rotular "Esta semana" / "En N semanas".
-  const [misServicios, miTurno] = await Promise.all([
-    db
-      .select({
-        id_playlist: playlists.id_playlist,
-        nombre:      playlists.nombre,
-        estado:      playlists.estado,
-        total:       sql<number>`COUNT(${lista_canciones.id_lista_cancion})`,
-      })
-      .from(playlists)
-      .leftJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
-      .where(and(
-        eq(playlists.tipo, "EVENTO"),
-        eq(playlists.id_usuario, id_usuario),
-        inArray(playlists.estado, ["PREPARACION", "ENSAYO", "DEFINITIVA"]),
-        ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
-      ))
-      .groupBy(playlists.id_playlist, playlists.nombre, playlists.estado, playlists.actualizadoEn)
-      .orderBy(desc(playlists.actualizadoEn)),
-    (async () => {
-      const filas = await db
-        .select({ id_usuario: cronograma.id_usuario, estado: cronograma.estado_turno, orden: cronograma.orden })
-        .from(cronograma)
-        .where(and(
-          inArray(cronograma.estado_turno, ["ACTIVO", "EN_ESPERA"]),
-          ...(plaId ? [eq(cronograma.id_plataforma, plaId)] : []),
-        ))
-        .orderBy(cronograma.orden);
-      if (filas.some((f) => f.estado === "ACTIVO" && f.id_usuario === id_usuario)) return 0;
-      const cola = filas.filter((f) => f.estado === "EN_ESPERA");
-      const i = cola.findIndex((f) => f.id_usuario === id_usuario);
-      return i >= 0 ? i + 1 : null;
-    })(),
-  ]);
+  const [misServicios, miTurno] = await misServiciosYTurnoP;
 
   const chipSemana = (n: number | null) =>
     n === 0 ? ["Esta", "semana"] : n === 1 ? ["Próxima", "semana"] : n ? [`En ${n}`, "semanas"] : ["Sin", "fecha"];

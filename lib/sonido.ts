@@ -1,4 +1,6 @@
-import { and, eq, gte, inArray } from "drizzle-orm";
+import { and, eq, gte } from "drizzle-orm";
+import { alias } from "drizzle-orm/mysql-core";
+import { fotoUrl } from "@/lib/foto";
 import { db } from "@/db";
 import { turnos_sonido, sonidistas, ajustes_plataforma, usuarios } from "@/db/schema";
 import { consultaModulo, lunesDe, sumarSemanas } from "@/lib/modulos";
@@ -18,38 +20,52 @@ export async function getSemanasPlanificadas(id_plataforma: number): Promise<num
   return datos[0]?.semanas_planificadas ?? 6;
 }
 
+const principalU = alias(usuarios, "principal_u");
+const auxiliarU = alias(usuarios, "auxiliar_u");
+
+/** Filas de turnos de sonido desde esta semana, con los nombres ya unidos (una sola consulta). */
+export async function getFilasSonido(id_plataforma: number) {
+  const hoy = lunesDe(new Date());
+  const { datos, faltaMigracion } = await consultaModulo(
+    () =>
+      db
+        .select({
+          semana:        turnos_sonido.semana,
+          id_principal:  turnos_sonido.id_principal,
+          id_auxiliar:   turnos_sonido.id_auxiliar,
+          nom_principal: principalU.nombre,
+          nom_auxiliar:  auxiliarU.nombre,
+        })
+        .from(turnos_sonido)
+        .leftJoin(principalU, eq(principalU.id_usuario, turnos_sonido.id_principal))
+        .leftJoin(auxiliarU, eq(auxiliarU.id_usuario, turnos_sonido.id_auxiliar))
+        .where(and(eq(turnos_sonido.id_plataforma, id_plataforma), gte(turnos_sonido.semana, hoy))),
+    [] as { semana: unknown; id_principal: number | null; id_auxiliar: number | null; nom_principal: string | null; nom_auxiliar: string | null }[],
+  );
+  return { filas: datos, faltaMigracion };
+}
+
+/** Arma `cantidad` semanas (índice 0 = esta semana) a partir de las filas. */
+export function armarSemanas(filas: Awaited<ReturnType<typeof getFilasSonido>>["filas"], cantidad: number): SemanaSonido[] {
+  const hoy = lunesDe(new Date());
+  return Array.from({ length: cantidad }, (_, i) => {
+    const semana = sumarSemanas(hoy, i);
+    const f = filas.find((x) => String(x.semana instanceof Date ? x.semana.toISOString() : x.semana).slice(0, 10) === semana);
+    return {
+      semana,
+      principal: f?.id_principal && f.nom_principal ? { id: f.id_principal, nombre: f.nom_principal } : null,
+      auxiliar:  f?.id_auxiliar && f.nom_auxiliar ? { id: f.id_auxiliar, nombre: f.nom_auxiliar } : null,
+    };
+  });
+}
+
 /**
  * Turnos de sonido de una plataforma desde esta semana, `cantidad` semanas
  * (índice 0 = esta semana). Si la migración no corrió, devuelve todo vacío.
  */
 export async function getTurnosSonido(id_plataforma: number, cantidad: number) {
-  const hoy = lunesDe(new Date());
-  const { datos: filas, faltaMigracion } = await consultaModulo(
-    () =>
-      db
-        .select()
-        .from(turnos_sonido)
-        .where(and(eq(turnos_sonido.id_plataforma, id_plataforma), gte(turnos_sonido.semana, hoy))),
-    [] as (typeof turnos_sonido.$inferSelect)[],
-  );
-
-  const ids = Array.from(new Set(filas.flatMap((f) => [f.id_principal, f.id_auxiliar]).filter((x): x is number => !!x)));
-  const nombres = ids.length
-    ? new Map(
-        (await db.select({ id: usuarios.id_usuario, nombre: usuarios.nombre }).from(usuarios).where(inArray(usuarios.id_usuario, ids)))
-          .map((u) => [u.id, u.nombre]),
-      )
-    : new Map<number, string>();
-
-  const persona = (id: number | null) => (id && nombres.has(id) ? { id, nombre: nombres.get(id)! } : null);
-
-  const semanas: SemanaSonido[] = Array.from({ length: cantidad }, (_, i) => {
-    const semana = sumarSemanas(hoy, i);
-    const f = filas.find((x) => String(x.semana).slice(0, 10) === semana);
-    return { semana, principal: persona(f?.id_principal ?? null), auxiliar: persona(f?.id_auxiliar ?? null) };
-  });
-
-  return { semanas, faltaMigracion };
+  const { filas, faltaMigracion } = await getFilasSonido(id_plataforma);
+  return { semanas: armarSemanas(filas, cantidad), faltaMigracion };
 }
 
 /** Personas habilitadas como sonidistas en la plataforma. */
@@ -57,7 +73,7 @@ export async function getSonidistas(id_plataforma: number) {
   const { datos } = await consultaModulo(
     () =>
       db
-        .select({ id: usuarios.id_usuario, nombre: usuarios.nombre, foto: usuarios.foto })
+        .select({ id: usuarios.id_usuario, nombre: usuarios.nombre, foto: fotoUrl() })
         .from(sonidistas)
         .innerJoin(usuarios, eq(usuarios.id_usuario, sonidistas.id_usuario))
         .where(eq(sonidistas.id_plataforma, id_plataforma))

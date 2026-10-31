@@ -29,6 +29,10 @@ const CLAVE_MENU = "roca-menu";
 export function SideNav({ rol, nombre = "", foto }: Props) {
   const pathname = usePathname();
   const [plegado, setPlegado] = useState(false);
+  // Respuesta inmediata al tocar (ver BottomNav).
+  const [destino, setDestino] = useState<string | null>(null);
+  useEffect(() => { setDestino(null); }, [pathname]);
+  const ruta = destino ?? pathname;
 
   // Sincroniza con lo que el script inline de layout ya aplicó antes del pintado.
   useEffect(() => {
@@ -108,12 +112,13 @@ export function SideNav({ rol, nombre = "", foto }: Props) {
       {/* Navegación */}
       <nav aria-label="Navegación principal" className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-3.5">
         {items.map((item) => {
-          const activo = esRutaActiva(item.href, pathname);
+          const activo = esRutaActiva(item.href, ruta);
           return (
             <Link
               key={item.href}
               href={item.href}
               aria-current={activo ? "page" : undefined}
+              onClick={() => setDestino(item.href)}
               aria-label={plegado ? item.label : undefined}
               title={item.label}
               className={itemCls(activo)}
@@ -130,14 +135,15 @@ export function SideNav({ rol, nombre = "", foto }: Props) {
         {rol === "ADMINISTRADOR" && (
           <Link
             href="/admin/usuarios"
-            aria-current={pathname.startsWith("/admin/usuarios") ? "page" : undefined}
+            aria-current={ruta.startsWith("/admin/usuarios") ? "page" : undefined}
+            onClick={() => setDestino("/admin/usuarios")}
             aria-label={plegado ? "Usuarios" : undefined}
             title="Usuarios"
-            className={itemCls(pathname.startsWith("/admin/usuarios"))}
+            className={itemCls(ruta.startsWith("/admin/usuarios"))}
           >
-            {pathname.startsWith("/admin/usuarios") && <PildoraActiva id="nav-lateral" className="rounded-xl bg-fuego-600/[0.12] dark:bg-[rgba(226,104,60,0.19)]" />}
+            {ruta.startsWith("/admin/usuarios") && <PildoraActiva id="nav-lateral" className="rounded-xl bg-fuego-600/[0.12] dark:bg-[rgba(226,104,60,0.19)]" />}
             <span className="relative flex transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110">
-              <Users size={19} strokeWidth={pathname.startsWith("/admin/usuarios") ? 2.4 : 1.8} aria-hidden />
+              <Users size={19} strokeWidth={ruta.startsWith("/admin/usuarios") ? 2.4 : 1.8} aria-hidden />
             </span>
             {!plegado && <span className="relative animate-aparecer whitespace-nowrap">Usuarios</span>}
           </Link>

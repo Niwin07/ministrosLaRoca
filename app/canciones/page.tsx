@@ -77,6 +77,23 @@ export default async function CancionesPage(props: {
     ]);
   }
 
+  // Listas propias para "Agregar a…" (servicios en preparación/ensayo y
+  // plantillas): arranca ya, en paralelo con el catálogo.
+  // (Promise.resolve: la consulta de Drizzle es perezosa y se ejecutaría dos veces.)
+  const misListasP = Promise.resolve(db
+    .select({ id_playlist: playlists.id_playlist, nombre: playlists.nombre, tipo: playlists.tipo, estado: playlists.estado })
+    .from(playlists)
+    .where(and(
+      eq(playlists.id_usuario, session.user.id_usuario),
+      or(
+        eq(playlists.tipo, "PRESET"),
+        and(eq(playlists.tipo, "EVENTO"), inArray(playlists.estado, ["PREPARACION", "ENSAYO"])),
+      ),
+    ))
+    .orderBy(desc(playlists.actualizadoEn))
+    .limit(8));
+  misListasP.catch(() => {});
+
   // Si todavía no se corrió la migración 010 (estilo/tono), el repertorio
   // sigue andando sin ese filtro y se avisa a quien puede prepararla.
   let faltaMigracion = false;
@@ -89,6 +106,7 @@ export default async function CancionesPage(props: {
     resultado = await consultar(false);
   }
   const [aprobadas, totalRows, totalAprobadasRows] = resultado;
+  const misListas = await misListasP;
 
   const total          = Number(totalRows[0]?.count ?? 0);
   const totalAprobadas = Number(totalAprobadasRows[0]?.count ?? 0);
@@ -127,22 +145,6 @@ export default async function CancionesPage(props: {
       return { ok: false, error: e instanceof Error ? e.message : "No se pudo enviar la sugerencia.", vez };
     }
   }
-
-  // Listas propias editables para "Agregar a…" (servicios en preparación /
-  // ensayo y plantillas). ADMIN/LÍDER también pueden editar las de otros,
-  // pero el atajo muestra sólo las propias para no abrumar.
-  const misListas = await db
-    .select({ id_playlist: playlists.id_playlist, nombre: playlists.nombre, tipo: playlists.tipo, estado: playlists.estado })
-    .from(playlists)
-    .where(and(
-      eq(playlists.id_usuario, session.user.id_usuario),
-      or(
-        eq(playlists.tipo, "PRESET"),
-        and(eq(playlists.tipo, "EVENTO"), inArray(playlists.estado, ["PREPARACION", "ENSAYO"])),
-      ),
-    ))
-    .orderBy(desc(playlists.actualizadoEn))
-    .limit(8);
 
   async function handleAgregarALista(formData: FormData): Promise<{ ok: boolean; error?: string; id_lista_cancion?: number }> {
     "use server";

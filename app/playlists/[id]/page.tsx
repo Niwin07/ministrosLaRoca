@@ -1,11 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { SelectorZarza } from "@/components/zarza/SelectorZarza";
-import { and, eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { ArrowLeft, Music2, Copy, ListMusic, Archive, Lock } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/db";
-import { canciones, cronograma, lista_canciones, playlists } from "@/db/schema";
+import { canciones, lista_canciones, playlists } from "@/db/schema";
 import { SortableSongList } from "@/components/SortableSongList";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { EtapasServicio } from "@/components/zarza/servicios/EtapasServicio";
@@ -43,6 +43,9 @@ async function getPlaylistConCanciones(id: number) {
       artista:          canciones.artista,
       charts:           canciones.charts,
       letra:            canciones.letra,
+      // Director con turno ACTIVO en la plataforma de la lista, en la misma
+      // consulta (antes era otra ida y vuelta a la base después de ésta).
+      director_activo:  sql<number | null>`(SELECT c.id_usuario FROM cronograma c WHERE c.estado_turno = 'ACTIVO' AND c.id_plataforma = ${playlists.id_plataforma} LIMIT 1)`,
     })
     .from(playlists)
     .leftJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
@@ -57,21 +60,6 @@ async function getCatalogoAprobado() {
     .from(canciones)
     .where(eq(canciones.estado_aprobacion, "APROBADA"))
     .orderBy(canciones.nombre);
-}
-
-/** Id del ministro con el turno ACTIVO en la plataforma de esta lista (o null).
- *  Filtramos por id_plataforma para que un activo en Remanentes no interfiera
- *  con el activo en Plataforma General y viceversa. */
-async function getDirectorActivo(id_plataforma: number): Promise<number | null> {
-  const [activo] = await db
-    .select({ id_usuario: cronograma.id_usuario })
-    .from(cronograma)
-    .where(and(
-      eq(cronograma.estado_turno, "ACTIVO"),
-      eq(cronograma.id_plataforma, id_plataforma),
-    ))
-    .limit(1);
-  return activo?.id_usuario ?? null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -134,7 +122,7 @@ export default async function PlaylistDetailPage(props: {
   // pudiera editarla.
   if (!puedeVerLista(cabecera, session.user)) notFound();
 
-  const directorActivoId = await getDirectorActivo(cabecera.id_plataforma);
+  const directorActivoId = rows[0].director_activo != null ? Number(rows[0].director_activo) : null;
 
   const { rol, id_usuario } = session.user;
   const puedeEditar =

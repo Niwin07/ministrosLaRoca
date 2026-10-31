@@ -6,10 +6,10 @@ import { fondoDeRuta } from "@/lib/nav-items";
 import { FONDOS_LLAMAS, type CapaLlama, type FondoLlamas } from "@/lib/fondos-llamas";
 
 // Resolución del lienzo respecto del viewport: las llamas son manchas muy
-// difusas, así que dibujarlas a 1/3 y dejar que el navegador las escale no se
+// difusas, así que dibujarlas a 1/4 y dejar que el navegador las escale no se
 // nota y cuesta casi nada por cuadro.
-const ESCALA = 1 / 3;
-const FPS = 30;
+const ESCALA = 1 / 4;
+const FPS = 24;
 
 /**
  * Fondo "Zarza" de la sección actual, fiel al diseño: cada llama se mueve por

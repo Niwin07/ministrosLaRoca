@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { fotoUrl } from "@/lib/foto";
 import { SelectorZarza } from "@/components/zarza/SelectorZarza";
 import { redirect } from "next/navigation";
 import { ArrowLeft, UserPlus } from "lucide-react";
@@ -35,7 +36,7 @@ export default async function AdminUsuariosPage(props: {
       nombre:     usuarios.nombre,
       email:      usuarios.email,
       rol:        usuarios.rol,
-      foto:       usuarios.foto,
+      foto:       fotoUrl(),
     })
     .from(usuarios)
     .orderBy(asc(usuarios.nombre));

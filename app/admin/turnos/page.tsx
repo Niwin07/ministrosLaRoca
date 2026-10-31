@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { fotoUrl } from "@/lib/foto";
 import { redirect } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
 import { db } from "@/db";
@@ -13,7 +14,7 @@ import { Avatar } from "@/components/Avatar";
 import { cls, AvisoMigracion } from "@/components/zarza/ui";
 import { IconoMarca } from "@/components/zarza/IconoMarca";
 import { GestionSonido, SemanasPlanificadas } from "@/components/zarza/turnos/GestionSonido";
-import { getSemanasPlanificadas, getSonidistas, getTurnosSonido } from "@/lib/sonido";
+import { armarSemanas, getFilasSonido, getSemanasPlanificadas, getSonidistas } from "@/lib/sonido";
 import { PLATAFORMAS_LIST, nombrePlataforma } from "@/lib/plataforma";
 import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
 import { BotonConfirmado } from "@/components/zarza/Confirmacion";
@@ -41,62 +42,53 @@ export default async function AdminTurnosPage(props: {
   const mensaje  = searchParams.success ? (FEEDBACK[searchParams.success] ?? null) : null;
   const errorMsg = typeof searchParams.error === "string" ? searchParams.error : null;
 
-  const listaUsuarios = await db
-    .select({ id_usuario: usuarios.id_usuario, nombre: usuarios.nombre })
-    .from(usuarios)
-    .orderBy(asc(usuarios.nombre));
+  // Plataforma elegida en las pestañas (General / Remanentes): sale de la
+  // cookie, así que se resuelve sin esperar a la base.
+  const plaCookie = await getPlataformaEfectivaId(session.user.id_usuario);
+  const plaSel = PLATAFORMAS_LIST.find((p) => p.id === plaCookie) ?? PLATAFORMAS_LIST[1];
 
-  // Admin ve TODOS los activos — puede haber uno por plataforma simultáneamente.
-  const turnosActivosPorPla = await db
-    .select({
-      id_turno:          cronograma.id_turno,
-      id_plataforma:     cronograma.id_plataforma,
-      nombre_usuario:    usuarios.nombre,
-      foto:              usuarios.foto,
-      nombre_plataforma: plataformas.nombre,
-    })
-    .from(cronograma)
-    .innerJoin(usuarios,    eq(cronograma.id_usuario,    usuarios.id_usuario))
-    .innerJoin(plataformas, eq(cronograma.id_plataforma, plataformas.id_plataforma))
-    .where(eq(cronograma.estado_turno, "ACTIVO"));
-
-  // Cola separada por plataforma — el drag-and-drop no mezcla plataformas.
-  const colasPromises = PLATAFORMAS_LIST.map((pla) =>
+  // Todo en paralelo: antes eran 6 idas y vueltas a la base, una tras otra.
+  const [listaUsuarios, turnosActivosPorPla, colaSelItems, semanasPlan, filasSonido, sonidistasPla] = await Promise.all([
+    db
+      .select({ id_usuario: usuarios.id_usuario, nombre: usuarios.nombre })
+      .from(usuarios)
+      .orderBy(asc(usuarios.nombre)),
+    // Admin ve TODOS los activos — puede haber uno por plataforma simultáneamente.
+    db
+      .select({
+        id_turno:          cronograma.id_turno,
+        id_plataforma:     cronograma.id_plataforma,
+        nombre_usuario:    usuarios.nombre,
+        foto:              fotoUrl(),
+        nombre_plataforma: plataformas.nombre,
+      })
+      .from(cronograma)
+      .innerJoin(usuarios,    eq(cronograma.id_usuario,    usuarios.id_usuario))
+      .innerJoin(plataformas, eq(cronograma.id_plataforma, plataformas.id_plataforma))
+      .where(eq(cronograma.estado_turno, "ACTIVO")),
+    // Cola de la plataforma elegida (el drag-and-drop no mezcla plataformas).
     db
       .select({
         id_turno:       cronograma.id_turno,
         nombre_usuario: usuarios.nombre,
         orden:          cronograma.orden,
-        foto:           usuarios.foto,
+        foto:           fotoUrl(),
       })
       .from(cronograma)
       .innerJoin(usuarios, eq(cronograma.id_usuario, usuarios.id_usuario))
       .where(and(
         eq(cronograma.estado_turno, "EN_ESPERA"),
-        eq(cronograma.id_plataforma, pla.id),
+        eq(cronograma.id_plataforma, plaSel.id),
       ))
-      .orderBy(asc(cronograma.orden))
-  );
-
-  const [colaJoven, colaGeneral] = await Promise.all(colasPromises);
-
-  const colas = [
-    { plataforma: PLATAFORMAS_LIST[0], items: colaJoven   },
-    { plataforma: PLATAFORMAS_LIST[1], items: colaGeneral },
-  ];
-
-  // Plataforma elegida en las pestañas (General / Remanentes).
-  // La pestaña usa la misma cookie que el resto de la app, así sobrevive a
-  // los redirects de los Server Actions (?success=…).
-  const plaCookie = await getPlataformaEfectivaId(session.user.id_usuario);
-  const plaSel = PLATAFORMAS_LIST.find((p) => p.id === plaCookie) ?? PLATAFORMAS_LIST[1];
-  const colaSel = colas.find((c) => c.plataforma.id === plaSel.id)!;
-  const activoSel = turnosActivosPorPla.find((t) => t.id_plataforma === plaSel.id) ?? null;
-  const semanasPlan = await getSemanasPlanificadas(plaSel.id);
-  const [sonido, sonidistasPla] = await Promise.all([
-    getTurnosSonido(plaSel.id, semanasPlan + 1),
+      .orderBy(asc(cronograma.orden)),
+    getSemanasPlanificadas(plaSel.id),
+    getFilasSonido(plaSel.id),
     getSonidistas(plaSel.id),
   ]);
+
+  const colaSel = { plataforma: plaSel, items: colaSelItems };
+  const activoSel = turnosActivosPorPla.find((t) => t.id_plataforma === plaSel.id) ?? null;
+  const sonido = { semanas: armarSemanas(filasSonido.filas, semanasPlan + 1), faltaMigracion: filasSonido.faltaMigracion };
   const plaNombre = nombrePlataforma(plaSel.nombre);
 
   return (

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { fotoUrl } from "@/lib/foto";
 import { redirect } from "next/navigation";
 import { Check, ChevronDown, ChevronRight, ListMusic, Plus } from "lucide-react";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
@@ -47,17 +48,19 @@ export default async function InicioPage() {
     ? PLATAFORMAS_LIST.map((p) => ({ id: p.id, nombre: p.nombre }))
     : misPlataformas.map((p) => ({ id: p.id_plataforma, nombre: p.nombre }));
 
-  // Quién dirige ahora y quién sigue en la rotación de esta plataforma.
-  const [director, proximo, publicada] = await Promise.all([
+  // Quién dirige ahora, quién sigue, lo publicado, mi servicio en preparación
+  // y el sonido de la semana: todo en una sola tanda en paralelo (antes eran
+  // cinco idas y vueltas a la base, una detrás de otra).
+  const [director, proximo, publicada, miPreparacion, sonido] = await Promise.all([
     db
-      .select({ id: usuarios.id_usuario, nombre: usuarios.nombre, foto: usuarios.foto })
+      .select({ id: usuarios.id_usuario, nombre: usuarios.nombre, foto: fotoUrl() })
       .from(cronograma)
       .innerJoin(usuarios, eq(usuarios.id_usuario, cronograma.id_usuario))
       .where(and(eq(cronograma.id_plataforma, plaId), eq(cronograma.estado_turno, "ACTIVO")))
       .limit(1)
       .then((r) => r[0] ?? null),
     db
-      .select({ id: usuarios.id_usuario, nombre: usuarios.nombre, foto: usuarios.foto })
+      .select({ id: usuarios.id_usuario, nombre: usuarios.nombre, foto: fotoUrl() })
       .from(cronograma)
       .innerJoin(usuarios, eq(usuarios.id_usuario, cronograma.id_usuario))
       .where(and(eq(cronograma.id_plataforma, plaId), eq(cronograma.estado_turno, "EN_ESPERA")))
@@ -76,43 +79,42 @@ export default async function InicioPage() {
       .orderBy(desc(playlists.actualizadoEn))
       .limit(1)
       .then((r) => r[0] ?? null),
+    // Mi servicio en preparación (se usa si me toca dirigir y no hay nada publicado).
+    db
+      .select({ id: playlists.id_playlist, nombre: playlists.nombre, estado: playlists.estado, fecha: playlists.fecha_programada })
+      .from(playlists)
+      .where(and(
+        eq(playlists.tipo, "EVENTO"),
+        eq(playlists.id_plataforma, plaId),
+        eq(playlists.id_usuario, id_usuario),
+        eq(playlists.estado, "PREPARACION"),
+      ))
+      .orderBy(desc(playlists.actualizadoEn))
+      .limit(1)
+      .then((r) => r[0] ?? null),
+    getTurnosSonido(plaId, 1),
   ]);
 
   const dirijo = director?.id === id_usuario;
+  const servicio = publicada ?? (dirijo ? miPreparacion : null);
 
-  // "Lista armada": el próximo director ya tiene un servicio con canciones.
-  const proximoTieneLista = proximo
-    ? await db
-        .select({ id: playlists.id_playlist })
-        .from(playlists)
-        .innerJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
-        .where(and(
-          eq(playlists.tipo, "EVENTO"),
-          eq(playlists.id_plataforma, plaId),
-          eq(playlists.id_usuario, proximo.id),
-          inArray(playlists.estado, ["PREPARACION", "ENSAYO", "DEFINITIVA"]),
-        ))
-        .limit(1)
-        .then((r) => r.length > 0)
-    : false;
-
-  // Si todavía no hay nada publicado y me toca dirigir, muestro mi servicio en preparación.
-  const servicio = publicada ?? (dirijo
-    ? await db
-        .select({ id: playlists.id_playlist, nombre: playlists.nombre, estado: playlists.estado, fecha: playlists.fecha_programada })
-        .from(playlists)
-        .where(and(
-          eq(playlists.tipo, "EVENTO"),
-          eq(playlists.id_plataforma, plaId),
-          eq(playlists.id_usuario, id_usuario),
-          eq(playlists.estado, "PREPARACION"),
-        ))
-        .orderBy(desc(playlists.actualizadoEn))
-        .limit(1)
-        .then((r) => r[0] ?? null)
-    : null);
-
-  const [cancionesServicio, sonido] = await Promise.all([
+  // Segunda (y última) tanda, también en paralelo.
+  const [proximoTieneLista, cancionesServicio] = await Promise.all([
+    // "Lista armada": el próximo director ya tiene un servicio con canciones.
+    proximo
+      ? db
+          .select({ id: playlists.id_playlist })
+          .from(playlists)
+          .innerJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
+          .where(and(
+            eq(playlists.tipo, "EVENTO"),
+            eq(playlists.id_plataforma, plaId),
+            eq(playlists.id_usuario, proximo.id),
+            inArray(playlists.estado, ["PREPARACION", "ENSAYO", "DEFINITIVA"]),
+          ))
+          .limit(1)
+          .then((r) => r.length > 0)
+      : Promise.resolve(false),
     servicio
       ? db
           .select({ id: lista_canciones.id_lista_cancion, orden: lista_canciones.orden, nota: lista_canciones.nota, nombre: canciones.nombre, artista: canciones.artista })
@@ -121,7 +123,6 @@ export default async function InicioPage() {
           .where(eq(lista_canciones.id_playlist, servicio.id))
           .orderBy(lista_canciones.orden)
       : Promise.resolve([]),
-    getTurnosSonido(plaId, 1),
   ]);
 
   const conCanciones = !!servicio && cancionesServicio.length > 0;
