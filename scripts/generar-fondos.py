@@ -57,7 +57,7 @@ for sel,body in rules:
     pre='.dark ' if dark else ''
     p=props(body)
     imgs=split_top(p['background-image']); sizes=split_top(p['background-size'])
-    anim=p['animation'].split(); kname,dur=anim[0],float(anim[1].rstrip('s'))
+    anim=p['animation'].split(); kname,dur=anim[0],26.0  # ciclo pedido: 26 s en día y noche
     frames=re.findall(r'([0-9.]+)%\{background-position:([^}]*)\}',kfs[kname])
     idx_fl=[i for i,z in enumerate(sizes) if z.strip()=='150% 150%']
     idx_gr=[i for i,z in enumerate(sizes) if 'px' in z]

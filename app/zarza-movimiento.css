@@ -81,6 +81,9 @@
 .entrada-pagina > * > :nth-child(6)  { animation-delay: 300ms; }
 .entrada-pagina > * > :nth-child(n+7) { animation-delay: 360ms; }
 
+/* La zarza de bienvenida no participa de la cascada (es fija y va encima). */
+.entrada-pagina > * > .intro-zarza { animation: none; }
+
 /* Mientras corre la bienvenida, la pantalla espera y entra al final. */
 html[data-intro] .entrada-pagina > * > * { animation-play-state: paused; }
 
@@ -201,6 +204,7 @@ button:not(:disabled):not([data-sin-presion]):active { scale: 0.96; transition: 
   .tarjeta-brasa::before, .punto-vivo::after, .campana-suena, .ascua, .intro-logo-entra {
     animation: none !important;
   }
+  .intro-zarza { display: none; }
   .tarjeta-viva, .tarjeta-viva:hover, .tarjeta-viva:active { transform: none !important; }
   .btn-brillo::after { display: none; }
   button:active { scale: none !important; }

@@ -1,14 +1,12 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useLayoutEffect, useState } from "react";
 
-type Fase = "oculta" | "entrada" | "zoom" | "fin";
+type Fase = "entrada" | "zoom" | "fin";
 
 const INTRO_MS = 2200;
 const ZOOM_MS = 1200;
-const CLAVE = "roca-bienvenida-vista";
 
 // Ascuas que suben desde abajo mientras arde el logo (posiciones fijas para
 // que el render sea estable).
@@ -25,38 +23,38 @@ const ASCUAS = [
 ];
 
 /**
- * Bienvenida (diseño "Bienvenida · primera vez"): la primera vez que alguien
- * abre la app, el logo arde en el centro sobre brasa, hace zoom out hacia su
- * lugar y aparece el login. Se muestra una sola vez por dispositivo y se
- * saltea con "reducir movimiento".
+ * Animación de la zarza al abrir el inicio de sesión (diseño "Bienvenida"):
+ * el logo arde en el centro sobre brasa, hace zoom out hacia su lugar y entra
+ * el login. Se muestra cada vez que se abre /login (no tras un error de
+ * credenciales) y se saltea con "reducir movimiento".
+ *
+ * Se renderiza ya en el HTML del servidor, para que aparezca desde el primer
+ * pintado y no dependa de cuándo termina de cargar el JS.
  */
-export function IntroBienvenida() {
-  const [fase, setFase] = useState<Fase>("oculta");
+export function IntroBienvenida({ activa = true }: { activa?: boolean }) {
+  const [fase, setFase] = useState<Fase>(activa ? "entrada" : "fin");
 
-  useEffect(() => {
-    let vista = false;
-    try { vista = localStorage.getItem(CLAVE) === "1"; } catch {}
-    const reducir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // useLayoutEffect: marca la pausa antes de pintar también al llegar por
+  // navegación del lado del cliente (donde el script inline no corre).
+  useLayoutEffect(() => {
     const html = document.documentElement;
-    if (vista || reducir) { delete html.dataset.intro; return; }
-    try { localStorage.setItem(CLAVE, "1"); } catch {}
-    // La pantalla de login espera (animación en pausa) y entra al terminar.
+    const reducir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!activa || reducir) { delete html.dataset.intro; setFase("fin"); return; }
     html.dataset.intro = "1";
     setFase("entrada");
     const t1 = setTimeout(() => setFase("zoom"), INTRO_MS);
     const t2 = setTimeout(() => { delete html.dataset.intro; }, INTRO_MS + ZOOM_MS * 0.6);
     const t3 = setTimeout(() => setFase("fin"), INTRO_MS + ZOOM_MS);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); delete html.dataset.intro; };
-  }, []);
+  }, [activa]);
 
-  if (fase === "oculta" || fase === "fin") return null;
+  if (fase === "fin") return null;
   const entrada = fase === "entrada";
 
-  // Se monta en <body> para quedar fuera de la animación de entrada de la pantalla.
-  return createPortal(
+  return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-[300]"
+      className="intro-zarza pointer-events-none fixed inset-0 z-[300]"
       style={{ transition: `opacity ${ZOOM_MS}ms ease-in-out`, opacity: entrada ? 1 : 0 }}
     >
       <div
@@ -87,13 +85,12 @@ export function IntroBienvenida() {
         @keyframes intro-arde { 0%,100% { filter: drop-shadow(0 0 18px rgba(240,138,42,0.55)) brightness(1); } 50% { filter: drop-shadow(0 0 34px rgba(232,40,10,0.7)) brightness(1.08); } }
         .intro-logo-arde { animation: intro-arde 1.1s ease-in-out infinite; }
       `}</style>
-    </div>,
-    document.body,
+    </div>
   );
 }
 
 /**
- * Script inline para el <head> del login: marca la intro antes del primer
- * pintado para que la pantalla quede en pausa (invisible) desde el inicio.
+ * Script inline para el login: marca la intro antes del primer pintado para
+ * que la pantalla quede en pausa (invisible) hasta que termine la zarza.
  */
-export const SCRIPT_INTRO = `try{if(localStorage.getItem('${CLAVE}')!=='1'&&!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.dataset.intro='1'}catch(e){}`;
+export const SCRIPT_INTRO = `try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.dataset.intro='1'}catch(e){}`;

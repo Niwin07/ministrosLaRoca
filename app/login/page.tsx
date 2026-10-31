@@ -29,8 +29,8 @@ export default async function LoginPage(props: {
 
   return (
     <main className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-10">
-      <script dangerouslySetInnerHTML={{ __html: SCRIPT_INTRO }} />
-      <IntroBienvenida />
+      {!hayError && <script dangerouslySetInnerHTML={{ __html: SCRIPT_INTRO }} />}
+      <IntroBienvenida activa={!hayError} />
 
       {/* Halo de fuego detrás del logo (diseño "Login" · Zarza) */}
       <div
