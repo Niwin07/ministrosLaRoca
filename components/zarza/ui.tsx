@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ChevronLeft, Info } from "lucide-react";
 import { IconoMarca, type IconoMarcaNombre } from "@/components/zarza/IconoMarca";
+import { BotonPrepararBase } from "@/components/zarza/BotonPrepararBase";
 
 // ════════════════════════════════════════════════════════════════
 //  Kit visual "Zarza" — piezas compartidas por todas las pantallas.
@@ -83,9 +84,10 @@ export function AvisoMigracion({ visible }: { visible: boolean }) {
   return (
     <div role="status" className="flex items-start gap-2.5 rounded-[14px] border border-[#f8c98a] bg-[#ffeccc] px-3.5 py-3 text-[13px] leading-relaxed text-[#9a3c0a] dark:border-[#3c2e1b] dark:bg-[#251d11] dark:text-[#f8894f]">
       <Info size={16} className="mt-0.5 shrink-0" aria-hidden />
-      <span>
-        <strong className="font-bold">Falta preparar la base de datos.</strong> Este módulo es nuevo: corré{" "}
-        <code className="rounded bg-black/5 px-1 font-mono text-[12px]">npm run db:migrate</code> para crear sus tablas.
+      <span className="flex flex-col">
+        <span><strong className="font-bold">Falta preparar la base de datos.</strong> Este módulo es nuevo y necesita
+        sus tablas. Un administrador puede crearlas desde acá (no borra ni cambia nada de lo existente).</span>
+        <BotonPrepararBase />
       </span>
     </div>
   );
