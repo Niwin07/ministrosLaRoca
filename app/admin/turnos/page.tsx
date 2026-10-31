@@ -7,13 +7,16 @@ import { auth } from "@/auth";
 import { and, eq, asc } from "drizzle-orm";
 import { agregarACola, marcarActivo, desactivarActivo, quitarTurno, reordenarCola } from "@/app/actions/turnos";
 import { probarNotificacion } from "@/app/actions/notificaciones";
-import { Bell } from "lucide-react";
 import { ColaTurnos } from "@/components/ColaTurnos";
 import { ErrorBanner } from "@/components/ErrorBanner";
-import { Button } from "@/components/Button";
 import { Avatar } from "@/components/Avatar";
-import { Label } from "@/components/ui/Label";
+import { cls, AvisoMigracion } from "@/components/zarza/ui";
+import { IconoMarca } from "@/components/zarza/IconoMarca";
+import { GestionSonido, SemanasPlanificadas } from "@/components/zarza/turnos/GestionSonido";
+import { getSemanasPlanificadas, getSonidistas, getTurnosSonido } from "@/lib/sonido";
 import { PLATAFORMAS_LIST } from "@/lib/plataforma";
+import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
+import { getPlataformaEfectivaId } from "@/lib/get-plataforma-activa";
 
 const FEEDBACK: Record<string, string> = {
   agregado:    "Usuario agregado a la cola.",
@@ -42,9 +45,10 @@ export default async function AdminTurnosPage(props: {
     .orderBy(asc(usuarios.nombre));
 
   // Admin ve TODOS los activos — puede haber uno por plataforma simultáneamente.
-  const turnosActivos = await db
+  const turnosActivosPorPla = await db
     .select({
       id_turno:          cronograma.id_turno,
+      id_plataforma:     cronograma.id_plataforma,
       nombre_usuario:    usuarios.nombre,
       foto:              usuarios.foto,
       nombre_plataforma: plataformas.nombre,
@@ -79,173 +83,132 @@ export default async function AdminTurnosPage(props: {
     { plataforma: PLATAFORMAS_LIST[1], items: colaGeneral },
   ];
 
-  return (
-    <main className="space-y-6 px-4 pt-8 pb-6">
+  // Plataforma elegida en las pestañas (General / Remanentes).
+  // La pestaña usa la misma cookie que el resto de la app, así sobrevive a
+  // los redirects de los Server Actions (?success=…).
+  const plaCookie = await getPlataformaEfectivaId(session.user.id_usuario);
+  const plaSel = PLATAFORMAS_LIST.find((p) => p.id === plaCookie) ?? PLATAFORMAS_LIST[1];
+  const colaSel = colas.find((c) => c.plataforma.id === plaSel.id)!;
+  const activoSel = turnosActivosPorPla.find((t) => t.id_plataforma === plaSel.id) ?? null;
+  const semanasPlan = await getSemanasPlanificadas(plaSel.id);
+  const [sonido, sonidistasPla] = await Promise.all([
+    getTurnosSonido(plaSel.id, semanasPlan + 1),
+    getSonidistas(plaSel.id),
+  ]);
+  const plaNombre = plaSel.nombre.replace(/^Plataforma\s+/i, "");
 
-      <Link
-        href="/turnos"
-        className="inline-flex items-center gap-1.5 text-sm text-lo transition-colors hover:text-hi"
-      >
-        <ArrowLeft size={15} />
-        Ver turnos
+  return (
+    <main className="flex flex-col gap-6 px-4 pb-8 pt-6 md:px-0 md:pt-2">
+      <Link href="/turnos" className="flex w-fit items-center gap-1.5 text-[13px] font-semibold text-hi transition-opacity hover:opacity-75">
+        <ArrowLeft size={15} aria-hidden /> Ver turnos
       </Link>
 
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-hi">Gestión de turnos</h1>
+        <h1 className="font-display text-[30px] font-bold tracking-[-0.02em] text-hi">Gestión de turnos</h1>
         <p className="mt-1 text-sm text-lo">Administrá la rotación de ministros en servicio.</p>
       </div>
 
-      {/* ── Feedback ─────────────────────────────────────────────────── */}
+      <PlataformaSwitcher
+        plataformas={[...PLATAFORMAS_LIST].reverse().map((p) => ({ id: p.id, nombre: p.nombre.replace(/^Plataforma\s+/i, "") }))}
+        activaId={plaSel.id}
+      />
+
       <ErrorBanner message={errorMsg} />
       {mensaje && (
-        <div className="rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
-          {mensaje}
-        </div>
+        <div role="status" className="rounded-xl border border-green-600/30 bg-green-600/10 px-4 py-3 text-sm text-green-800 dark:text-green-400">{mensaje}</div>
       )}
+      {sonido.faltaMigracion && <AvisoMigracion visible />}
 
-      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
-      <div className="flex flex-col gap-6">
-
-      {/* ── Formulario: agregar a la cola ────────────────────────────── */}
-      <div className="rounded-2xl border border-line bg-card p-5">
-        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-mid">
-          Agregar a la cola
-        </p>
-        <form action={agregarACola} className="flex flex-col gap-3">
-          {/* Selector de plataforma */}
-          <div className="flex gap-2">
-            {PLATAFORMAS_LIST.map((pla, i) => (
-              <label key={pla.id} className="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-mark bg-input px-4 py-3 text-sm has-[:checked]:border-violet-500 has-[:checked]:bg-violet-500/10 has-[:checked]:text-violet-600 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-violet-500/40">
-                <input
-                  type="radio"
-                  name="id_plataforma"
-                  value={pla.id}
-                  defaultChecked={i === 0}
-                  className="accent-violet-600"
-                />
-                {pla.nombre}
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-5">
+          {/* ── Agregar a los turnos ───────────────────────────────────── */}
+          <section className="flex flex-col gap-3 rounded-[22px] border border-line bg-card p-5 shadow-card dark:shadow-none">
+            <p className="text-sm font-semibold text-hi">Agregar a los turnos de {plaNombre}</p>
+            <form action={agregarACola} className="flex flex-col gap-2">
+              <input type="hidden" name="id_plataforma" value={plaSel.id} />
+              <label className={cls.etiqueta}>
+                Ministro
+                <div className="flex gap-2">
+                  <select name="id_usuario" required className={`${cls.campo} flex-1 [&>option]:bg-card`}>
+                    <option value="">— Seleccionar ministro —</option>
+                    {listaUsuarios.map((u) => (
+                      <option key={u.id_usuario} value={u.id_usuario}>{u.nombre}</option>
+                    ))}
+                  </select>
+                  <button type="submit" className={cls.btnLlama}>Agregar</button>
+                </div>
               </label>
-            ))}
-          </div>
+            </form>
+          </section>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="id_usuario_agregar">Ministro</Label>
-            <div className="flex gap-3">
-              <select
-                id="id_usuario_agregar"
-                name="id_usuario"
-                required
-                className="flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
-              >
-                <option value="">— Seleccionar ministro —</option>
-                {listaUsuarios.map((u) => (
-                  <option key={u.id_usuario} value={u.id_usuario}>
-                    {u.nombre}
-                  </option>
-                ))}
-              </select>
-              <Button type="submit" className="shrink-0">
-                Agregar
-              </Button>
-            </div>
-          </div>
-        </form>
-      </div>
-
-      {/* ── En Servicio Ahora ─────────────────────────────────────────── */}
-      <section className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-mid">En Servicio Ahora</h2>
-        {turnosActivos.length === 0 ? (
-          <p className="rounded-2xl border border-line bg-card px-5 py-4 text-sm text-lo">
-            Nadie está activo en este momento.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {turnosActivos.map((t) => (
-              <div key={t.id_turno} className="flex items-center gap-4 rounded-2xl border border-violet-500/30 bg-violet-500/[0.08] px-5 py-4">
-                <Avatar foto={t.foto} nombre={t.nombre_usuario} size={40} />
+          {/* ── Dirección · en servicio ahora ──────────────────────────── */}
+          <section aria-labelledby="g-activo" className="flex flex-col gap-3">
+            <h2 id="g-activo" className={cls.seccion}>Dirección · en servicio ahora</h2>
+            {activoSel ? (
+              <div className="flex items-center gap-4 rounded-2xl border border-fuego-600/30 bg-[#fbe5d6] px-5 py-4 dark:bg-[#1f1614]">
+                <Avatar foto={activoSel.foto} nombre={activoSel.nombre_usuario} size={44} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-medium uppercase tracking-widest text-violet-600">
-                    {t.nombre_plataforma}
-                  </p>
-                  <p className="truncate text-base font-bold text-hi">{t.nombre_usuario}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-fuego-600 dark:text-[#df8067]">{plaNombre}</p>
+                  <p className="truncate text-[17px] font-bold text-hi">{activoSel.nombre_usuario}</p>
                 </div>
                 <form action={desactivarActivo}>
-                  <input type="hidden" name="id_turno" value={t.id_turno} />
-                  <Button
-                    type="submit"
-                    variant="secondary"
-                    size="sm"
-                    className="shrink-0"
-                    icon={<X size={12} />}
-                    title="Sacar de servicio y devolver a la cola"
-                  >
-                    Desactivar
-                  </Button>
+                  <input type="hidden" name="id_turno" value={activoSel.id_turno} />
+                  <button type="submit" title="Sacar de servicio y devolver a la cola" className={`${cls.btnSec} min-h-[40px] text-[13px]`}>
+                    <X size={14} aria-hidden /> Desactivar
+                  </button>
                 </form>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* ── Test de notificaciones ───────────────────────────────────── */}
-      <section className="rounded-2xl border border-line bg-card p-5">
-        <div className="mb-4 flex items-center gap-2">
-          <Bell size={14} className="text-violet-500" />
-          <p className="text-xs font-semibold uppercase tracking-wider text-mid">
-            Probar notificaciones
-          </p>
-        </div>
-        <p className="mb-4 text-[11px] text-lo">
-          Enviá una notificación de prueba a cualquier usuario para verificar que le llegue al dispositivo.
-        </p>
-        <form action={probarNotificacion} className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="id_usuario_probar">Usuario</Label>
-            <select
-              id="id_usuario_probar"
-              name="id_usuario"
-              required
-              className="w-full rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
-            >
-              {listaUsuarios.map((u) => (
-                <option key={u.id_usuario} value={u.id_usuario}>
-                  {u.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Button type="submit" variant="secondary" className="self-start" icon={<Bell size={13} />}>
-            Probar
-          </Button>
-        </form>
-      </section>
-
-      </div>{/* fin columna izquierda */}
-
-      {/* ── Colas por plataforma ──────────────────────────────────────── */}
-      <div className="flex flex-col gap-6">
-        {colas.map(({ plataforma, items }) => (
-          <section key={plataforma.id} className="space-y-3">
-            <div>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-mid">
-                Turnos — {plataforma.nombre}
-              </h2>
-              <p className="mt-0.5 text-[11px] text-lo">Arrastrá para reordenar quién sigue.</p>
-            </div>
-            <ColaTurnos
-              turnos={items}
-              onReordenar={reordenarCola}
-              onActivar={marcarActivo}
-              onQuitar={quitarTurno}
-            />
+            ) : (
+              <p className="rounded-2xl border border-dashed border-mark px-5 py-4 text-sm text-lo">Nadie está dirigiendo en {plaNombre} ahora.</p>
+            )}
           </section>
-        ))}
+
+          <SemanasPlanificadas id_plataforma={plaSel.id} semanas={semanasPlan} />
+
+          {/* ── Dirección: cola ────────────────────────────────────────── */}
+          <section aria-labelledby="g-cola" className="flex flex-col gap-3">
+            <div>
+              <h2 id="g-cola" className={cls.seccion}>Dirección — {plaNombre}</h2>
+              <p className="mt-1 text-xs text-lo">Arrastrá para cambiar quién dirige cada semana.</p>
+            </div>
+            {colaSel.items.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-mark px-5 py-4 text-sm text-lo">No hay próximos turnos. Agregá ministros arriba.</p>
+            ) : (
+              <ColaTurnos turnos={colaSel.items} onReordenar={reordenarCola} onActivar={marcarActivo} onQuitar={quitarTurno} />
+            )}
+          </section>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-5">
+          {!sonido.faltaMigracion && (
+            <GestionSonido
+              id_plataforma={plaSel.id}
+              plataformaNombre={plaNombre}
+              semanas={sonido.semanas}
+              sonidistas={sonidistasPla.map((s) => ({ id: s.id, nombre: s.nombre }))}
+              usuarios={listaUsuarios.map((u) => ({ id: u.id_usuario, nombre: u.nombre }))}
+            />
+          )}
+
+          {/* ── Probar notificaciones ──────────────────────────────────── */}
+          <section className="flex flex-col gap-3 rounded-[22px] border border-line bg-card p-5">
+            <div className="flex items-center gap-2.5">
+              <IconoMarca nombre="campana" size={18} />
+              <p className="text-sm font-semibold text-hi">Probar notificaciones</p>
+            </div>
+            <p className="text-xs text-lo">Enviá una notificación de prueba a cualquier usuario para verificar que le llegue al dispositivo.</p>
+            <form action={probarNotificacion} className="flex gap-2">
+              <label className="sr-only" htmlFor="id_usuario_probar">Usuario</label>
+              <select id="id_usuario_probar" name="id_usuario" required className={`${cls.campo} flex-1 [&>option]:bg-card`}>
+                {listaUsuarios.map((u) => (
+                  <option key={u.id_usuario} value={u.id_usuario}>{u.nombre}</option>
+                ))}
+              </select>
+              <button type="submit" className={cls.btnSec}>Probar</button>
+            </form>
+          </section>
+        </div>
       </div>
-
-      </div>{/* fin grid */}
-
     </main>
   );
 }

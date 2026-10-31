@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { GripVertical, Mic2, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
-import { Button } from "@/components/Button";
 
 interface TurnoItem {
   id_turno:       number;
@@ -126,7 +125,7 @@ function Fila({ turno, pos, esPrimero, esUltimo, onDragStart, onDragEnd, onMover
       onDragEnd={() => { setArrastrando(false); onDragEnd(); }}
       whileDrag={{ scale: 1.02 }}
       transition={{ type: "spring", stiffness: 600, damping: 40 }}
-      className={`flex items-center gap-3 rounded-2xl border bg-card px-4 py-3 ${
+      className={`flex items-center gap-3 rounded-[14px] border bg-card px-3 py-2.5 ${
         arrastrando ? "z-10 border-violet-500/50 shadow-xl shadow-black/25 dark:shadow-black/60" : "border-line"
       }`}
     >
@@ -164,14 +163,21 @@ function Fila({ turno, pos, esPrimero, esUltimo, onDragStart, onDragEnd, onMover
         </button>
       </div>
 
-      <span className="w-4 shrink-0 text-center text-xs font-semibold tabular-nums text-gone">{pos}</span>
-      <Avatar foto={turno.foto} nombre={turno.nombre_usuario} size={32} />
+      <Avatar foto={turno.foto} nombre={turno.nombre_usuario} size={34} />
 
-      <p className="min-w-0 flex-1 truncate text-sm font-semibold text-hi">{turno.nombre_usuario}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-hi">{turno.nombre_usuario}</p>
+        <p className="text-xs text-lo">{pos === 1 ? "Próxima semana" : `En ${pos} semanas`}</p>
+      </div>
 
-      <Button type="button" size="sm" onClick={onActivar} icon={<Mic2 size={12} />} className="shrink-0">
-        Al servicio
-      </Button>
+      <button
+        type="button"
+        onClick={onActivar}
+        title="Pasar a dirigir ahora"
+        className="inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-full border border-fuego-600/40 px-3 text-xs font-semibold text-fuego-600 transition-colors hover:bg-fuego-600 hover:text-white dark:text-[#df8067]"
+      >
+        <Mic2 size={12} aria-hidden /> Al servicio
+      </button>
 
       <button
         type="button"
