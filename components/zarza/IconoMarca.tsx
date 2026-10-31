@@ -8,7 +8,21 @@ export type IconoMarcaNombre =
   | "moderar"
   | "notif"
   | "luna"
-  | "salir";
+  | "salir"
+  | "canciones"
+  | "estadisticas"
+  | "campana"
+  | "escudo"
+  | "microfono"
+  | "auriculares"
+  | "voz"
+  | "guitarra"
+  | "bajo"
+  | "bateria"
+  | "teclado"
+  | "consola"
+  | "comunicacion"
+  | "mejorar";
 
 /**
  * Ícono ilustrado del sistema Zarza. Cada ícono tiene dos versiones

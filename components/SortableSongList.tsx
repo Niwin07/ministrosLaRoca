@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { GripVertical, ChevronDown, ChevronUp } from "lucide-react";
+import { GripVertical, ChevronDown, ChevronUp, ChevronsUpDown, Trash2, X } from "lucide-react";
+import { NOTAS } from "@/lib/notas";
 import { ChartViewerInteractivo } from "@/components/ChartViewerInteractivo";
 import { LyricViewer } from "@/components/LyricViewer";
-import { SongActions } from "@/components/SongActions";
 
 interface SongItem {
   id_lista_cancion: number;
@@ -128,6 +128,93 @@ interface SortableRowProps {
   onActualizarNota: (formData: FormData) => Promise<void>;
 }
 
+function TonoPopover({
+  item,
+  bloqueado,
+  onActualizarNota,
+}: {
+  item: SongItem;
+  bloqueado: boolean;
+  onActualizarNota: (formData: FormData) => Promise<void>;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [pending, start] = useTransition();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!abierto) return;
+    const fuera = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setAbierto(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setAbierto(false); };
+    document.addEventListener("mousedown", fuera);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", fuera); document.removeEventListener("keydown", esc); };
+  }, [abierto]);
+
+  function elegir(nota: string) {
+    const fd = new FormData();
+    fd.set("id_lista_cancion", String(item.id_lista_cancion));
+    fd.set("nota", nota);
+    setAbierto(false);
+    start(async () => { await onActualizarNota(fd); });
+  }
+
+  const tono = item.nota || "—";
+
+  if (bloqueado) {
+    return (
+      <span className="inline-flex min-h-[40px] min-w-[44px] items-center justify-center px-1.5 text-[17px] font-extrabold text-fuego-600 dark:text-[#df8067]" aria-label={`Tono: ${item.nota ?? "sin tono"}`}>
+        {tono}
+      </span>
+    );
+  }
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        disabled={pending}
+        aria-label={`Tono: ${item.nota ?? "sin tono"}. Cambiar tono`}
+        aria-haspopup="listbox"
+        aria-expanded={abierto}
+        className="inline-flex min-h-[40px] min-w-[44px] items-center justify-center gap-[3px] px-1.5 text-[17px] font-extrabold text-fuego-600 disabled:opacity-60 dark:text-[#df8067]"
+      >
+        <span className={`border-b-2 border-dashed pb-px leading-[1.1] ${abierto ? "border-fuego-600" : "border-fuego-600/35"}`}>{tono}</span>
+        <ChevronsUpDown size={12} strokeWidth={2.4} aria-hidden />
+      </button>
+      {abierto && (
+        <div role="listbox" aria-label="Elegir tono" className="absolute right-0 top-[calc(100%-4px)] z-30 w-[232px] rounded-[14px] border border-line bg-card p-2.5 shadow-[0_12px_32px_-8px_rgba(120,45,15,0.35)] dark:shadow-black/60">
+          {[{ t: "Mayores", n: NOTAS.slice(0, 12) }, { t: "Menores", n: NOTAS.slice(12) }].map((g) => (
+            <div key={g.t} className="mb-2">
+              <p className="mb-1.5 ml-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-lo">{g.t}</p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {g.n.map((n) => {
+                  const on = n === item.nota;
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      role="option"
+                      aria-selected={on}
+                      onClick={() => elegir(n)}
+                      className={`min-h-[40px] rounded-full border text-[13px] font-bold ${on ? "border-fuego-600 bg-fuego-600 text-white" : "border-line bg-[#fffaf3] text-hi hover:border-fuego-300 dark:bg-input"}`}
+                    >
+                      {n}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={() => elegir("")} className="mt-0.5 min-h-[38px] w-full rounded-full border border-dashed border-mark text-[13px] text-mid hover:text-hi">
+            Sin tono
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SortableRow({
   item,
   posicion,
@@ -142,6 +229,8 @@ function SortableRow({
 }: SortableRowProps) {
   const controls = useDragControls();
   const [arrastrando, setArrastrando] = useState(false);
+  const [confirmar, setConfirmar] = useState(false);
+  const tieneContenido = !!(item.charts || item.letra);
 
   return (
     <Reorder.Item
@@ -158,16 +247,13 @@ function SortableRow({
       }}
       whileDrag={{ scale: 1.02 }}
       transition={{ type: "spring", stiffness: 600, damping: 40 }}
-      className={`overflow-hidden rounded-2xl border bg-card transition-shadow ${
-        arrastrando
-          ? "z-10 border-violet-500/50 shadow-xl shadow-black/25 dark:shadow-black/60"
-          : "border-line border-l-[3px] border-l-violet-500/35 shadow-card dark:shadow-none"
+      className={`relative rounded-2xl border bg-card transition-shadow ${
+        arrastrando ? "z-10 border-fuego-500/50 shadow-xl shadow-black/20" : "border-line"
       }`}
     >
-      {/* Fila principal */}
-      <div className="flex items-center gap-2 px-3 py-4 sm:gap-3 sm:px-4">
+      <div className="flex items-center gap-2.5 py-3 pl-2 pr-2.5">
         {puedeEditar && (
-          <>
+          <div className="flex shrink-0 items-center">
             <button
               type="button"
               onPointerDown={(e) => {
@@ -175,79 +261,53 @@ function SortableRow({
                 controls.start(e);
               }}
               style={{ touchAction: "none" }}
-              className={`flex h-8 w-5 shrink-0 touch-none items-center justify-center text-gone transition-colors hover:text-mid ${
-                arrastrando ? "cursor-grabbing text-violet-500" : "cursor-grab"
-              }`}
+              className={`flex h-8 w-5 touch-none items-center justify-center text-[#b9998a] ${arrastrando ? "cursor-grabbing" : "cursor-grab"}`}
               aria-label="Arrastrar para reordenar"
             >
               <GripVertical size={16} />
             </button>
-            {/* Alternativa accesible por teclado al drag-and-drop */}
-            <div className="flex shrink-0 flex-col">
-              <button
-                type="button"
-                onClick={() => onMover(-1)}
-                disabled={esPrimero}
-                aria-label="Mover arriba"
-                className="flex h-4 w-5 items-center justify-center rounded-t text-gone transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40"
-              >
+            <div className="flex flex-col">
+              <button type="button" onClick={() => onMover(-1)} disabled={esPrimero} aria-label="Mover arriba" className="flex h-4 w-5 items-center justify-center text-gone hover:text-hi disabled:opacity-30">
                 <ChevronUp size={12} />
               </button>
-              <button
-                type="button"
-                onClick={() => onMover(1)}
-                disabled={esUltimo}
-                aria-label="Mover abajo"
-                className="flex h-4 w-5 items-center justify-center rounded-b text-gone transition-colors hover:bg-input hover:text-hi disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40"
-              >
+              <button type="button" onClick={() => onMover(1)} disabled={esUltimo} aria-label="Mover abajo" className="flex h-4 w-5 items-center justify-center text-gone hover:text-hi disabled:opacity-30">
                 <ChevronDown size={12} />
               </button>
             </div>
-          </>
+          </div>
         )}
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-500/[.12] text-[10px] font-bold text-violet-600 dark:text-violet-400">
-          {String(posicion).padStart(2, "0")}
+        <span aria-label={`Canción ${posicion}`} className={`min-w-[15px] shrink-0 self-start pt-px text-right text-sm font-bold leading-5 tabular-nums text-fuego-600 dark:text-[#df8067] ${puedeEditar ? "" : "ml-2"}`}>
+          {posicion}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-hi">{item.nombre}</p>
+          <p className="truncate text-[15px] font-semibold text-hi">{item.nombre}</p>
           <p className="mt-0.5 truncate text-xs text-lo">{item.artista}</p>
         </div>
-        {item.nota && (
-          <span className="shrink-0 rounded-md border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[11px] font-bold tracking-wide text-violet-600 dark:text-violet-400">
-            {item.nota}
-          </span>
-        )}
+        <TonoPopover item={item} bloqueado={!puedeEditar} onActualizarNota={onActualizarNota} />
         {puedeEditar && (
-          <SongActions
-            item={{ id_lista_cancion: item.id_lista_cancion, nota: item.nota }}
-            onEliminar={onEliminar}
-            onActualizarNota={onActualizarNota}
-          />
+          confirmar ? (
+            <form action={onEliminar} className="flex shrink-0 items-center gap-1">
+              <input type="hidden" name="id_lista_cancion" value={item.id_lista_cancion} />
+              <button type="submit" className="min-h-[36px] rounded-full bg-red-600 px-3 text-xs font-semibold text-white">Quitar</button>
+              <button type="button" onClick={() => setConfirmar(false)} aria-label="Cancelar" className="flex h-9 w-9 items-center justify-center rounded-full text-gone hover:text-hi"><X size={16} /></button>
+            </form>
+          ) : (
+            <button type="button" onClick={() => setConfirmar(true)} aria-label="Quitar del servicio" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#b9998a] hover:bg-red-500/10 hover:text-red-600">
+              <Trash2 size={16} />
+            </button>
+          )
         )}
       </div>
 
-      {/* Charts colapsable */}
-      {item.charts && (
-        <details className="group border-t border-line">
-          <summary className="flex cursor-pointer select-none list-none items-center justify-between px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-gone transition-colors hover:text-mid [&::-webkit-details-marker]:hidden">
-            <span>Acordes / Charts</span>
-            <ChevronDown size={12} className="transition-transform duration-200 group-open:rotate-180" />
+      {tieneContenido && (
+        <details className="group border-t border-[#f1e5d4] dark:border-line">
+          <summary className="flex cursor-pointer select-none list-none items-center justify-between rounded-b-2xl px-4 py-2.5 text-xs font-medium text-lo hover:text-hi [&::-webkit-details-marker]:hidden">
+            <span>Letra y acordes</span>
+            <ChevronDown size={14} className="transition-transform duration-200 group-open:rotate-180" />
           </summary>
-          <div className="px-4 pb-5 pt-1">
-            <ChartViewerInteractivo charts={item.charts} notaInicial={item.nota} />
-          </div>
-        </details>
-      )}
-
-      {/* Letra colapsable */}
-      {item.letra && (
-        <details className="group border-t border-line">
-          <summary className="flex cursor-pointer select-none list-none items-center justify-between px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-gone transition-colors hover:text-mid [&::-webkit-details-marker]:hidden">
-            <span>Letra</span>
-            <ChevronDown size={12} className="transition-transform duration-200 group-open:rotate-180" />
-          </summary>
-          <div className="px-4 pb-5 pt-2">
-            <LyricViewer letra={item.letra} />
+          <div className="flex flex-col gap-5 px-4 pb-5 pt-1">
+            {item.charts && <ChartViewerInteractivo charts={item.charts} notaInicial={item.nota} />}
+            {item.letra && <LyricViewer letra={item.letra} />}
           </div>
         </details>
       )}

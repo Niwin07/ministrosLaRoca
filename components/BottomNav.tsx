@@ -23,7 +23,7 @@ export function BottomNav({ rol }: { rol?: string }) {
           paddingLeft: "max(6px, env(safe-area-inset-left))",
           paddingRight: "max(6px, env(safe-area-inset-right))",
         }}
-        className="flex items-center justify-around gap-0.5 border-t-[1.5px] border-line bg-[rgb(var(--nav-bg)/0.8)] backdrop-blur-[14px]"
+        className="flex items-center justify-around gap-0.5 border-t-[1.5px] border-line bg-[rgb(var(--nav-bg)/0.96)]"
       >
         {items.map((item) => {
           const activo = esRutaActiva(item.href, pathname);

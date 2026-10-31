@@ -4,16 +4,16 @@ import { usePathname } from "next/navigation";
 import { fondoDeRuta } from "@/lib/nav-items";
 
 /**
- * Capa de fondo fija con el gradiente "Zarza" animado de la sección actual
- * (grano + llamas que se mueven lento). Va detrás de todo el contenido.
- * El movimiento se desactiva con prefers-reduced-motion (ver zarza-fondos.css).
+ * Fondo "Zarza" de la sección actual (ver app/zarza-fondos.css).
+ * Tres capas: base estática, llamas (se mueven con transform, compuestas en
+ * GPU) y grano estático en su propia capa. Nada se repinta por frame.
  */
 export function FondoSeccion() {
   const pathname = usePathname();
   return (
-    <div
-      aria-hidden="true"
-      className={`pointer-events-none fixed inset-0 -z-10 ${fondoDeRuta(pathname)}`}
-    />
+    <div aria-hidden="true" className={`fondo ${fondoDeRuta(pathname)}`}>
+      <div className="fondo-llamas" />
+      <div className="fondo-grano" />
+    </div>
   );
 }

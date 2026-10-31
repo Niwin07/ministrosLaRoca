@@ -103,7 +103,7 @@ function VistaLista({
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-base">
       {/* Top bar */}
-      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line bg-base/95 px-4 py-3 backdrop-blur-sm">
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line bg-base px-4 py-3">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -370,7 +370,7 @@ function PresentadorMode({
         </div>
 
         {/* Bottom nav — solo móvil */}
-        <div className="shrink-0 border-t border-line bg-base/95 px-4 py-3 backdrop-blur-sm md:hidden">
+        <div className="shrink-0 border-t border-line bg-base px-4 py-3 md:hidden">
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"

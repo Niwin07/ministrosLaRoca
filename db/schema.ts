@@ -9,6 +9,8 @@ import {
   tinyint,
   uniqueIndex,
   index,
+  date,
+  primaryKey,
 } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 
@@ -197,3 +199,83 @@ export const lista_canciones = mysqlTable(
     idx_cancion:       index("idx_lista_canciones_cancion").on(table.id_cancion),
   }),
 );
+
+// ═══ Módulos del rediseño "Zarza" (scripts/sql/009-modulos-zarza.sql) ═══════
+
+// ─── Calentamiento de voces ──────────────────────────────────────────────────
+
+export const calentamiento_ejercicios = mysqlTable("calentamiento_ejercicios", {
+  id_ejercicio: int("id_ejercicio").autoincrement().primaryKey(),
+  nombre:       varchar("nombre", { length: 150 }).notNull(),
+  descripcion:  text("descripcion"),
+  orden:        int("orden").notNull().default(0),
+});
+
+export const calentamiento_videos = mysqlTable("calentamiento_videos", {
+  id_video:   int("id_video").autoincrement().primaryKey(),
+  youtube_id: varchar("youtube_id", { length: 20 }).notNull(),
+  titulo:     varchar("titulo", { length: 255 }).notNull(),
+  orden:      int("orden").notNull().default(0),
+});
+
+// ─── Protocolo de sonido ─────────────────────────────────────────────────────
+
+export const protocolo_pasos = mysqlTable("protocolo_pasos", {
+  id_paso:    int("id_paso").autoincrement().primaryKey(),
+  titulo:     varchar("titulo", { length: 200 }).notNull(),
+  detalle:    text("detalle"),
+  youtube_id: varchar("youtube_id", { length: 20 }),
+  orden:      int("orden").notNull().default(0),
+});
+
+// ─── Quiero mejorar ──────────────────────────────────────────────────────────
+
+export const mejorar_categorias = mysqlTable("mejorar_categorias", {
+  id_categoria: int("id_categoria").autoincrement().primaryKey(),
+  nombre:       varchar("nombre", { length: 100 }).notNull(),
+  icono:        varchar("icono", { length: 30 }).notNull().default("mejorar"),
+  color:        varchar("color", { length: 20 }).notNull().default("llama"),
+  orden:        int("orden").notNull().default(0),
+});
+
+export const mejorar_videos = mysqlTable("mejorar_videos", {
+  id_video:     int("id_video").autoincrement().primaryKey(),
+  id_categoria: int("id_categoria").notNull().references(() => mejorar_categorias.id_categoria, { onDelete: "cascade" }),
+  youtube_id:   varchar("youtube_id", { length: 20 }).notNull(),
+  titulo:       varchar("titulo", { length: 255 }).notNull(),
+  canal:        varchar("canal", { length: 150 }),
+  orden:        int("orden").notNull().default(0),
+});
+
+// ─── Turnos de sonido ────────────────────────────────────────────────────────
+
+export const sonidistas = mysqlTable(
+  "sonidistas",
+  {
+    id_usuario:    int("id_usuario").notNull().references(() => usuarios.id_usuario, { onDelete: "cascade" }),
+    id_plataforma: int("id_plataforma").notNull().references(() => plataformas.id_plataforma, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.id_usuario, table.id_plataforma] }),
+  }),
+);
+
+export const turnos_sonido = mysqlTable(
+  "turnos_sonido",
+  {
+    id_turno_sonido: int("id_turno_sonido").autoincrement().primaryKey(),
+    id_plataforma:   int("id_plataforma").notNull().references(() => plataformas.id_plataforma, { onDelete: "cascade" }),
+    // Lunes de la semana del servicio (YYYY-MM-DD).
+    semana:          date("semana", { mode: "string" }).notNull(),
+    id_principal:    int("id_principal").references(() => usuarios.id_usuario, { onDelete: "set null" }),
+    id_auxiliar:     int("id_auxiliar").references(() => usuarios.id_usuario, { onDelete: "set null" }),
+  },
+  (table) => ({
+    uq_semana: uniqueIndex("uq_turno_sonido_semana").on(table.id_plataforma, table.semana),
+  }),
+);
+
+export const ajustes_plataforma = mysqlTable("ajustes_plataforma", {
+  id_plataforma:        int("id_plataforma").primaryKey().references(() => plataformas.id_plataforma, { onDelete: "cascade" }),
+  semanas_planificadas: int("semanas_planificadas").notNull().default(6),
+});

@@ -111,8 +111,6 @@ export default async function RootLayout({
                 foto={foto}
                 tema={tema}
                 logoutAction={logoutAction}
-                misPlataformas={misPlataformas}
-                plataformaActivaId={plataformaActivaId}
               />
             </div>
           )}

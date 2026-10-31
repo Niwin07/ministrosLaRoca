@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotifBell } from "@/components/NotifBell";
-import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
 import { Avatar } from "@/components/Avatar";
 import { IconoMarca } from "@/components/zarza/IconoMarca";
 import { ocultarNav } from "@/lib/nav-items";
@@ -16,8 +15,6 @@ interface Props {
   foto:               string | null;
   tema:               "claro" | "oscuro";
   logoutAction:       () => Promise<void>;
-  misPlataformas:     { id: number; nombre: string }[];
-  plataformaActivaId: number;
 }
 
 /**
@@ -26,8 +23,8 @@ interface Props {
  *   derecha, sobre vidrio cálido y sticky.
  * - Desktop: transparente sobre el fondo, acciones alineadas a la derecha
  *   (el perfil vive en el menú lateral).
- * El selector de plataforma se mantiene (funcionalidad existente) cuando el
- * usuario pertenece a 2+ plataformas.
+ * El selector de plataforma vive en el contenido (Inicio y Gestión de turnos),
+ * como en el diseño.
  */
 export function BarraSuperior({
   rol,
@@ -35,22 +32,18 @@ export function BarraSuperior({
   foto,
   tema,
   logoutAction,
-  misPlataformas,
-  plataformaActivaId,
 }: Props) {
   const pathname = usePathname();
   if (ocultarNav(pathname)) return null;
-
-  const multiPlataforma = misPlataformas.length >= 2;
 
   return (
     <header
       className={[
         "sticky top-0 z-30 flex items-center justify-between gap-2",
         // móvil: vidrio cálido con borde suave
-        "border-b border-[rgba(255,247,236,0.28)] bg-[rgba(255,214,170,0.14)] backdrop-blur-[14px] dark:border-[#4a3530]/60 dark:bg-[rgba(27,19,17,0.55)]",
+        "border-b border-[rgba(255,247,236,0.28)] bg-[rgb(var(--nav-bg)/0.94)] dark:border-[#4a3530]/60",
         // desktop: transparente, alto fijo de 64px
-        "md:static md:h-16 md:border-0 md:bg-transparent md:backdrop-blur-0 md:dark:bg-transparent",
+        "md:static md:h-16 md:border-0 md:bg-transparent md:dark:bg-transparent",
       ].join(" ")}
       style={{
         paddingTop: "max(8px, env(safe-area-inset-top))",
@@ -67,11 +60,7 @@ export function BarraSuperior({
         <Avatar foto={foto} nombre={nombre} size={40} />
       </Link>
 
-      <div className="flex min-w-0 flex-1 justify-center md:justify-start">
-        {multiPlataforma && (
-          <PlataformaSwitcher plataformas={misPlataformas} activaId={plataformaActivaId} />
-        )}
-      </div>
+      <div className="flex-1" />
 
       <div className="flex shrink-0 items-center gap-1">
         <NotifBell />

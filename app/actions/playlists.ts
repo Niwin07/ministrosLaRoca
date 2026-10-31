@@ -87,6 +87,39 @@ export async function crearPlaylist(formData: FormData): Promise<void> {
   redirect(`/playlists/${inserted.id_playlist}`);
 }
 
+// ── crearServicio ─────────────────────────────────────────────────────────────
+// "Armar lista nueva · De cero" (rediseño Zarza): crea directamente un servicio
+// (EVENTO en preparación) vacío, sin pasar por una plantilla.
+
+export async function crearServicio(formData: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user) throw new Error("No autenticado.");
+
+  const nombre = (formData.get("nombre") as string | null)?.trim().slice(0, 255);
+  if (!nombre) throw new Error("Poné un nombre para el servicio.");
+
+  const id_plataforma = await resolverPlataformaParaCrear(
+    formData,
+    session.user.id_usuario,
+    session.user.rol,
+  );
+
+  const [inserted] = await db
+    .insert(playlists)
+    .values({
+      id_usuario:       session.user.id_usuario,
+      id_plataforma,
+      nombre,
+      tipo:             "EVENTO",
+      estado:           "PREPARACION",
+      fecha_programada: null,
+    })
+    .$returningId();
+
+  revalidatePath("/playlists");
+  redirect(`/playlists/${inserted.id_playlist}`);
+}
+
 // ── avanzarEstadoPlaylist ─────────────────────────────────────────────────────
 
 const ESTADOS_VALIDOS = ["PREPARACION", "ENSAYO", "DEFINITIVA", "MAZO"] as const;

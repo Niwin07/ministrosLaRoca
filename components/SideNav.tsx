@@ -74,7 +74,7 @@ export function SideNav({ rol, nombre = "", foto }: Props) {
       aria-label="Menú"
       className={[
         "fixed left-0 top-0 z-40 hidden h-dvh flex-col overflow-hidden md:flex",
-        "border-r border-[rgba(255,247,236,0.35)] bg-[rgb(var(--sidebar-bg)/0.42)] backdrop-blur-[16px]",
+        "border-r border-[rgba(255,247,236,0.35)] bg-[rgb(var(--sidebar-bg)/0.72)]",
         "transition-[width] duration-200 ease-out dark:border-[#4a3530]",
         plegado ? "w-[76px]" : "w-64",
       ].join(" ")}

@@ -54,5 +54,8 @@ export function fondoDeRuta(pathname: string): string {
   if (pathname.startsWith("/turnos"))          return "fondo-turnos";
   if (pathname.startsWith("/admin"))           return "fondo-admin";
   if (pathname.startsWith("/perfil"))          return "fondo-admin";
+  if (pathname.startsWith("/calentamiento"))   return "fondo-voces";
+  if (pathname.startsWith("/protocolo"))       return "fondo-sonido";
+  if (pathname.startsWith("/mejorar"))         return "fondo-mejorar";
   return "fondo-inicio";
 }

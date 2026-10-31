@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
-import { ChevronRight, Plus, ListMusic, Mic2, Archive, Music2 } from "lucide-react";
+import { ChevronRight, ListMusic, Archive } from "lucide-react";
 import { ESTADO_LABEL } from "@/lib/estados";
 import { db } from "@/db";
 import { canciones, cronograma, lista_canciones, playlists, usuarios } from "@/db/schema";
@@ -9,10 +9,11 @@ import { auth } from "@/auth";
 import { getPlataformaActivaId, getPlataformaEfectivaId } from "@/lib/get-plataforma-activa";
 import { getMisPlataformas } from "@/lib/usuario-request-cache";
 import { PLATAFORMAS_LIST } from "@/lib/plataforma";
-import { crearPlaylist, instanciarPreset, clonarMazo, renombrarPlaylist, eliminarPlaylist } from "@/app/actions/playlists";
+import { crearPlaylist, crearServicio, instanciarPreset, clonarMazo, renombrarPlaylist, eliminarPlaylist } from "@/app/actions/playlists";
+import { NuevaListaPanel } from "@/components/zarza/servicios/NuevaListaPanel";
+import { cls } from "@/components/zarza/ui";
 import { HistorialListas } from "@/components/HistorialListas";
 import { ErrorBanner } from "@/components/ErrorBanner";
-import { Button } from "@/components/Button";
 import { PlaylistRowItem } from "@/components/PlaylistRowItem";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -214,196 +215,236 @@ export default async function PlaylistsPage(props: {
     redirect(destino);
   }
 
-  return (
-    <div className="px-4 pt-8 pb-6 flex flex-col gap-8 lg:gap-0">
+  // ── Mis próximos servicios (rediseño Zarza) ─────────────────────────────────
+  // Servicios propios en curso (preparación / ensayo / definitiva) y mi lugar
+  // en la rotación, para rotular "Esta semana" / "En N semanas".
+  const [misServicios, miTurno] = await Promise.all([
+    db
+      .select({
+        id_playlist: playlists.id_playlist,
+        nombre:      playlists.nombre,
+        estado:      playlists.estado,
+        total:       sql<number>`COUNT(${lista_canciones.id_lista_cancion})`,
+      })
+      .from(playlists)
+      .leftJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
+      .where(and(
+        eq(playlists.tipo, "EVENTO"),
+        eq(playlists.id_usuario, id_usuario),
+        inArray(playlists.estado, ["PREPARACION", "ENSAYO", "DEFINITIVA"]),
+        ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
+      ))
+      .groupBy(playlists.id_playlist, playlists.nombre, playlists.estado, playlists.actualizadoEn)
+      .orderBy(desc(playlists.actualizadoEn)),
+    (async () => {
+      const filas = await db
+        .select({ id_usuario: cronograma.id_usuario, estado: cronograma.estado_turno, orden: cronograma.orden })
+        .from(cronograma)
+        .where(and(
+          inArray(cronograma.estado_turno, ["ACTIVO", "EN_ESPERA"]),
+          ...(plaId ? [eq(cronograma.id_plataforma, plaId)] : []),
+        ))
+        .orderBy(cronograma.orden);
+      if (filas.some((f) => f.estado === "ACTIVO" && f.id_usuario === id_usuario)) return 0;
+      const cola = filas.filter((f) => f.estado === "EN_ESPERA");
+      const i = cola.findIndex((f) => f.id_usuario === id_usuario);
+      return i >= 0 ? i + 1 : null;
+    })(),
+  ]);
 
-      {/* Encabezado */}
-      <div className="animate-fade-in-down lg:mb-6">
-        <h1 className="font-display text-2xl font-bold text-hi">Mis servicios</h1>
-        <p className="mt-1 text-sm text-lo">El servicio de la semana, lo que estás armando y tus plantillas.</p>
+  const chipSemana = (n: number | null) =>
+    n === 0 ? ["Esta", "semana"] : n === 1 ? ["Próxima", "semana"] : n ? [`En ${n}`, "semanas"] : ["Sin", "fecha"];
+  const ETAPA_CHIP: Record<string, string> = {
+    PREPARACION: "border-[#eadbc6] bg-[#f3e7d6] text-[#6e4c40] dark:border-[#4a3530] dark:bg-[#211815] dark:text-[#d6c2a8]",
+    ENSAYO:      "border-[#f8c98a] bg-[#ffeccc] text-[#9a3c0a] dark:border-[#3c2e1b] dark:bg-[#251d11] dark:text-[#f8894f]",
+    DEFINITIVA:  "border-[#f5b9a0] bg-[#fde4d8] text-[#94402a] dark:border-[#5c382a] dark:bg-[#1e1513] dark:text-[#d9846d]",
+  };
+  const sinListaParaMiTurno = miTurno !== null && misServicios.length === 0;
+
+  async function handleCrearServicio(formData: FormData) {
+    "use server";
+    await crearServicio(formData);
+  }
+
+  return (
+    <div className="flex flex-col gap-7 px-4 pb-8 pt-7 md:px-0 md:pt-2">
+
+      {/* ── Encabezado + Armar lista nueva ────────────────────────────── */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 flex-[1_1_260px]">
+          <h1 className="font-display text-[30px] font-bold leading-tight tracking-[-0.02em] text-hi">Mis servicios</h1>
+          <p className="mt-1.5 text-sm text-lo">Armá la lista de cada semana que te toca dirigir.</p>
+        </div>
+        <NuevaListaPanel
+          abiertoInicial={false}
+          plantillas={plantillas}
+          anteriores={historialData.map((h) => ({ id_playlist: h.id_playlist, nombre: h.nombre, meta: `${h.nombre_usuario} · ${h.fecha}` }))}
+          plataformas={plataformasParaCrear}
+          plataformaDefault={plataformaParaCrearDefault}
+          crearServicio={handleCrearServicio}
+          crearPlantilla={crearPlaylist}
+          usarPlantilla={handleInstanciarPreset}
+          repetirServicio={handleClonarMazo}
+        />
       </div>
 
-      {/* Banner de error (p. ej. clonado fallido) */}
       <ErrorBanner message={errorMsg} />
 
-      {/* ── GRID desktop ────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
-
-      {/* ── COLUMNA IZQUIERDA: Esta semana + En preparación ───────── */}
-      <div className="flex flex-col gap-8">
-
-      {/* ══ ESTA SEMANA ════════════════════════════════════════════════ */}
-      <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:80ms]">
-        <div className="flex items-center gap-2">
-          <Mic2 size={14} className="shrink-0 text-violet-500" />
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Esta semana</h2>
-        </div>
-        <p className="-mt-1 text-[11px] text-lo">El set publicado del ministro de turno (en ensayo o definitiva).</p>
-
-        {estaSemana.length === 0 ? (
-          <p className="rounded-2xl border border-line bg-card px-5 py-5 text-sm text-lo">
-            {directorActivo
-              ? "El ministro de turno todavía no publicó su lista."
-              : "Nadie está dirigiendo esta semana."}
+      {/* ── Tus próximos servicios ────────────────────────────────────── */}
+      {misServicios.length > 0 || sinListaParaMiTurno ? (
+        <section aria-labelledby="proximos" className="flex flex-col gap-3.5">
+          <h2 id="proximos" className={cls.seccion}>Tus próximos servicios</h2>
+          <div className="grid gap-3.5 lg:grid-cols-2">
+            {misServicios.map((s) => {
+              const [arriba, abajo] = chipSemana(miTurno);
+              const publicado = s.estado !== "PREPARACION";
+              const total = Number(s.total);
+              return (
+                <article key={s.id_playlist} className={`${cls.tarjeta} flex flex-wrap items-center gap-4 p-5`}>
+                  <div className={`w-[76px] shrink-0 rounded-2xl px-1 py-2.5 text-center ${miTurno === 0 ? "bg-fuego-600/[0.12] text-fuego-600 dark:text-[#df8067]" : "bg-[rgba(110,76,64,0.08)] text-mid"}`}>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em]">{arriba}</p>
+                    <p className="mt-0.5 text-sm font-bold">{abajo}</p>
+                  </div>
+                  <div className="min-w-[160px] flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-base font-semibold leading-tight text-hi">{s.nombre}</p>
+                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.05em] ${ETAPA_CHIP[s.estado ?? "PREPARACION"]}`}>
+                        {ESTADO_LABEL[s.estado ?? ""] ?? s.estado}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[13px] text-lo">
+                      {total} {total === 1 ? "canción" : "canciones"} · {publicado ? "El equipo ya la ve" : "Solo la ves vos"}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/playlists/${s.id_playlist}`}
+                    className={publicado
+                      ? "inline-flex min-h-[44px] items-center rounded-full border border-fuego-600 bg-[#fcf5eb] px-[18px] text-sm font-semibold text-fuego-600 dark:bg-transparent dark:text-[#df8067] max-sm:w-full max-sm:justify-center"
+                      : `${cls.btnLlama} shadow-none max-sm:w-full`}
+                  >
+                    {publicado ? "Ver lista" : "Seguir armando"}
+                  </Link>
+                </article>
+              );
+            })}
+            {sinListaParaMiTurno && (() => {
+              const [arriba, abajo] = chipSemana(miTurno);
+              return (
+                <article className={`${cls.tarjeta} flex flex-wrap items-center gap-4 p-5`}>
+                  <div className="w-[76px] shrink-0 rounded-2xl bg-[rgba(110,76,64,0.08)] px-1 py-2.5 text-center text-mid">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em]">{arriba}</p>
+                    <p className="mt-0.5 text-sm font-bold">{abajo}</p>
+                  </div>
+                  <div className="min-w-[160px] flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-base font-semibold text-lo">Sin lista todavía</p>
+                      <span className="rounded-full border border-line bg-[#fcf5eb] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.05em] text-lo dark:bg-input">Sin armar</span>
+                    </div>
+                    <p className="mt-1 text-[13px] text-lo">Podés armarla cuando quieras con “Armar lista nueva”.</p>
+                  </div>
+                </article>
+              );
+            })()}
+          </div>
+        </section>
+      ) : (
+        <section className="flex flex-col items-start gap-3 rounded-[22px] border border-dashed border-mark bg-white/60 p-6 dark:bg-card/60">
+          <p className="text-base font-semibold text-hi">No tenés servicios asignados por ahora</p>
+          <p className="max-w-[640px] text-sm leading-relaxed text-mid">
+            Cuando te asignen una semana en Turnos, va a aparecer acá. Mientras tanto, podés adelantar una lista guardándola como plantilla.
           </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {estaSemana.map((lista) => (
-              <Link
-                key={lista.id_playlist}
-                href={`/playlists/${lista.id_playlist}`}
-                className="flex items-center gap-4 rounded-2xl border border-violet-500/30 bg-violet-500/[0.06] px-5 py-5 shadow-card transition-all duration-200 hover:bg-violet-500/[0.12] active:scale-[0.98] dark:shadow-none"
-              >
-                <Avatar foto={lista.foto} nombre={lista.nombre_usuario} size={36} />
+        </section>
+      )}
+
+      {/* ── Esta semana (set publicado del ministro de turno) ─────────── */}
+      {estaSemana.filter((l) => !misServicios.some((m) => m.id_playlist === l.id_playlist)).length > 0 && (
+        <section aria-labelledby="esta-semana" className="flex flex-col gap-3.5">
+          <h2 id="esta-semana" className={cls.seccion}>Esta semana en la plataforma</h2>
+          {estaSemana
+            .filter((l) => !misServicios.some((m) => m.id_playlist === l.id_playlist))
+            .map((lista) => (
+              <Link key={lista.id_playlist} href={`/playlists/${lista.id_playlist}`} className={`${cls.tarjeta} flex items-center gap-4 px-5 py-4 transition-transform hover:-translate-y-0.5`}>
+                <Avatar foto={lista.foto} nombre={lista.nombre_usuario} size={40} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-base font-semibold text-hi">{lista.nombre}</p>
-                  <p className="mt-0.5 truncate text-xs text-lo">{lista.nombre_usuario}</p>
+                  <p className="truncate text-[13px] text-lo">Dirige {lista.nombre_usuario}</p>
                 </div>
-                <Badge tone={lista.estado === "DEFINITIVA" ? "info" : "warning"}>
-                  {ESTADO_LABEL[lista.estado ?? ""] ?? lista.estado}
-                </Badge>
-                <ChevronRight size={15} className="shrink-0 text-gone" />
+                <Badge tone={lista.estado === "DEFINITIVA" ? "info" : "warning"}>{ESTADO_LABEL[lista.estado ?? ""] ?? lista.estado}</Badge>
+                <ChevronRight size={16} className="shrink-0 text-gone" aria-hidden />
               </Link>
             ))}
-          </div>
-        )}
-      </section>
+        </section>
+      )}
 
-      {/* ══ EN PREPARACIÓN ═════════════════════════════════════════════ */}
-      <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:160ms]">
-        <div className="flex items-center gap-2">
-          <Music2 size={13} className="shrink-0 text-violet-500" />
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">En preparación</h2>
-        </div>
-        <p className="-mt-1 text-[11px] text-lo">Servicios que estás armando. Editables hasta pasarlos a ensayo.</p>
+      {/* ── Más opciones ──────────────────────────────────────────────── */}
+      <nav aria-label="Más opciones de servicios" className="grid gap-2.5 sm:grid-cols-2">
+        <a href="#plantillas" className="flex min-h-[72px] items-center gap-3.5 rounded-[18px] border border-line bg-card px-5 text-hi transition-colors hover:border-mark">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center text-fuego-600"><ListMusic size={22} aria-hidden /></span>
+          <span className="flex-1">
+            <span className="block text-[15px] font-semibold">Mis plantillas</span>
+            <span className="block text-[13px] text-lo">{plantillas.length} {plantillas.length === 1 ? "guardada" : "guardadas"}</span>
+          </span>
+          <ChevronRight size={18} className="text-gone" aria-hidden />
+        </a>
+        <a href="#anteriores" className="flex min-h-[72px] items-center gap-3.5 rounded-[18px] border border-line bg-card px-5 text-hi transition-colors hover:border-mark">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center text-mid"><Archive size={22} aria-hidden /></span>
+          <span className="flex-1">
+            <span className="block text-[15px] font-semibold">Servicios anteriores</span>
+            <span className="block text-[13px] text-lo">{historialData.length} {historialData.length === 1 ? "servicio" : "servicios"}</span>
+          </span>
+          <ChevronRight size={18} className="text-gone" aria-hidden />
+        </a>
+      </nav>
 
-        {enPreparacion.length === 0 ? (
-          <p className="rounded-2xl border border-line bg-card px-5 py-5 text-sm text-lo">
-            No tenés servicios en preparación. Usá una plantilla de abajo para empezar uno.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-1">
-            {enPreparacion.map((lista) => (
-              <PlaylistRowItem
-                key={lista.id_playlist}
-                id_playlist={lista.id_playlist}
-                nombre={lista.nombre}
-                subtitulo="Seguí armándola"
-                destacada
-                onEliminar={handleEliminarLista}
-                eliminarLabel="Borrar lista en preparación"
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      </div>{/* fin columna izquierda */}
-
-      {/* ── COLUMNA DERECHA: Plantillas + Historial ───────────────── */}
-      <div className="flex flex-col gap-8">
-
-      {/* ══ PLANTILLAS ═════════════════════════════════════════════════ */}
-      <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:240ms]">
-        <div className="flex items-center gap-2">
-          <ListMusic size={13} className="shrink-0 text-violet-500" />
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Plantillas</h2>
-        </div>
-        <p className="-mt-1 text-[11px] text-lo">Tus moldes reutilizables. Tocá &ldquo;Usar&rdquo; para armar un servicio, o editá/borrá las tuyas.</p>
-
-        {plantillas.length === 0 ? (
-          <p className="rounded-2xl border border-line bg-card px-5 py-5 text-sm text-lo">
-            No tenés plantillas todavía. Creá la primera abajo.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-1">
-            {plantillas.map((lista) => (
-              <PlaylistRowItem
-                key={lista.id_playlist}
-                id_playlist={lista.id_playlist}
-                nombre={lista.nombre}
-                onUsar={handleInstanciarPreset}
-                onRenombrar={handleRenombrarPlantilla}
-                onEliminar={handleEliminarLista}
-                eliminarLabel="Borrar plantilla"
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Crear nueva plantilla — colapsable */}
-        <details className="group mt-1">
-          <summary className="flex cursor-pointer select-none list-none items-center [&::-webkit-details-marker]:hidden">
-            <div className="flex items-center gap-2 rounded-xl border border-dashed border-mark px-4 py-2.5 transition-all duration-200 hover:border-line group-open:border-violet-500/50">
-              <Plus size={13} strokeWidth={2.5} className="text-lo group-open:text-violet-600" />
-              <span className="text-sm font-medium text-lo group-open:text-violet-600">Nueva plantilla</span>
-            </div>
-          </summary>
-
-          <div className="mt-3 rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
-            <form action={crearPlaylist} className="flex flex-col gap-3">
-              {/* Selector explícito de plataforma — solo si el usuario puede crear
-                  en más de una. Evita depender de que la cookie del switcher ya
-                  haya llegado al server en este submit (ver comentario en
-                  resolverPlataformaParaCrear). */}
-              {plataformasParaCrear.length >= 2 && (
-                <div className="flex gap-2">
-                  {plataformasParaCrear.map((pla, i) => (
-                    <label
-                      key={pla.id}
-                      className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-mark bg-input px-3 py-2 text-xs font-medium has-[:checked]:border-violet-500 has-[:checked]:bg-violet-500/10 has-[:checked]:text-violet-600 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-violet-500/40"
-                    >
-                      <input
-                        type="radio"
-                        name="id_plataforma"
-                        value={pla.id}
-                        defaultChecked={
-                          plataformasParaCrear.some((p) => p.id === plataformaParaCrearDefault)
-                            ? pla.id === plataformaParaCrearDefault
-                            : i === 0
-                        }
-                        className="accent-violet-600"
-                      />
-                      {pla.nombre}
-                    </label>
-                  ))}
-                </div>
-              )}
-              <div className="flex gap-2">
-                <input
-                  name="nombre"
-                  type="text"
-                  placeholder="Nombre de la plantilla…"
-                  required
-                  className="min-w-0 flex-1 rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi placeholder-gone outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
+      <div className="grid gap-7 lg:grid-cols-2 lg:items-start">
+        {/* ── Mis plantillas ──────────────────────────────────────────── */}
+        <section id="plantillas" aria-labelledby="t-plantillas" className="flex scroll-mt-24 flex-col gap-3">
+          <h2 id="t-plantillas" className={cls.seccion}>Mis plantillas</h2>
+          <p className="-mt-1 text-[13px] text-lo">Tus sets reutilizables. Tocá “Usar” para armar un servicio, o renombralas y borralas.</p>
+          {plantillas.length === 0 ? (
+            <p className={`${cls.tarjeta} px-5 py-5 text-sm text-lo`}>No tenés plantillas todavía. Creá una con “Armar lista nueva” → Sin fecha.</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {plantillas.map((lista) => (
+                <PlaylistRowItem
+                  key={lista.id_playlist}
+                  id_playlist={lista.id_playlist}
+                  nombre={lista.nombre}
+                  onUsar={handleInstanciarPreset}
+                  onRenombrar={handleRenombrarPlantilla}
+                  onEliminar={handleEliminarLista}
+                  eliminarLabel="Borrar plantilla"
                 />
-                <Button type="submit" shape="block" icon={<Plus size={15} strokeWidth={2.5} />}>
-                  Crear
-                </Button>
-              </div>
-            </form>
-          </div>
-        </details>
-      </section>
-
-      {/* ══ HISTORIAL ══════════════════════════════════════════════════ */}
-      <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:320ms]">
-        <div className="flex items-center gap-2">
-          <Archive size={13} className="shrink-0 text-violet-500" />
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-mid">Historial</h2>
-          {historialData.length > 0 && (
-            <span className="rounded-full bg-input px-1.5 py-0.5 text-[10px] font-medium text-mid">
-              {historialData.length}
-            </span>
+              ))}
+            </div>
           )}
-        </div>
-        <p className="-mt-1 text-[11px] text-lo">Servicios finalizados. Mirá qué se tocó y reutilizalos como base para el próximo.</p>
+          {enPreparacion.length > 0 && (
+            <>
+              <h3 className="mt-3 text-[13px] font-semibold text-mid">Borrar servicios en preparación</h3>
+              <div className="flex flex-col gap-1.5">
+                {enPreparacion.map((lista) => (
+                  <PlaylistRowItem
+                    key={lista.id_playlist}
+                    id_playlist={lista.id_playlist}
+                    nombre={lista.nombre}
+                    subtitulo="En preparación"
+                    destacada
+                    onEliminar={handleEliminarLista}
+                    eliminarLabel="Borrar lista en preparación"
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </section>
 
-        <HistorialListas listas={historialData} onClonar={handleClonarMazo} />
-      </section>
-
-      </div>{/* fin columna derecha */}
-      </div>{/* fin grid */}
+        {/* ── Servicios anteriores ────────────────────────────────────── */}
+        <section id="anteriores" aria-labelledby="t-anteriores" className="flex scroll-mt-24 flex-col gap-3">
+          <h2 id="t-anteriores" className={cls.seccion}>Servicios anteriores</h2>
+          <p className="-mt-1 text-[13px] text-lo">Servicios finalizados. Mirá qué se tocó y repetilos como base para el próximo.</p>
+          <HistorialListas listas={historialData} onClonar={handleClonarMazo} />
+        </section>
+      </div>
     </div>
   );
 }

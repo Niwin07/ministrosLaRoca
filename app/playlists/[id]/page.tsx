@@ -1,15 +1,14 @@
 import { notFound, redirect } from "next/navigation";
 import { and, eq } from "drizzle-orm";
-import { ArrowLeft, Music2, PlusCircle, Copy, Tv2 } from "lucide-react";
+import { ArrowLeft, Music2, Copy, ListMusic, Archive, Lock } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/db";
 import { canciones, cronograma, lista_canciones, playlists } from "@/db/schema";
 import { SortableSongList } from "@/components/SortableSongList";
 import { ErrorBanner } from "@/components/ErrorBanner";
-import { Button } from "@/components/Button";
-import { StepperPill } from "@/components/StepperPill";
-import { TonoSelect } from "@/components/TonoSelect";
-import { CancionSelect } from "@/components/CancionSelect";
+import { EtapasServicio } from "@/components/zarza/servicios/EtapasServicio";
+import { AgregarCancion } from "@/components/zarza/servicios/AgregarCancion";
+import { cls } from "@/components/zarza/ui";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { puedeVerLista } from "@/lib/playlist-visibility";
 import { auth } from "@/auth";
@@ -20,7 +19,7 @@ import {
   reordenarLista,
 } from "@/app/actions/listas";
 import { clonarMazo, avanzarEstadoPlaylist, cambiarPlataformaPlaylist } from "@/app/actions/playlists";
-import { ESTADO_LABEL, ESTADO_DESC, ESTADO_NEXT_HINT } from "@/lib/estados";
+import { ESTADO_LABEL } from "@/lib/estados";
 import { PLATAFORMAS_LIST, PLATAFORMA_LABELS } from "@/lib/plataforma";
 
 // ── Queries ───────────────────────────────────────────────────────────────────
@@ -153,11 +152,6 @@ export default async function PlaylistDetailPage(props: {
       (cabecera.estado === "PREPARACION" || cabecera.estado === "ENSAYO"));
   const puedeEditarContenido = puedeEditar && esEditable;
 
-  const ESTADOS_EVENTO = ["PREPARACION", "ENSAYO", "DEFINITIVA", "MAZO"] as const;
-  const estadoActualIdx = ESTADOS_EVENTO.indexOf(
-    (cabecera.estado ?? "") as (typeof ESTADOS_EVENTO)[number]
-  );
-
   // Publicar (pasar a ENSAYO o DEFINITIVA) solo es posible si el dueño de la
   // lista es el director con el turno activo esta semana. Refleja la regla del
   // server `avanzarEstadoPlaylist`, para deshabilitar esos botones de antemano.
@@ -282,237 +276,150 @@ export default async function PlaylistDetailPage(props: {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  return (
-    <div className="flex flex-col gap-4 px-4 pt-6 pb-8">
+  const esEvento = cabecera.tipo === "EVENTO";
+  const enCurso = esEvento && cabecera.estado !== "MAZO";
+  const quienDirige = cabecera.id_usuario === id_usuario ? "Dirigís vos" : null;
 
-      {/* ── Back ──────────────────────────────────────────────────────── */}
-      <Link
-        href="/playlists"
-        className="flex w-fit items-center gap-1.5 text-xs text-lo transition-colors hover:text-hi"
-      >
-        <ArrowLeft size={13} />
-        Mis Listas
+  return (
+    <div className="flex flex-col gap-4 px-4 pb-8 pt-6 md:px-0 md:pt-2">
+
+      <Link href="/playlists" className="flex w-fit items-center gap-1.5 text-[13px] font-semibold text-hi transition-opacity hover:opacity-75">
+        <ArrowLeft size={15} aria-hidden /> Servicios
       </Link>
 
-      {/* ── Banner de error (acción que no se pudo completar) ─────────── */}
       <ErrorBanner message={errorMsg} />
 
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-6">
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_400px] xl:items-start xl:gap-6">
+      <div className="flex min-w-0 flex-col gap-4">
 
-      {/* ── Header ────────────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-line bg-card px-5 py-5 shadow-card dark:shadow-none">
+      {/* ── Encabezado del servicio ───────────────────────────────────── */}
+      <section className="flex flex-col gap-3 rounded-[20px] border border-line bg-card px-5 py-4 shadow-card dark:shadow-none">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <div className="min-w-0 flex-[1_1_220px]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-lo">
+              {esEvento ? "Servicio" : "Plantilla"}
+            </p>
+            <h1 className="mt-0.5 font-display text-2xl font-bold leading-[1.08] tracking-[-0.02em] text-hi">{cabecera.nombre}</h1>
+            <p className="mt-0.5 text-[13px] text-lo">
+              {items.length} {items.length === 1 ? "canción" : "canciones"}
+              {quienDirige ? ` · ${quienDirige}` : ""}
+              {" · "}{PLATAFORMA_LABELS[cabecera.id_plataforma] ?? "Plataforma"}
+            </p>
+          </div>
 
-        <div className="mb-1 flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-medium uppercase tracking-widest text-lo">
-            {cabecera.tipo === "EVENTO" ? "Lista de evento" : cabecera.tipo === "PRESET" ? "Plantilla" : cabecera.tipo}
-          </span>
-          {cabecera.estado && (
-            <Badge tone={ESTADO_TONE[cabecera.estado] ?? "neutral"}>
-              {ESTADO_LABEL[cabecera.estado] ?? cabecera.estado}
-            </Badge>
+          {enCurso && puedeEditar && cabecera.estado && (
+            <EtapasServicio
+              estado={cabecera.estado}
+              puedePublicar={puedePublicar}
+              motivoBloqueo={motivoBloqueo}
+              onCambiar={handleAvanzarEstado}
+            />
+          )}
+          {enCurso && !puedeEditar && cabecera.estado && (
+            <Badge tone={ESTADO_TONE[cabecera.estado] ?? "neutral"}>{ESTADO_LABEL[cabecera.estado] ?? cabecera.estado}</Badge>
+          )}
+
+          {items.length > 0 && (
+            <Link
+              href={`/escenario/mazo/${cabecera.id_playlist}`}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#d4552a] px-5 text-sm font-semibold text-[#fff8ef] transition-[filter] hover:brightness-110"
+            >
+              <ListMusic size={16} aria-hidden /> Abrir lista
+            </Link>
           )}
         </div>
 
-        <h1 className="font-display text-xl font-bold text-hi">{cabecera.nombre}</h1>
-        <p className="mt-0.5 text-xs text-lo">
-          {items.length} {items.length === 1 ? "canción" : "canciones"}
-          {cabecera.estado && (
-            <span className="ml-1.5 text-gone">· {ESTADO_DESC[cabecera.estado]}</span>
-          )}
-        </p>
+        {esMazo && (
+          <div className="flex flex-wrap items-center gap-3 rounded-[14px] border border-line bg-[#f6ecdd] px-3.5 py-3 dark:bg-input">
+            <Archive size={18} className="shrink-0 text-lo" aria-hidden />
+            <p className="min-w-[160px] flex-1 text-sm font-semibold text-hi">Este servicio está en el historial</p>
+            {puedeEditar && (
+              <form action={handleAvanzarEstado}>
+                <input type="hidden" name="nuevoEstado" value="DEFINITIVA" />
+                <button type="submit" className={`${cls.btnSec} min-h-[40px] text-[13px]`}>Sacar del historial</button>
+              </form>
+            )}
+            <form action={handleClonar}>
+              <button type="submit" className={`${cls.btnLlama} min-h-[40px] text-[13px] shadow-none`}>
+                <Copy size={14} aria-hidden /> Repetir
+              </button>
+            </form>
+          </div>
+        )}
 
-        {/* Plataforma — solo ADMINISTRADOR puede reasignarla. Es la vía de
-            rescate para listas que quedaron mal etiquetadas (creadas antes del
-            fix de inferencia de plataforma) y por eso nunca encontraban al
-            director de turno correspondiente. */}
-        {rol === "ADMINISTRADOR" ? (
-          <form action={handleCambiarPlataforma} className="mt-2 flex items-center gap-1.5">
-            <span className="text-[10px] uppercase tracking-widest text-gone">Plataforma:</span>
+        {/* Plataforma — sólo ADMINISTRADOR puede reasignarla (vía de rescate
+            para listas mal etiquetadas). */}
+        {rol === "ADMINISTRADOR" && (
+          <form action={handleCambiarPlataforma} className="flex flex-wrap items-center gap-2 border-t border-[#f1e5d4] pt-3 dark:border-line">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-lo">Plataforma</span>
             <select
               name="id_plataforma"
               defaultValue={cabecera.id_plataforma}
               aria-label="Reasignar plataforma de la lista"
-              className="rounded-lg border border-mark bg-input px-2 py-1 text-[11px] text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
+              className="min-h-[36px] rounded-full border border-mark bg-input px-3 text-[13px] text-hi outline-none focus:border-fuego-500 [&>option]:bg-card"
             >
               {PLATAFORMAS_LIST.map((pla) => (
                 <option key={pla.id} value={pla.id}>{pla.nombre}</option>
               ))}
             </select>
-            <button
-              type="submit"
-              className="rounded-lg border border-mark px-2 py-1 text-[11px] text-mid transition-colors hover:border-line hover:text-hi"
-            >
-              Guardar
-            </button>
+            <button type="submit" className="min-h-[36px] rounded-full border border-mark px-3 text-[13px] font-semibold text-mid hover:text-hi">Guardar</button>
           </form>
-        ) : (
-          <p className="mt-2 text-[10px] uppercase tracking-widest text-gone">
-            {PLATAFORMA_LABELS[cabecera.id_plataforma] ?? "Plataforma desconocida"}
-          </p>
         )}
+      </section>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {items.length > 0 && (
-            <Link
-              href={`/escenario/mazo/${cabecera.id_playlist}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3.5 py-2 text-xs font-semibold text-violet-600 transition-colors hover:bg-violet-500/20"
-            >
-              <Tv2 size={12} />
-              Escenario
-            </Link>
-          )}
-          {esMazo && puedeEditar && (
-            <form action={handleClonar}>
-              <Button type="submit" variant="secondary" size="sm" icon={<Copy size={12} />}>
-                Clonar
-              </Button>
-            </form>
-          )}
-        </div>
-
-        {/* Stepper — solo EVENTO + puede editar */}
-        {cabecera.tipo === "EVENTO" && puedeEditar && (
-          <div className="mt-4 border-t border-line pt-4">
-            <p className="mb-2.5 text-[10px] font-medium uppercase tracking-widest text-gone">
-              Etapa del servicio
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {ESTADOS_EVENTO.map((estado, idx) => {
-                const esCurrent = idx === estadoActualIdx;
-                const esPasado  = idx < estadoActualIdx;
-                const label     = ESTADO_LABEL[estado] ?? estado;
-
-                if (esCurrent) {
-                  return (
-                    <span key={estado} className="rounded-full bg-green-200 px-3 py-1 text-[10px] font-semibold text-green-700 dark:bg-violet-600 dark:text-white" aria-current="step">
-                      {label}
-                    </span>
-                  );
-                }
-
-                // Pasar a ENSAYO/DEFINITIVA (publicar) requiere ser el director
-                // de turno activo. Si no, el botón queda deshabilitado.
-                const esPublicacion = estado === "ENSAYO" || estado === "DEFINITIVA";
-                const bloqueado     = esPublicacion && !puedePublicar;
-
-                if (bloqueado) {
-                  return (
-                    <button
-                      key={estado}
-                      type="button"
-                      disabled
-                      aria-label={`${label} — ${motivoBloqueo}`}
-                      title={motivoBloqueo}
-                      className="cursor-not-allowed rounded-full border border-dashed border-mark px-3 py-1 text-[10px] text-gone opacity-60"
-                    >
-                      {esPasado ? `← ${label}` : `${label} →`}
-                    </button>
-                  );
-                }
-
-                // Etapa anterior: retroceder (deshacer / corregir).
-                // Etapa posterior: avanzar.
-                return (
-                  <form key={estado} action={handleAvanzarEstado}>
-                    <input type="hidden" name="nuevoEstado" value={estado} />
-                    <StepperPill label={label} esPasado={esPasado} />
-                  </form>
-                );
-              })}
-            </div>
-            {/* Hint contextual según etapa actual */}
-            {cabecera.estado && ESTADO_NEXT_HINT[cabecera.estado] && (
-              <p className="mt-3 text-[11px] leading-relaxed text-gone">
-                {ESTADO_NEXT_HINT[cabecera.estado]}
-              </p>
-            )}
-            {/* Aviso si no se puede publicar (etapas Ensayo/Definitiva bloqueadas) */}
-            {!puedePublicar && (
-              <p className="mt-2 text-[11px] leading-relaxed text-amber-600 dark:text-amber-400/80">
-                {motivoBloqueo} Las etapas de publicación quedan deshabilitadas.
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── Solo lectura ──────────────────────────────────────────────── */}
       {!puedeEditar && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-400">
-          Solo lectura — no sos el creador de esta lista.
+        <div className="flex items-center gap-2.5 rounded-xl bg-input px-3.5 py-3 text-[13px] text-mid">
+          <Lock size={15} aria-hidden /> Sólo lectura: esta lista la arma otra persona.
         </div>
       )}
-
-      {/* Lista bloqueada por su etapa: podés editarla, pero no en este estado */}
       {puedeEditar && !esEditable && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-400">
-          Lista {cabecera.estado === "MAZO" ? "archivada" : "marcada como definitiva"} — para
-          modificar canciones, orden o tonos, volvé a
-          <span className="font-semibold"> En ensayo</span> o
-          <span className="font-semibold"> En preparación</span> con los botones de arriba.
+        <div className="flex items-center gap-2.5 rounded-xl bg-[#ffeccc] px-3.5 py-3 text-[13px] text-[#9a3c0a] dark:bg-[#251d11] dark:text-[#f8894f]">
+          <Lock size={15} aria-hidden />
+          Canciones bloqueadas. {esMazo ? "Sacalo del historial y volvé a Ensayo para cambiarlas." : "Volvé a Ensayo para cambiarlas."}
         </div>
       )}
 
-      {/* ── Lista de canciones ────────────────────────────────────────── */}
-      {items.length === 0 ? (
-        <div className="rounded-2xl border border-line bg-card px-5 py-14 text-center shadow-card dark:shadow-none">
-          <Music2 size={28} className="mx-auto mb-3 text-gone" />
-          <p className="text-sm text-lo">La lista está vacía.</p>
+      {/* ── Canciones ─────────────────────────────────────────────────── */}
+      <section className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-[13px] font-semibold text-mid">Canciones</h2>
+          {puedeEditarContenido && items.length > 1 && (
+            <span className="text-xs text-lo">Arrastrá para cambiar el orden</span>
+          )}
         </div>
-      ) : (
-        <SortableSongList
-          items={items}
-          puedeEditar={puedeEditarContenido}
-          onReordenar={handleReordenar}
-          onEliminar={handleEliminar}
-          onActualizarNota={handleActualizarNota}
-        />
-      )}
+        {items.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-[20px] border border-dashed border-mark bg-card/60 px-5 py-12 text-center">
+            <Music2 size={26} className="text-gone" aria-hidden />
+            <p className="text-sm text-lo">Todavía no hay canciones. {puedeEditarContenido ? "Agregalas desde el repertorio." : ""}</p>
+          </div>
+        ) : (
+          <SortableSongList
+            items={items}
+            puedeEditar={puedeEditarContenido}
+            onReordenar={handleReordenar}
+            onEliminar={handleEliminar}
+            onActualizarNota={handleActualizarNota}
+          />
+        )}
+      </section>
 
       </div>{/* fin columna izquierda */}
 
       {/* ── Agregar canción ───────────────────────────────────────────── */}
       {puedeEditarContenido && (
-        <div className="rounded-2xl border border-line bg-card px-5 py-5 shadow-card dark:shadow-none">
-          <div className="mb-4 flex items-center gap-2">
-            <PlusCircle size={14} className="text-lo" />
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-lo">
-              Agregar canción
-            </h2>
-          </div>
-
-          {catalogo.length === 0 ? (
-            <p className="text-xs text-lo">Sin canciones aprobadas en el catálogo.</p>
-          ) : (
-            <form key={`add-${items.length}`} action={handleAgregar} className="flex flex-col gap-3">
-              <CancionSelect name="id_cancion" canciones={catalogo} />
-
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <TonoSelect name="nota" />
-                </div>
-                <input
-                  name="orden"
-                  type="number"
-                  min={1}
-                  defaultValue={nextOrden}
-                  required
-                  aria-label="Posición en la lista"
-                  className="w-20 rounded-xl border border-mark bg-input px-3 py-3 text-center text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30"
-                />
-              </div>
-
-              <Button type="submit" shape="block" size="lg" fullWidth icon={<PlusCircle size={15} />}>
-                Agregar
-              </Button>
-            </form>
-          )}
-        </div>
+        catalogo.length === 0 ? (
+          <p className="rounded-[20px] border border-line bg-card p-5 text-[13px] text-lo">Sin canciones aprobadas en el repertorio.</p>
+        ) : (
+          <AgregarCancion
+            catalogo={catalogo}
+            enLista={items.map((i) => i.id_cancion)}
+            siguienteOrden={nextOrden}
+            onAgregar={handleAgregar}
+          />
+        )
       )}
 
       </div>{/* fin grid */}
-
     </div>
   );
 }

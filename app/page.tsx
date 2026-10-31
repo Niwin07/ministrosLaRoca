@@ -1,284 +1,311 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronRight, Music2, Plus, Tv2, Mic2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ListMusic, Plus } from "lucide-react";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { cronograma, playlists, lista_canciones, canciones } from "@/db/schema";
-import { eq, desc, and, or, sql } from "drizzle-orm";
-import { HeroCard } from "@/components/HeroCard";
+import { cronograma, playlists, lista_canciones, canciones, usuarios } from "@/db/schema";
 import { Avatar } from "@/components/Avatar";
 import { ActivarNotifBanner } from "@/components/ActivarNotifBanner";
+import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
+import { IconoMarca, type IconoMarcaNombre } from "@/components/zarza/IconoMarca";
+import { cls } from "@/components/zarza/ui";
 import { ESTADO_LABEL } from "@/lib/estados";
-import { getPlataformaActivaId } from "@/lib/get-plataforma-activa";
-import { getUsuarioFoto } from "@/lib/usuario-request-cache";
+import { getPlataformaEfectivaId } from "@/lib/get-plataforma-activa";
+import { getMisPlataformas } from "@/lib/usuario-request-cache";
+import { getTurnosSonido } from "@/lib/sonido";
 
-function formatFecha(d: Date | null): string {
-  if (!d) return "Sin fecha";
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "numeric", month: "short",
-  }).format(d);
-}
+// Colores de la etapa del servicio (funcionales del sistema Zarza).
+const ETAPA: Record<string, string> = {
+  PREPARACION: "border-[#eadbc6] bg-[#f3e7d6] text-[#6e4c40] dark:border-[#4a3530] dark:bg-[#211815] dark:text-[#d6c2a8]",
+  ENSAYO:      "border-[#f8c98a] bg-[#ffeccc] text-[#9a3c0a] dark:border-[#3c2e1b] dark:bg-[#251d11] dark:text-[#f8894f]",
+  DEFINITIVA:  "border-[#f5b9a0] bg-[#fde4d8] text-[#94402a] dark:border-[#5c382a] dark:bg-[#1e1513] dark:text-[#d9846d]",
+};
 
-export default async function DashboardPage() {
+const DIA = new Intl.DateTimeFormat("es-AR", { weekday: "long", timeZone: "America/Argentina/Buenos_Aires" });
+
+const EXCELENCIA: { href: string; titulo: string; sub: string; icono: IconoMarcaNombre }[] = [
+  { href: "/calentamiento", titulo: "Calentamiento de voces", sub: "Ejercicios antes de cantar",          icono: "voz" },
+  { href: "/protocolo",     titulo: "Protocolo de sonido",    sub: "Pasos para probar sonido",            icono: "consola" },
+  { href: "/mejorar",       titulo: "Quiero mejorar",         sub: "Videos para cada parte del equipo",   icono: "mejorar" },
+];
+
+export default async function InicioPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const { id_usuario, rol } = session.user;
+  const { id_usuario } = session.user;
   const primerNombre = (session.user.name ?? "").split(" ")[0];
 
-  const plaId = await getPlataformaActivaId(id_usuario, rol);
+  const [plaId, misPlataformas] = await Promise.all([
+    getPlataformaEfectivaId(id_usuario),
+    getMisPlataformas(id_usuario),
+  ]);
+  const plataformasSwitch = misPlataformas.map((p) => ({ id: p.id_plataforma, nombre: p.nombre }));
 
-  const [esMiTurno, listaActiva, misListas, miFoto] = await Promise.all([
-
+  // Quién dirige ahora y quién sigue en la rotación de esta plataforma.
+  const [director, proximo, publicada] = await Promise.all([
     db
-      .select({ id_turno: cronograma.id_turno })
+      .select({ id: usuarios.id_usuario, nombre: usuarios.nombre, foto: usuarios.foto })
       .from(cronograma)
-      .where(and(
-        eq(cronograma.id_usuario, id_usuario),
-        eq(cronograma.estado_turno, "ACTIVO"),
-        ...(plaId ? [eq(cronograma.id_plataforma, plaId)] : []),
-      ))
+      .innerJoin(usuarios, eq(usuarios.id_usuario, cronograma.id_usuario))
+      .where(and(eq(cronograma.id_plataforma, plaId), eq(cronograma.estado_turno, "ACTIVO")))
       .limit(1)
-      .then((r) => !!r[0]),
-
+      .then((r) => r[0] ?? null),
     db
-      .select({
-        id_playlist: playlists.id_playlist,
-        nombre:      playlists.nombre,
-        estado:      playlists.estado,
-        total:       sql<number>`COUNT(${lista_canciones.id_lista_cancion})`,
-      })
+      .select({ id: usuarios.id_usuario, nombre: usuarios.nombre, foto: usuarios.foto })
+      .from(cronograma)
+      .innerJoin(usuarios, eq(usuarios.id_usuario, cronograma.id_usuario))
+      .where(and(eq(cronograma.id_plataforma, plaId), eq(cronograma.estado_turno, "EN_ESPERA")))
+      .orderBy(asc(cronograma.orden))
+      .limit(1)
+      .then((r) => r[0] ?? null),
+    // Servicio publicado para el equipo (en ensayo o definitivo).
+    db
+      .select({ id: playlists.id_playlist, nombre: playlists.nombre, estado: playlists.estado, fecha: playlists.fecha_programada })
       .from(playlists)
-      .leftJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
-      .where(
-        and(
-          eq(playlists.tipo, "EVENTO"),
-          or(eq(playlists.estado, "ENSAYO"), eq(playlists.estado, "DEFINITIVA")),
-          ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
-        )
-      )
-      .groupBy(playlists.id_playlist, playlists.nombre, playlists.estado)
+      .where(and(
+        eq(playlists.tipo, "EVENTO"),
+        eq(playlists.id_plataforma, plaId),
+        inArray(playlists.estado, ["ENSAYO", "DEFINITIVA"]),
+      ))
       .orderBy(desc(playlists.actualizadoEn))
       .limit(1)
       .then((r) => r[0] ?? null),
-
-    db
-      .select({
-        id_playlist:      playlists.id_playlist,
-        nombre:           playlists.nombre,
-        tipo:             playlists.tipo,
-        estado:           playlists.estado,
-        fecha_programada: playlists.fecha_programada,
-        total:            sql<number>`COUNT(${lista_canciones.id_lista_cancion})`,
-      })
-      .from(playlists)
-      .leftJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
-      .where(and(
-        eq(playlists.id_usuario, id_usuario),
-        ...(plaId ? [eq(playlists.id_plataforma, plaId)] : []),
-      ))
-      .groupBy(playlists.id_playlist, playlists.nombre, playlists.tipo, playlists.estado, playlists.fecha_programada)
-      .orderBy(desc(playlists.id_playlist))
-      .limit(4),
-
-    getUsuarioFoto(id_usuario),
   ]);
 
-  const cancionesActivas = listaActiva
+  const dirijo = director?.id === id_usuario;
+
+  // Si todavía no hay nada publicado y me toca dirigir, muestro mi servicio en preparación.
+  const servicio = publicada ?? (dirijo
     ? await db
-        .select({
-          id_lista_cancion: lista_canciones.id_lista_cancion,
-          orden:            lista_canciones.orden,
-          nota:             lista_canciones.nota,
-          nombre:           canciones.nombre,
-          artista:          canciones.artista,
-        })
-        .from(lista_canciones)
-        .innerJoin(canciones, eq(canciones.id_cancion, lista_canciones.id_cancion))
-        .where(eq(lista_canciones.id_playlist, listaActiva.id_playlist))
-        .orderBy(lista_canciones.orden)
-    : [];
+        .select({ id: playlists.id_playlist, nombre: playlists.nombre, estado: playlists.estado, fecha: playlists.fecha_programada })
+        .from(playlists)
+        .where(and(
+          eq(playlists.tipo, "EVENTO"),
+          eq(playlists.id_plataforma, plaId),
+          eq(playlists.id_usuario, id_usuario),
+          eq(playlists.estado, "PREPARACION"),
+        ))
+        .orderBy(desc(playlists.actualizadoEn))
+        .limit(1)
+        .then((r) => r[0] ?? null)
+    : null);
+
+  const [cancionesServicio, sonido] = await Promise.all([
+    servicio
+      ? db
+          .select({ id: lista_canciones.id_lista_cancion, orden: lista_canciones.orden, nota: lista_canciones.nota, nombre: canciones.nombre, artista: canciones.artista })
+          .from(lista_canciones)
+          .innerJoin(canciones, eq(canciones.id_cancion, lista_canciones.id_cancion))
+          .where(eq(lista_canciones.id_playlist, servicio.id))
+          .orderBy(lista_canciones.orden)
+      : Promise.resolve([]),
+    getTurnosSonido(plaId, 1),
+  ]);
+
+  const conCanciones = !!servicio && cancionesServicio.length > 0;
+  const etapa = servicio?.estado ?? "PREPARACION";
+  const dia = servicio?.fecha ? DIA.format(servicio.fecha) : null;
+  const sonidoSemana = sonido.semanas[0];
+
+  const listaCanciones = (
+    <ol className="divide-y divide-[#f1e5d4] dark:divide-line">
+      {cancionesServicio.map((c) => (
+        <li key={c.id} className="flex items-center gap-3.5 px-[18px] py-3">
+          <span className="w-[22px] shrink-0 text-right text-xs font-semibold tabular-nums text-[#b9998a]">
+            {String(c.orden).padStart(2, "0")}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[15px] font-medium text-hi">{c.nombre}</p>
+            <p className="truncate text-xs text-lo">{c.artista}</p>
+          </div>
+          {c.nota && <span className={cls.chipTono}>{c.nota}</span>}
+        </li>
+      ))}
+    </ol>
+  );
 
   return (
-    <div className="px-4 pt-7 pb-4 flex flex-col gap-7 lg:grid lg:grid-cols-[3fr_2fr] lg:items-start lg:gap-6">
+    <div className="flex flex-col gap-6 px-4 pb-6 pt-7 md:px-0 md:pt-2">
 
-      {/* ── COLUMNA IZQUIERDA (mobile: todo; desktop: greeting+hero+semana) ── */}
-      <div className="flex flex-col gap-7 lg:gap-6">
-
-      {/* ── GREETING ──────────────────────────────────────────────── */}
-      <div className="pb-1 animate-fade-in-down">
+      {/* ── Saludo ───────────────────────────────────────────────── */}
+      <div>
         <p className="text-[15px] font-medium italic leading-snug tracking-[-0.005em] text-[#4a1408] dark:text-[#ecbf98]">
           Lo que Dios enciende, no se gasta.
         </p>
-        <p className="mt-1 text-xs tracking-[0.01em] text-[#5c2a18] opacity-85 dark:text-[#ddcdb8]">
-          Éxodo 3:2-5 · RVR1960
-        </p>
+        <p className="mt-1 text-xs tracking-[0.01em] text-[#5c2a18] opacity-85 dark:text-[#ddcdb8]">Éxodo 3:2-5 · RVR1960</p>
         <h1 className="mt-2.5 font-display text-[30px] font-bold leading-[1.08] tracking-[-0.02em] text-hi">
           Hola, {primerNombre}
         </h1>
       </div>
 
-      {/* ── ACTIVAR NOTIF (solo visible si no están activas) ──────── */}
+      {plataformasSwitch.length >= 2 && (
+        <PlataformaSwitcher plataformas={plataformasSwitch} activaId={plaId} />
+      )}
+
       <ActivarNotifBanner />
 
-      {/* ── HERO ──────────────────────────────────────────────────── */}
-      <HeroCard listaActiva={listaActiva} primerNombre={primerNombre} />
+      {/* ── Esta semana ──────────────────────────────────────────── */}
+      <section
+        aria-labelledby="servicio-semana"
+        className={`grid min-w-0 gap-x-9 gap-y-5 rounded-card border border-line bg-card p-4 shadow-card sm:p-6 dark:shadow-none ${conCanciones ? "lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]" : ""}`}
+        style={{
+          backgroundImage:
+            "radial-gradient(120% 140% at 0% 0%, rgba(232,160,96,0.16) 0%, rgba(232,160,96,0) 45%), radial-gradient(90% 120% at 100% 100%, rgba(122,42,38,0.08) 0%, rgba(122,42,38,0) 50%)",
+        }}
+      >
+        <div className="flex min-w-0 flex-col gap-[18px]">
+          <div className="flex items-center justify-between gap-3">
+            <p id="servicio-semana" className={cls.eyebrow}>
+              Esta semana{dia ? ` · ${dia}` : ""}
+            </p>
+            {servicio && (
+              <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.05em] ${ETAPA[etapa] ?? ETAPA.PREPARACION}`}>
+                {ESTADO_LABEL[etapa] ?? etapa}
+              </span>
+            )}
+          </div>
 
-      {/* ── ESTA SEMANA ───────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:120ms]">
-        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-mid">
-          Esta semana
-        </h2>
-
-        {/* Turno propio */}
-        <div className={`flex items-center gap-3 rounded-2xl border px-4 py-4 shadow-card dark:shadow-none ${
-          esMiTurno
-            ? "border-violet-500/30 bg-violet-500/[0.08]"
-            : "border-line bg-card"
-        }`}>
-          {esMiTurno ? (
-            <Avatar foto={miFoto} nombre={session.user.name ?? ""} size={32} />
+          {conCanciones ? (
+            <h2 className="-mt-1.5 font-display text-[30px] font-bold leading-[1.08] tracking-[-0.02em] text-hi">{servicio!.nombre}</h2>
           ) : (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-input">
-              <Mic2 size={15} className="text-lo" />
-            </div>
+            <h2 className="-mt-1.5 font-display text-2xl font-bold leading-[1.08] tracking-[-0.02em] text-hi">
+              {servicio ? `${servicio.nombre} todavía no tiene canciones` : "Este servicio todavía no tiene canciones"}
+            </h2>
           )}
-          <div className="min-w-0 flex-1">
-            <p className={`text-sm font-semibold ${esMiTurno ? "text-violet-600" : "text-mid"}`}>
-              {esMiTurno ? "Tu turno está activo" : "Esta semana descansás"}
-            </p>
-            <p className="text-[11px] text-lo">
-              {esMiTurno
-                ? "Sos el ministro en servicio esta semana."
-                : "No sos el ministro principal esta semana."}
-            </p>
-          </div>
-        </div>
 
-        {/* Canciones del ensayo activo */}
-        {cancionesActivas.length > 0 && listaActiva && (
-          <div className="overflow-hidden rounded-2xl border border-line bg-card shadow-card dark:shadow-none">
-            <div className="flex items-center justify-between border-b border-line px-4 py-4">
-              <div>
-                <p className="text-sm font-semibold text-hi">{listaActiva.nombre}</p>
-                <p className="text-[11px] text-lo">
-                  {ESTADO_LABEL[listaActiva.estado ?? ""] ?? listaActiva.estado}
-                  {" · "}{cancionesActivas.length} canciones
-                </p>
-              </div>
-              <Link
-                href={`/escenario/mazo/${listaActiva.id_playlist}`}
-                className="flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-[11px] font-semibold text-violet-600 transition-colors hover:bg-violet-500/20"
-              >
-                <Tv2 size={11} />
-                Escenario
-              </Link>
+          <div className="flex items-center gap-3">
+            {director ? (
+              <Avatar foto={director.foto} nombre={director.nombre} size={40} />
+            ) : (
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-input text-lo">?</span>
+            )}
+            <div className="min-w-0">
+              <p className="text-xs text-lo">Dirige</p>
+              <p className="mt-px flex flex-wrap items-center gap-2 text-[15px] font-semibold text-hi">
+                {director?.nombre ?? "Sin asignar"}
+                {dirijo && (
+                  <span className="rounded-full bg-fuego-600/[0.12] px-2 py-px text-[11px] font-semibold text-fuego-600 dark:text-[#df8067]">Sos vos</span>
+                )}
+              </p>
             </div>
-            <ul className="divide-y divide-line">
-              {cancionesActivas.map((c, i) => (
-                <li key={c.id_lista_cancion} className="flex items-center gap-3 px-4 py-3">
-                  <span className="w-5 shrink-0 text-right text-[11px] font-medium tabular-nums text-gone">
-                    {String(c.orden).padStart(2, "0")}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-hi">{c.nombre}</p>
-                    <p className="text-[11px] text-lo">{c.artista}</p>
-                  </div>
-                  {c.nota && (
-                    <span className="shrink-0 rounded-md border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[11px] font-bold tracking-wide text-violet-600 dark:text-violet-400">
-                      {c.nota}
-                    </span>
-                  )}
-                  <Link
-                    href={`/escenario/mazo/${listaActiva.id_playlist}?presentar=${i}`}
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-violet-300 text-violet-600 transition-colors hover:bg-violet-50 active:scale-[0.97] dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950"
-                    aria-label={`Presentar "${c.nombre}"`}
-                    title={`Presentar "${c.nombre}"`}
-                  >
-                    <svg className="h-2.5 w-2.5 fill-current" viewBox="0 0 16 16">
-                      <path d="M3 2.5l11 5.5-11 5.5V2.5z" />
-                    </svg>
+          </div>
+
+          {/* Canciones en línea (celular / tablet) */}
+          {conCanciones && (
+            <details className="group overflow-hidden rounded-2xl border border-line lg:hidden">
+              <summary className="flex min-h-[52px] cursor-pointer items-center justify-between gap-3 bg-[#fbf3e8] px-4 py-3 dark:bg-input">
+                <span className="flex items-center gap-2.5 text-sm font-semibold text-hi">
+                  <IconoMarca nombre="canciones" size={18} />
+                  {cancionesServicio.length} {cancionesServicio.length === 1 ? "canción" : "canciones"}
+                </span>
+                <span className="flex items-center gap-1.5 text-[13px] font-medium text-fuego-600 dark:text-[#df8067]">
+                  <span className="group-open:hidden">Ver canciones</span>
+                  <span className="hidden group-open:inline">Ocultar</span>
+                  <ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden />
+                </span>
+              </summary>
+              <div className="border-t border-line">
+                {listaCanciones}
+                <div className="px-4 py-3">
+                  <Link href={`/playlists/${servicio!.id}`} className="text-xs font-medium text-fuego-600 hover:underline dark:text-[#ef7a4c]">
+                    Ver el servicio completo ›
                   </Link>
-                </li>
-              ))}
-            </ul>
-            <div className="border-t border-line px-4 py-3">
-              <Link
-                href={`/playlists/${listaActiva.id_playlist}`}
-                className="flex items-center gap-1 text-[11px] text-violet-600/70 transition-colors hover:text-violet-600"
-              >
-                Ver letras y acordes <ChevronRight size={11} />
-              </Link>
+                </div>
+              </div>
+            </details>
+          )}
+
+          {/* Sonido de esta semana */}
+          <div className="flex items-start gap-3 rounded-[14px] bg-[#fbede6] px-3.5 py-3 dark:bg-[#1e1513]">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center">
+              <IconoMarca nombre="auriculares" size={24} />
+            </span>
+            <div className="flex flex-col gap-[3px] text-[13px] leading-snug text-[#5e280d] dark:text-[#e5cec7]">
+              <p><strong className="font-bold">Sonidista:</strong> {sonidoSemana?.principal?.nombre ?? "Sin asignar"}</p>
+              <p><strong className="font-bold">Auxiliar:</strong> {sonidoSemana?.auxiliar?.nombre ?? "Sin asignar"}</p>
             </div>
           </div>
-        )}
 
-        {cancionesActivas.length === 0 && !listaActiva && (
-          <p className="rounded-2xl border border-line bg-card px-4 py-5 text-sm text-lo">
-            No hay un servicio en ensayo esta semana.
-          </p>
-        )}
-      </section>
-
-      </div>{/* fin columna izquierda */}
-
-      {/* ── COLUMNA DERECHA (desktop: mis listas) ─────────────────── */}
-      <div className="flex flex-col gap-6">
-
-      {/* ── MIS LISTAS ────────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3 animate-fade-in-up [animation-delay:240ms]">
-
-        <div className="flex items-center justify-between">
-          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-mid">
-            Mis servicios
-          </h2>
-          <Link
-            href="/playlists"
-            className="flex items-center gap-0.5 text-[11px] text-violet-600/70 transition-colors hover:text-violet-600"
-          >
-            Ver todas <ChevronRight size={11} />
-          </Link>
+          {conCanciones ? (
+            <Link href={`/playlists/${servicio!.id}`} className={`${cls.btnLlama} min-h-[52px] rounded-2xl text-[15px]`}>
+              <ListMusic size={18} aria-hidden /> Abrir lista
+            </Link>
+          ) : dirijo ? (
+            <Link href={servicio ? `/playlists/${servicio.id}` : "/playlists"} className={`${cls.btnLlama} min-h-[52px] rounded-2xl text-[15px]`}>
+              <Plus size={18} aria-hidden /> Armar el servicio
+            </Link>
+          ) : (
+            <p className="text-sm text-mid">
+              Cuando {director?.nombre ?? "quien dirija"} publique las canciones, las vas a ver acá.
+            </p>
+          )}
         </div>
 
-        {misListas.length === 0 ? (
-          <Link href="/playlists">
-            <div className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-mark py-8 transition-all duration-200 hover:border-line hover:bg-card">
-              <Plus size={15} className="text-lo" />
-              <span className="text-sm text-lo">Crear el primer servicio</span>
-            </div>
-          </Link>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {misListas.map((lista) => (
-              <Link key={lista.id_playlist} href={`/playlists/${lista.id_playlist}`}>
-                <div className="flex items-center gap-4 rounded-2xl border border-line bg-card px-4 py-4 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-mark hover:bg-input active:scale-[0.98] dark:shadow-none">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-input">
-                    <Music2 size={15} className="text-mid" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-hi">{lista.nombre}</p>
-                    <p className="mt-0.5 text-[11px] text-lo">
-                      {lista.tipo === "EVENTO" && lista.fecha_programada
-                        ? formatFecha(lista.fecha_programada)
-                        : lista.tipo}{" "}
-                      · {Number(lista.total)} temas
-                    </p>
-                  </div>
-                  {lista.estado && (
-                    <span className="shrink-0 text-[10px] font-medium text-gone">
-                      {ESTADO_LABEL[lista.estado] ?? lista.estado}
-                    </span>
-                  )}
-                  <ChevronRight size={13} className="shrink-0 text-gone" />
-                </div>
+        {/* Canciones al costado (desktop) */}
+        {conCanciones && (
+          <div className="hidden min-w-0 overflow-hidden rounded-[18px] border border-line bg-[#fbf3e8] lg:block dark:bg-input">
+            <div className="flex items-center justify-between gap-3 border-b border-[#ecdcc6] px-[18px] py-3.5 dark:border-line">
+              <span className="flex items-center gap-2.5 text-sm font-bold text-hi">
+                <IconoMarca nombre="canciones" size={18} />
+                {cancionesServicio.length} {cancionesServicio.length === 1 ? "canción" : "canciones"}
+              </span>
+              <Link href={`/playlists/${servicio!.id}`} className="text-[13px] font-medium text-fuego-600 hover:underline dark:text-[#ef7a4c]">
+                Ver el servicio completo ›
               </Link>
-            ))}
+            </div>
+            {listaCanciones}
           </div>
         )}
-
       </section>
 
-      </div>{/* fin columna derecha */}
+      {/* ── Preparándonos en oración ─────────────────────────────── */}
+      {proximo && (
+        <section aria-labelledby="en-oracion" className="flex flex-col gap-3">
+          <h2 id="en-oracion" className={cls.seccion}>Preparándonos en oración</h2>
+          <Link
+            href="/turnos"
+            aria-label={`La semana que viene dirige ${proximo.nombre}. Ver turnos`}
+            className="flex items-center gap-3.5 rounded-[22px] px-5 py-[18px] text-[#fff7ec] shadow-[0_14px_30px_-12px_rgba(94,31,24,0.55)] transition-[filter] hover:brightness-110"
+            style={{ background: "radial-gradient(80% 140% at 100% 0%, rgba(217,134,74,0.6) 0%, rgba(217,134,74,0) 60%), linear-gradient(120deg, #5a1a12 0%, #7a2a26 45%, #a8492c 100%)" }}
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-[rgba(255,247,236,0.6)] bg-[rgba(255,247,236,0.12)] text-[15px] font-bold">
+              {proximo.nombre.charAt(0).toUpperCase()}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-[#f8c9a8]">La semana que viene dirige</span>
+              <span className="mt-0.5 block truncate text-base font-bold">{proximo.nombre}</span>
+            </span>
+            <span className="flex items-center gap-0.5 text-[13px] font-semibold">
+              Turnos <ChevronRight size={16} aria-hidden />
+            </span>
+          </Link>
+        </section>
+      )}
+
+      {/* ── Con excelencia ───────────────────────────────────────── */}
+      <section aria-labelledby="para-equipo" className="flex flex-col gap-3">
+        <h2 id="para-equipo" className={cls.seccion}>Con excelencia</h2>
+        <div className="grid gap-2.5 sm:grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
+          {EXCELENCIA.map((e) => (
+            <Link
+              key={e.href}
+              href={e.href}
+              className="flex items-center gap-3.5 rounded-2xl border border-line bg-card py-3.5 pl-4 pr-3.5 text-hi shadow-[0_1px_2px_rgba(43,22,17,0.06),0_8px_24px_-10px_rgba(120,45,15,0.18)] transition-transform hover:-translate-y-0.5 dark:shadow-none"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+                <IconoMarca nombre={e.icono} size={33} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-semibold">{e.titulo}</span>
+                <span className="mt-0.5 block text-xs text-lo">{e.sub}</span>
+              </span>
+              <ChevronRight size={18} className="shrink-0 text-[#b9998a]" aria-hidden />
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
