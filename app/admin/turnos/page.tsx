@@ -14,7 +14,7 @@ import { cls, AvisoMigracion } from "@/components/zarza/ui";
 import { IconoMarca } from "@/components/zarza/IconoMarca";
 import { GestionSonido, SemanasPlanificadas } from "@/components/zarza/turnos/GestionSonido";
 import { getSemanasPlanificadas, getSonidistas, getTurnosSonido } from "@/lib/sonido";
-import { PLATAFORMAS_LIST } from "@/lib/plataforma";
+import { PLATAFORMAS_LIST, nombrePlataforma } from "@/lib/plataforma";
 import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
 import { getPlataformaEfectivaId } from "@/lib/get-plataforma-activa";
 
@@ -95,7 +95,7 @@ export default async function AdminTurnosPage(props: {
     getTurnosSonido(plaSel.id, semanasPlan + 1),
     getSonidistas(plaSel.id),
   ]);
-  const plaNombre = plaSel.nombre.replace(/^Plataforma\s+/i, "");
+  const plaNombre = nombrePlataforma(plaSel.nombre);
 
   return (
     <main className="flex flex-col gap-6 px-4 pb-8 pt-6 md:px-0 md:pt-2">
@@ -109,7 +109,7 @@ export default async function AdminTurnosPage(props: {
       </div>
 
       <PlataformaSwitcher
-        plataformas={[...PLATAFORMAS_LIST].reverse().map((p) => ({ id: p.id, nombre: p.nombre.replace(/^Plataforma\s+/i, "") }))}
+        plataformas={PLATAFORMAS_LIST.map((p) => ({ id: p.id, nombre: p.nombre }))}
         activaId={plaSel.id}
       />
 

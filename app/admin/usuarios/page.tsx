@@ -1,28 +1,21 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Pencil, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, UserPlus } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { usuarios } from "@/db/schema";
-import { asc } from "drizzle-orm";
+import { usuarios, usuario_plataforma, plataformas } from "@/db/schema";
+import { asc, eq } from "drizzle-orm";
 import { crearUsuario } from "@/app/actions/usuarios";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
-import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { ErrorBanner } from "@/components/ErrorBanner";
-import { Avatar } from "@/components/Avatar";
-import { ROL_LABEL } from "@/lib/roles";
+import { nombrePlataforma } from "@/lib/plataforma";
+import { ListaUsuarios } from "@/components/zarza/usuarios/ListaUsuarios";
 
 const FEEDBACK: Record<string, string> = {
   creado:       "Usuario creado exitosamente.",
   actualizado:  "Usuario actualizado exitosamente.",
-};
-
-const ROL_TONE: Record<string, BadgeTone> = {
-  ADMINISTRADOR: "violet",
-  LIDER:         "info",
-  MINISTRO:      "neutral",
 };
 
 export default async function AdminUsuariosPage(props: {
@@ -46,6 +39,15 @@ export default async function AdminUsuariosPage(props: {
     })
     .from(usuarios)
     .orderBy(asc(usuarios.nombre));
+
+  const membresias = await db
+    .select({ id_usuario: usuario_plataforma.id_usuario, nombre: plataformas.nombre })
+    .from(usuario_plataforma)
+    .innerJoin(plataformas, eq(plataformas.id_plataforma, usuario_plataforma.id_plataforma));
+  const listaConPlataformas = listaUsuarios.map((u) => ({
+    ...u,
+    plataformas: membresias.filter((m) => m.id_usuario === u.id_usuario).map((m) => nombrePlataforma(m.nombre)),
+  }));
 
   return (
     <main className="flex flex-col gap-6 px-4 pb-8 pt-7 md:px-0 md:pt-2">
@@ -81,7 +83,7 @@ export default async function AdminUsuariosPage(props: {
       {/* ── Formulario: crear usuario ────────────────────────────────── */}
       <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
         <div className="mb-4 flex items-center gap-2">
-          <UserPlus size={13} className="shrink-0 text-violet-500" />
+          <UserPlus size={14} className="shrink-0 text-[#c7613a]" />
           <p className="text-xs font-semibold uppercase tracking-[0.1em] text-hi">
             Nuevo usuario
           </p>
@@ -108,64 +110,24 @@ export default async function AdminUsuariosPage(props: {
               id="rol"
               name="rol"
               required
-              className="rounded-xl border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 [&>option]:bg-card"
+              className="min-h-[46px] rounded-full border border-mark bg-input px-4 py-3 text-sm text-hi outline-none transition-colors focus:border-fuego-500 focus:ring-2 focus:ring-fuego-500/30 [&>option]:bg-card"
             >
               <option value="">— Seleccionar rol —</option>
               <option value="ADMINISTRADOR">Administrador</option>
               <option value="LIDER">Líder</option>
               <option value="MINISTRO">Ministro</option>
             </select>
+            <span className="text-[11px] text-lo">El rol define qué puede hacer en la app.</span>
           </div>
 
           <Button type="submit" className="self-start" icon={<UserPlus size={14} />}>
-            Crear Usuario
+            Crear usuario
           </Button>
 
         </form>
       </div>
 
-      {/* ── Lista de usuarios ─────────────────────────────────────────── */}
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Users size={13} className="shrink-0 text-violet-500" />
-          <h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-hi">
-            Usuarios registrados ({listaUsuarios.length})
-          </h2>
-        </div>
-
-        {listaUsuarios.length === 0 ? (
-          <p className="rounded-2xl border border-line bg-card px-5 py-4 text-sm text-lo">
-            No hay usuarios registrados.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 xl:grid-cols-3">
-            {listaUsuarios.map((u) => (
-              <div
-                key={u.id_usuario}
-                className="flex items-center gap-4 rounded-2xl border border-line bg-card px-4 py-4 shadow-card dark:shadow-none"
-              >
-                <Avatar foto={u.foto} nombre={u.nombre} size={36} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-hi">
-                    {u.nombre}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-lo">
-                    {u.email}
-                  </p>
-                </div>
-                <Badge tone={ROL_TONE[u.rol] ?? "neutral"}>{ROL_LABEL[u.rol] ?? u.rol}</Badge>
-                <Link
-                  href={`/admin/usuarios/${u.id_usuario}`}
-                  aria-label={`Editar ${u.nombre}`}
-                  className="shrink-0 rounded-full p-2 text-lo transition-colors hover:bg-input hover:text-hi"
-                >
-                  <Pencil size={15} />
-                </Link>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      <ListaUsuarios usuarios={listaConPlataformas} />
 
       </div>
 

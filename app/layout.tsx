@@ -71,7 +71,11 @@ export default async function RootLayout({
 
     // Resolver plataforma activa: cookie → principal → primera → general
     const cookieId = resolverPlataforma(jar.get("plataforma_activa")?.value);
-    cookieValida = !!(cookieId && misPlataformas.some((p) => p.id === cookieId));
+    // Administrador y líder pueden pararse en cualquier plataforma (pestañas de
+    // Inicio y Gestión de turnos) aunque no figuren como miembros; si no, el
+    // PlataformaCookieSetter devolvía la pestaña a su plataforma principal.
+    const gestiona = session.user.rol === "ADMINISTRADOR" || session.user.rol === "LIDER";
+    cookieValida = !!(cookieId && (gestiona || misPlataformas.some((p) => p.id === cookieId)));
 
     if (cookieValida) {
       plataformaActivaId = cookieId!;

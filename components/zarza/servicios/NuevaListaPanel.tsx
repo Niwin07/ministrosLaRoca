@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowRight, Plus, X } from "lucide-react";
 import { cls } from "@/components/zarza/ui";
+import { nombrePlataforma, ordenarPlataformas } from "@/lib/plataforma";
 
 type Destino = "servicio" | "plantilla";
 type Camino = "cero" | "plantilla" | "anterior";
@@ -44,10 +45,10 @@ export function NuevaListaPanel(p: Props) {
 
   const selectorPlataforma = p.plataformas.length >= 2 && (
     <div role="radiogroup" aria-label="Plataforma" className="flex flex-wrap gap-2">
-      {p.plataformas.map((pla) => (
+      {ordenarPlataformas(p.plataformas).map((pla) => (
         <label key={pla.id} className="flex min-h-[40px] cursor-pointer items-center gap-2 rounded-full border border-line bg-[#fcf5eb] px-4 text-[13px] font-semibold text-mid has-[:checked]:border-fuego-600 has-[:checked]:text-fuego-600 dark:bg-input">
           <input type="radio" name="id_plataforma" value={pla.id} defaultChecked={pla.id === p.plataformaDefault} className="accent-[#b4472a]" />
-          {pla.nombre}
+          {nombrePlataforma(pla.nombre)}
         </label>
       ))}
     </div>

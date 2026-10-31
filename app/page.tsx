@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronDown, ChevronRight, ListMusic, Plus } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, ListMusic, Plus } from "lucide-react";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -14,6 +14,7 @@ import { ESTADO_LABEL } from "@/lib/estados";
 import { getPlataformaEfectivaId } from "@/lib/get-plataforma-activa";
 import { getMisPlataformas } from "@/lib/usuario-request-cache";
 import { getTurnosSonido } from "@/lib/sonido";
+import { PLATAFORMAS_LIST } from "@/lib/plataforma";
 
 // Colores de la etapa del servicio (funcionales del sistema Zarza).
 const ETAPA: Record<string, string> = {
@@ -41,7 +42,10 @@ export default async function InicioPage() {
     getPlataformaEfectivaId(id_usuario),
     getMisPlataformas(id_usuario),
   ]);
-  const plataformasSwitch = misPlataformas.map((p) => ({ id: p.id_plataforma, nombre: p.nombre }));
+  // Pestañas General / Remanentes: administración y líderes ven todas; el resto, las suyas.
+  const plataformasSwitch = session.user.rol === "ADMINISTRADOR" || session.user.rol === "LIDER"
+    ? PLATAFORMAS_LIST.map((p) => ({ id: p.id, nombre: p.nombre }))
+    : misPlataformas.map((p) => ({ id: p.id_plataforma, nombre: p.nombre }));
 
   // Quién dirige ahora y quién sigue en la rotación de esta plataforma.
   const [director, proximo, publicada] = await Promise.all([
@@ -75,6 +79,22 @@ export default async function InicioPage() {
   ]);
 
   const dirijo = director?.id === id_usuario;
+
+  // "Lista armada": el próximo director ya tiene un servicio con canciones.
+  const proximoTieneLista = proximo
+    ? await db
+        .select({ id: playlists.id_playlist })
+        .from(playlists)
+        .innerJoin(lista_canciones, eq(lista_canciones.id_playlist, playlists.id_playlist))
+        .where(and(
+          eq(playlists.tipo, "EVENTO"),
+          eq(playlists.id_plataforma, plaId),
+          eq(playlists.id_usuario, proximo.id),
+          inArray(playlists.estado, ["PREPARACION", "ENSAYO", "DEFINITIVA"]),
+        ))
+        .limit(1)
+        .then((r) => r.length > 0)
+    : false;
 
   // Si todavía no hay nada publicado y me toca dirigir, muestro mi servicio en preparación.
   const servicio = publicada ?? (dirijo
@@ -276,6 +296,11 @@ export default async function InicioPage() {
             <span className="min-w-0 flex-1">
               <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-[#f8c9a8]">La semana que viene dirige</span>
               <span className="mt-0.5 block truncate text-base font-bold">{proximo.nombre}</span>
+              {proximoTieneLista && (
+                <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-[rgba(255,247,236,0.18)] px-2 py-px text-[11px] font-semibold">
+                  <Check size={11} strokeWidth={3} aria-hidden /> Lista armada
+                </span>
+              )}
             </span>
             <span className="flex items-center gap-0.5 text-[13px] font-semibold">
               Turnos <ChevronRight size={16} aria-hidden />
