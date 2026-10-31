@@ -16,6 +16,7 @@ import { GestionSonido, SemanasPlanificadas } from "@/components/zarza/turnos/Ge
 import { getSemanasPlanificadas, getSonidistas, getTurnosSonido } from "@/lib/sonido";
 import { PLATAFORMAS_LIST, nombrePlataforma } from "@/lib/plataforma";
 import { PlataformaSwitcher } from "@/components/PlataformaSwitcher";
+import { BotonConfirmado } from "@/components/zarza/Confirmacion";
 import { getPlataformaEfectivaId } from "@/lib/get-plataforma-activa";
 
 const FEEDBACK: Record<string, string> = {
@@ -119,7 +120,8 @@ export default async function AdminTurnosPage(props: {
       )}
       {sonido.faltaMigracion && <AvisoMigracion visible />}
 
-      <div className="grid items-start gap-6 xl:grid-cols-2">
+      {/* Se vuelve a montar (y entra animado) al cambiar de plataforma. */}
+      <div key={plaSel.id} className="vista-plataforma grid items-start gap-6 xl:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-5">
           {/* ── Agregar a los turnos ───────────────────────────────────── */}
           <section className="flex flex-col gap-3 rounded-[22px] border border-line bg-card p-5 shadow-card dark:shadow-none">
@@ -145,17 +147,29 @@ export default async function AdminTurnosPage(props: {
           <section aria-labelledby="g-activo" className="flex flex-col gap-3">
             <h2 id="g-activo" className={cls.seccion}>Dirección · en servicio ahora</h2>
             {activoSel ? (
-              <div className="flex items-center gap-4 rounded-2xl border border-fuego-600/30 bg-[#fbe5d6] px-5 py-4 dark:bg-[#1f1614]">
-                <Avatar foto={activoSel.foto} nombre={activoSel.nombre_usuario} size={44} />
-                <div className="min-w-0 flex-1">
+              <div key={activoSel.id_turno} className="animate-desplegar relative flex items-center gap-4 overflow-hidden rounded-2xl border border-fuego-600/30 bg-[#fbe5d6] px-5 py-4 dark:bg-[#1f1614]">
+                {/* Destello cuando cambia quién dirige */}
+                <span aria-hidden className="animate-destello pointer-events-none absolute inset-0 bg-fuego-500/25" />
+                <span className="animate-pop relative flex"><Avatar foto={activoSel.foto} nombre={activoSel.nombre_usuario} size={44} /></span>
+                <div className="relative min-w-0 flex-1">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-fuego-600 dark:text-[#df8067]">{plaNombre}</p>
                   <p className="truncate text-[17px] font-bold text-hi">{activoSel.nombre_usuario}</p>
                 </div>
-                <form action={desactivarActivo}>
+                <form action={desactivarActivo} className="relative">
                   <input type="hidden" name="id_turno" value={activoSel.id_turno} />
-                  <button type="submit" title="Sacar de servicio y devolver a la cola" className={`${cls.btnSec} min-h-[40px] text-[13px]`}>
+                  <BotonConfirmado
+                    confirmacion={{
+                      titulo: "¿Sacar de servicio?",
+                      mensaje: `${activoSel.nombre_usuario} deja de dirigir ahora y vuelve a la cola de ${plaNombre}.`,
+                      confirmar: "Desactivar",
+                      tono: "llama",
+                      icono: "microfono",
+                    }}
+                    title="Sacar de servicio y devolver a la cola"
+                    className={`${cls.btnSec} relative min-h-[40px] text-[13px]`}
+                  >
                     <X size={14} aria-hidden /> Desactivar
-                  </button>
+                  </BotonConfirmado>
                 </form>
               </div>
             ) : (

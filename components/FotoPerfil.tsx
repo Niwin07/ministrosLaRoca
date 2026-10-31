@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { BotonConfirmado } from "@/components/zarza/Confirmacion";
 import { Camera, Check, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/Button";
 import { Avatar } from "@/components/Avatar";
@@ -105,9 +106,12 @@ export function FotoPerfil({ foto, nombre, onActualizar }: FotoPerfilProps) {
             {foto && (
               <form action={onActualizar}>
                 <input type="hidden" name="foto" value="" />
-                <Button type="submit" variant="ghost" size="sm" icon={<Trash2 size={13} />} className="text-red-500 hover:text-red-600">
-                  Quitar
-                </Button>
+                <BotonConfirmado
+                  confirmacion={{ titulo: "¿Quitar tu foto?", mensaje: "Vas a volver a mostrar tu inicial en lugar de la foto.", confirmar: "Quitar" }}
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10 hover:text-red-600"
+                >
+                  <Trash2 size={13} aria-hidden /> Quitar
+                </BotonConfirmado>
               </form>
             )}
           </div>

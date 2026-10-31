@@ -166,6 +166,9 @@ export default async function InicioPage() {
 
       <ActivarNotifBanner />
 
+      {/* Contenido de la plataforma: se vuelve a montar (y entra animado)
+          al cambiar entre General y Remanentes. */}
+      <div key={plaId} className="vista-plataforma flex flex-col gap-6">
       {/* ── Esta semana ──────────────────────────────────────────── */}
       <section
         aria-labelledby="servicio-semana"
@@ -309,6 +312,8 @@ export default async function InicioPage() {
           </Link>
         </section>
       )}
+
+      </div>
 
       {/* ── Con excelencia ───────────────────────────────────────── */}
       <section aria-labelledby="para-equipo" className="flex flex-col gap-3">

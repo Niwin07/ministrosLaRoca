@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BotonConfirmado } from "@/components/zarza/Confirmacion";
 import { redirect } from "next/navigation";
 import { ArrowLeft, ChevronDown, Check } from "lucide-react";
 import { db } from "@/db";
@@ -132,9 +133,16 @@ export default async function AdminCancionesPage(props: {
                   <form action={resolverSugerencia}>
                     <input type="hidden" name="id_cancion" value={c.id_cancion} />
                     <input type="hidden" name="decision"   value="RECHAZADA" />
-                    <button type="submit" className={`${cls.btnSec} text-mid`}>
+                    <BotonConfirmado
+                      confirmacion={{
+                        titulo: "¿Rechazar la sugerencia?",
+                        mensaje: `“${c.nombre}” no se suma al repertorio y se le avisa a quien la sugirió.`,
+                        confirmar: "Rechazar",
+                      }}
+                      className={`${cls.btnSec} text-mid`}
+                    >
                       <X size={15} aria-hidden /> Rechazar
-                    </button>
+                    </BotonConfirmado>
                   </form>
 
                 </div>

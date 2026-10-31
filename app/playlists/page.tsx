@@ -10,6 +10,7 @@ import { getPlataformaActivaId, getPlataformaEfectivaId } from "@/lib/get-plataf
 import { getMisPlataformas } from "@/lib/usuario-request-cache";
 import { PLATAFORMAS_LIST } from "@/lib/plataforma";
 import { crearPlaylist, crearServicio, instanciarPreset, clonarMazo, renombrarPlaylist, eliminarPlaylist } from "@/app/actions/playlists";
+import { ListaAnimada } from "@/components/zarza/ListaAnimada";
 import { NuevaListaPanel } from "@/components/zarza/servicios/NuevaListaPanel";
 import { cls } from "@/components/zarza/ui";
 import { HistorialListas } from "@/components/HistorialListas";
@@ -404,7 +405,7 @@ export default async function PlaylistsPage(props: {
           {plantillas.length === 0 ? (
             <p className={`${cls.tarjeta} px-5 py-5 text-sm text-lo`}>No tenés plantillas todavía. Creá una con “Armar lista nueva” → Sin fecha.</p>
           ) : (
-            <div className="escalonar flex flex-col gap-1.5">
+            <ListaAnimada className="escalonar flex flex-col gap-1.5">
               {plantillas.map((lista) => (
                 <PlaylistRowItem
                   key={lista.id_playlist}
@@ -416,12 +417,12 @@ export default async function PlaylistsPage(props: {
                   eliminarLabel="Borrar plantilla"
                 />
               ))}
-            </div>
+            </ListaAnimada>
           )}
           {enPreparacion.length > 0 && (
             <>
               <h3 className="mt-3 text-[13px] font-semibold text-mid">Borrar servicios en preparación</h3>
-              <div className="escalonar flex flex-col gap-1.5">
+              <ListaAnimada className="escalonar flex flex-col gap-1.5">
                 {enPreparacion.map((lista) => (
                   <PlaylistRowItem
                     key={lista.id_playlist}
@@ -433,7 +434,7 @@ export default async function PlaylistsPage(props: {
                     eliminarLabel="Borrar lista en preparación"
                   />
                 ))}
-              </div>
+              </ListaAnimada>
             </>
           )}
         </section>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Pencil, Trash2, Check, X } from "lucide-react";
 import { Button } from "@/components/Button";
+import { BotonConfirmado } from "@/components/zarza/Confirmacion";
 
 interface PlaylistRowItemProps {
   id_playlist: number;
@@ -39,7 +40,7 @@ export function PlaylistRowItem({
   onEliminar,
   eliminarLabel,
 }: PlaylistRowItemProps) {
-  const [modo, setModo] = useState<"ver" | "editar" | "confirmar">("ver");
+  const [modo, setModo] = useState<"ver" | "editar">("ver");
 
   // ── Renombrar ──────────────────────────────────────────────────────────────
   if (modo === "editar" && onRenombrar) {
@@ -65,30 +66,6 @@ export function PlaylistRowItem({
           <X size={15} />
         </button>
       </form>
-    );
-  }
-
-  // ── Confirmar borrado ──────────────────────────────────────────────────────
-  if (modo === "confirmar") {
-    return (
-      <div className="flex items-center gap-2 rounded-xl border-l-2 border-l-red-500 bg-red-500/[0.06] px-4 py-2.5">
-        <p className="min-w-0 flex-1 text-sm text-hi">
-          ¿Borrar <span className="font-semibold">{nombre}</span>?
-        </p>
-        <form action={onEliminar} className="shrink-0">
-          <input type="hidden" name="id_playlist" value={id_playlist} />
-          <Button type="submit" variant="danger" size="sm" icon={<Trash2 size={13} />}>
-            Borrar
-          </Button>
-        </form>
-        <button
-          type="button"
-          onClick={() => setModo("ver")}
-          className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-mid transition-colors hover:text-hi"
-        >
-          Cancelar
-        </button>
-      </div>
     );
   }
 
@@ -131,14 +108,20 @@ export function PlaylistRowItem({
             <Pencil size={14} />
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => setModo("confirmar")}
-          aria-label={eliminarLabel}
-          className={`${iconBtn} hover:bg-red-500/10 hover:text-red-500`}
-        >
-          <Trash2 size={14} />
-        </button>
+        <form action={onEliminar}>
+          <input type="hidden" name="id_playlist" value={id_playlist} />
+          <BotonConfirmado
+            confirmacion={{
+              titulo: `¿${eliminarLabel}?`,
+              mensaje: <><strong className="font-semibold text-hi">{nombre}</strong> se borra junto con su lista de canciones (las canciones siguen en el repertorio). No se puede deshacer.</>,
+              confirmar: "Borrar",
+            }}
+            aria-label={eliminarLabel}
+            className={`${iconBtn} hover:bg-red-500/10 hover:text-red-500`}
+          >
+            <Trash2 size={14} />
+          </BotonConfirmado>
+        </form>
       </div>
     </div>
   );

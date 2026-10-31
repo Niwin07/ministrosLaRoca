@@ -3,7 +3,10 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cls } from "@/components/zarza/ui";
+import { useConfirmar } from "@/components/zarza/Confirmacion";
+import { SALIDA_ITEM } from "@/components/zarza/ListaAnimada";
 import type { ResultadoAccion } from "@/app/actions/contenido";
 import { youtubeMiniatura, youtubeUrl } from "@/lib/youtube";
 
@@ -41,6 +44,8 @@ export function VideosGrilla({
 }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const confirmar = useConfirmar();
+  const reducir = useReducedMotion();
 
   function enviar(accion: Accion, fd: FormData, alTerminar?: () => void) {
     setError(null);
@@ -69,7 +74,14 @@ export function VideosGrilla({
       <button type="button" onClick={() => setFormAbierto(v.id)} aria-label="Editar video" className="flex h-9 w-9 items-center justify-center rounded-full bg-card text-mid shadow-[0_2px_6px_rgba(0,0,0,0.15)]">
         <Pencil size={14} aria-hidden />
       </button>
-      <form action={(fd) => { if (confirm(`¿Quitar "${v.titulo}"?`)) enviar(eliminar, fd); }}>
+      <form action={async (fd) => {
+        const ok = await confirmar({
+          titulo: "¿Quitar este video?",
+          mensaje: <>“{v.titulo}” deja de aparecer en esta sección.</>,
+          confirmar: "Quitar",
+        });
+        if (ok) enviar(eliminar, fd);
+      }}>
         <Ocultos extra={extra} /><input type="hidden" name="id" value={v.id} />
         <button type="submit" disabled={pending} aria-label="Quitar video" className="flex h-9 w-9 items-center justify-center rounded-full bg-card text-red-600 shadow-[0_2px_6px_rgba(0,0,0,0.15)]">
           <Trash2 size={14} aria-hidden />
@@ -110,8 +122,10 @@ export function VideosGrilla({
 
       {variante === "cuadro" ? (
         <div className="escalonar grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-[18px]">
+          <AnimatePresence initial={false} mode="popLayout">
           {videos.map((v, i) => (
-            <div key={v.id} className="relative flex min-w-0 flex-col gap-2">
+            <motion.div key={v.id} layout={!reducir} {...(reducir ? {} : SALIDA_ITEM)} transition={{ type: "spring", stiffness: 420, damping: 36 }} className="min-w-0">
+            <div className="relative flex min-w-0 flex-col gap-2">
               <a
                 href={youtubeUrl(v.youtube_id)}
                 target="_blank"
@@ -128,7 +142,9 @@ export function VideosGrilla({
               {editando && acciones(v, i)}
               <p className="mx-0.5 text-[13px] font-semibold leading-snug text-hi">{v.titulo}</p>
             </div>
+            </motion.div>
           ))}
+          </AnimatePresence>
           {editando && (
             <div className="flex flex-col gap-2">
               <button type="button" onClick={() => setFormAbierto("nuevo")} aria-label="Agregar video" className="flex aspect-square items-center justify-center rounded-3xl border-2 border-dashed border-mark bg-white/50 text-lo dark:bg-white/5">
@@ -140,8 +156,10 @@ export function VideosGrilla({
         </div>
       ) : (
         <div className="escalonar grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
+          <AnimatePresence initial={false} mode="popLayout">
           {videos.map((v, i) => (
-            <article key={v.id} className="tarjeta-viva group flex flex-col overflow-hidden rounded-[20px] border border-line bg-card shadow-[0_1px_2px_rgba(43,22,17,0.06),0_8px_24px_-12px_rgba(120,45,15,0.2)] dark:shadow-none">
+            <motion.div key={v.id} layout={!reducir} {...(reducir ? {} : SALIDA_ITEM)} transition={{ type: "spring", stiffness: 420, damping: 36 }} className="min-w-0">
+            <article className="tarjeta-viva h-full group flex flex-col overflow-hidden rounded-[20px] border border-line bg-card shadow-[0_1px_2px_rgba(43,22,17,0.06),0_8px_24px_-12px_rgba(120,45,15,0.2)] dark:shadow-none">
               <div className="relative aspect-video bg-llama">
                 <img src={youtubeMiniatura(v.youtube_id)} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 <span aria-hidden className="absolute inset-0 flex items-center justify-center text-white drop-shadow">
@@ -159,7 +177,9 @@ export function VideosGrilla({
                 </a>
               </div>
             </article>
+            </motion.div>
           ))}
+          </AnimatePresence>
           {editando && (
             <button type="button" onClick={() => setFormAbierto("nuevo")} className="flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-[20px] border-2 border-dashed border-mark bg-white/50 text-sm font-semibold text-lo dark:bg-white/5">
               <Plus size={28} aria-hidden /> Agregar video

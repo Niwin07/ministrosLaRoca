@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Reorder, useDragControls } from "framer-motion";
-import { GripVertical, ChevronDown, ChevronUp, ChevronsUpDown, Trash2, X } from "lucide-react";
+import { AnimatePresence, Reorder, useDragControls, useReducedMotion } from "framer-motion";
+import { BotonConfirmado } from "@/components/zarza/Confirmacion";
+import { SALIDA_ITEM } from "@/components/zarza/ListaAnimada";
+import { GripVertical, ChevronDown, ChevronUp, ChevronsUpDown, Trash2 } from "lucide-react";
 import { NOTAS } from "@/lib/notas";
 import { ChartViewerInteractivo } from "@/components/ChartViewerInteractivo";
 import { LyricViewer } from "@/components/LyricViewer";
@@ -96,6 +98,7 @@ export function SortableSongList({
       onReorder={setOrden}
       className={`escalonar flex flex-col gap-2 transition-opacity ${guardando ? "pointer-events-none opacity-70" : ""}`}
     >
+      <AnimatePresence initial={false}>
       {orden.map((item, idx) => (
         <SortableRow
           key={item.id_lista_cancion}
@@ -111,6 +114,7 @@ export function SortableSongList({
           onActualizarNota={onActualizarNota}
         />
       ))}
+      </AnimatePresence>
     </Reorder.Group>
   );
 }
@@ -229,7 +233,7 @@ function SortableRow({
 }: SortableRowProps) {
   const controls = useDragControls();
   const [arrastrando, setArrastrando] = useState(false);
-  const [confirmar, setConfirmar] = useState(false);
+  const reducir = useReducedMotion();
   const tieneContenido = !!(item.charts || item.letra);
 
   return (
@@ -246,6 +250,7 @@ function SortableRow({
         onDragEnd();
       }}
       whileDrag={{ scale: 1.03, rotate: -0.6 }}
+      {...(reducir ? {} : SALIDA_ITEM)}
       transition={{ type: "spring", stiffness: 600, damping: 40 }}
       className={`relative rounded-2xl border bg-card transition-shadow ${
         arrastrando ? "z-10 border-fuego-500/50 shadow-xl shadow-black/20" : "border-line"
@@ -285,17 +290,20 @@ function SortableRow({
         </div>
         <TonoPopover item={item} bloqueado={!puedeEditar} onActualizarNota={onActualizarNota} />
         {puedeEditar && (
-          confirmar ? (
-            <form action={onEliminar} className="flex shrink-0 items-center gap-1">
-              <input type="hidden" name="id_lista_cancion" value={item.id_lista_cancion} />
-              <button type="submit" className="min-h-[36px] rounded-full bg-red-600 px-3 text-xs font-semibold text-white">Quitar</button>
-              <button type="button" onClick={() => setConfirmar(false)} aria-label="Cancelar" className="flex h-9 w-9 items-center justify-center rounded-full text-gone hover:text-hi"><X size={16} /></button>
-            </form>
-          ) : (
-            <button type="button" onClick={() => setConfirmar(true)} aria-label="Quitar del servicio" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#b9998a] hover:bg-red-500/10 hover:text-red-600">
+          <form action={onEliminar} className="shrink-0">
+            <input type="hidden" name="id_lista_cancion" value={item.id_lista_cancion} />
+            <BotonConfirmado
+              confirmacion={{
+                titulo: "¿Quitar del servicio?",
+                mensaje: <><strong className="font-semibold text-hi">{item.nombre}</strong> sale de esta lista. La canción sigue en el repertorio.</>,
+                confirmar: "Quitar",
+              }}
+              aria-label="Quitar del servicio"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-[#b9998a] hover:bg-red-500/10 hover:text-red-600"
+            >
               <Trash2 size={16} />
-            </button>
-          )
+            </BotonConfirmado>
+          </form>
         )}
       </div>
 

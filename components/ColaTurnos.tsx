@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Reorder, useDragControls } from "framer-motion";
+import { AnimatePresence, Reorder, useDragControls, useReducedMotion } from "framer-motion";
+import { useConfirmar } from "@/components/zarza/Confirmacion";
+import { SALIDA_ITEM } from "@/components/zarza/ListaAnimada";
 import { GripVertical, Mic2, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 
@@ -23,6 +25,7 @@ export function ColaTurnos({ turnos, onReordenar, onActivar, onQuitar }: Props) 
   const [orden, setOrden] = useState<TurnoItem[]>(turnos);
   const [guardando, startTransition] = useTransition();
   const inicial = useRef<number[]>([]);
+  const confirmar = useConfirmar();
 
   const idsKey = turnos.map((t) => t.id_turno).join(",");
   useEffect(() => {
@@ -82,6 +85,7 @@ export function ColaTurnos({ turnos, onReordenar, onActivar, onQuitar }: Props) 
       onReorder={setOrden}
       className={`escalonar flex flex-col gap-2 transition-opacity ${guardando ? "pointer-events-none opacity-70" : ""}`}
     >
+      <AnimatePresence initial={false}>
       {orden.map((t, idx) => (
         <Fila
           key={t.id_turno}
@@ -92,10 +96,27 @@ export function ColaTurnos({ turnos, onReordenar, onActivar, onQuitar }: Props) 
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onMover={(dir) => moverItem(idx, dir)}
-          onActivar={() => accion(onActivar, t.id_turno)}
-          onQuitar={() => accion(onQuitar, t.id_turno)}
+          onActivar={async () => {
+            const ok = await confirmar({
+              titulo: "¿Pasa a dirigir ahora?",
+              mensaje: <><strong className="font-semibold text-hi">{t.nombre_usuario}</strong> queda como director del servicio de esta semana.</>,
+              confirmar: "Pasar al servicio",
+              tono: "llama",
+              icono: "microfono",
+            });
+            if (ok) accion(onActivar, t.id_turno);
+          }}
+          onQuitar={async () => {
+            const ok = await confirmar({
+              titulo: "¿Quitar de la cola?",
+              mensaje: <><strong className="font-semibold text-hi">{t.nombre_usuario}</strong> sale de los próximos turnos de dirección.</>,
+              confirmar: "Quitar",
+            });
+            if (ok) accion(onQuitar, t.id_turno);
+          }}
         />
       ))}
+      </AnimatePresence>
     </Reorder.Group>
   );
 }
@@ -114,6 +135,7 @@ interface FilaProps {
 
 function Fila({ turno, pos, esPrimero, esUltimo, onDragStart, onDragEnd, onMover, onActivar, onQuitar }: FilaProps) {
   const controls = useDragControls();
+  const reducir = useReducedMotion();
   const [arrastrando, setArrastrando] = useState(false);
 
   return (
@@ -124,6 +146,7 @@ function Fila({ turno, pos, esPrimero, esUltimo, onDragStart, onDragEnd, onMover
       onDragStart={() => { setArrastrando(true); onDragStart(); }}
       onDragEnd={() => { setArrastrando(false); onDragEnd(); }}
       whileDrag={{ scale: 1.03, rotate: -0.6 }}
+      {...(reducir ? {} : SALIDA_ITEM)}
       transition={{ type: "spring", stiffness: 600, damping: 40 }}
       className={`flex items-center gap-3 rounded-[14px] border bg-card px-3 py-2.5 ${
         arrastrando ? "z-10 border-violet-500/50 shadow-xl shadow-black/25 dark:shadow-black/60" : "border-line"

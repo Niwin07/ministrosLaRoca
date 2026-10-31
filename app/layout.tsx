@@ -6,6 +6,7 @@ import { SideNav } from "@/components/SideNav";
 import { BarraSuperior } from "@/components/BarraSuperior";
 import { PlataformaCookieSetter } from "@/components/PlataformaCookieSetter";
 import { FondoSeccion } from "@/components/zarza/FondoSeccion";
+import { ProveedorConfirmacion } from "@/components/zarza/Confirmacion";
 import { auth, signOut } from "@/auth";
 import { getUsuarioFoto, getMisPlataformas } from "@/lib/usuario-request-cache";
 import { resolverPlataforma, PLATAFORMA_IDS } from "@/lib/plataforma";
@@ -97,6 +98,7 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_MENU }} />
       </head>
       <body className={`${geistMono.variable} font-sans antialiased`}>
+        <ProveedorConfirmacion>
 
         {/* ── Fondo animado de la sección ("Zarza") ─────────────────── */}
         <FondoSeccion />
@@ -130,6 +132,7 @@ export default async function RootLayout({
         {session?.user && !cookieValida && (
           <PlataformaCookieSetter id={plataformaActivaId} />
         )}
+        </ProveedorConfirmacion>
       </body>
     </html>
   );

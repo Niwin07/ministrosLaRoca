@@ -64,6 +64,18 @@
   from { opacity: 0; filter: blur(8px); }
   to   { opacity: 1; filter: blur(0); }
 }
+@keyframes z-destello {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes z-entra-der {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes z-entra-izq {
+  from { opacity: 0; transform: translateX(-28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
 @keyframes z-crecer-x {
   from { transform: scaleX(0); }
   to   { transform: scaleX(1); }
@@ -87,6 +99,21 @@
 /* Mientras corre la bienvenida, la pantalla espera y entra al final. */
 html[data-intro] .entrada-pagina > * > * { animation-play-state: paused; }
 
+/* ── Cambio de plataforma (General ⇄ Remanentes) ──────────────────
+   El contenido viejo se apaga y corre hacia el lado contrario mientras
+   llega el nuevo; el nuevo entra desde el lado de la pestaña elegida. */
+.vista-plataforma { transition: opacity 0.25s ease, transform 0.3s var(--z-ease), filter 0.3s ease; }
+html[data-cambiando] .vista-plataforma { opacity: 0.35; filter: saturate(0.6); pointer-events: none; }
+html[data-cambiando="der"] .vista-plataforma { transform: translateX(-18px); }
+html[data-cambiando="izq"] .vista-plataforma { transform: translateX(18px); }
+.entrada-pagina > * > .vista-plataforma { animation: none; }
+.vista-plataforma > * { animation: z-subir 0.6s var(--z-ease) backwards; }
+html[data-dir="der"] .vista-plataforma > * { animation-name: z-entra-der; animation-duration: 0.5s; }
+html[data-dir="izq"] .vista-plataforma > * { animation-name: z-entra-izq; animation-duration: 0.5s; }
+.vista-plataforma > :nth-child(2) { animation-delay: 70ms; }
+.vista-plataforma > :nth-child(3) { animation-delay: 140ms; }
+.vista-plataforma > :nth-child(n+4) { animation-delay: 210ms; }
+
 /* ── Listas y grillas que entran en cascada ────────────────────── */
 .escalonar > * {
   animation: z-subir 0.5s var(--z-ease) backwards;
@@ -109,6 +136,7 @@ html[data-intro] .entrada-pagina > * > * { animation-play-state: paused; }
 .animate-rebote    { animation: z-rebote 0.5s var(--z-ease); }
 .animate-girar-entra { animation: z-girar-entra 0.45s var(--z-ease) backwards; }
 .animate-aparecer  { animation: z-aparecer 0.4s ease-out backwards; }
+.animate-destello  { animation: z-destello 0.9s ease-out forwards; }
 .animate-crecer-x  { animation: z-crecer-x 0.9s var(--z-ease) backwards; transform-origin: left center; }
 
 /* Contenido de los <details> al abrirse (letra/acordes, plegables). */
@@ -205,6 +233,8 @@ button:not(:disabled):not([data-sin-presion]):active { scale: 0.96; transition: 
     animation: none !important;
   }
   .intro-zarza { display: none; }
+  .vista-plataforma > *, .animate-destello { animation: none !important; }
+  .vista-plataforma { transition: none !important; transform: none !important; }
   .tarjeta-viva, .tarjeta-viva:hover, .tarjeta-viva:active { transform: none !important; }
   .btn-brillo::after { display: none; }
   button:active { scale: none !important; }

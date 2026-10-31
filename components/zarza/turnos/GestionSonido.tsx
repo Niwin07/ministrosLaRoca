@@ -2,7 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { Minus, Plus, X } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cls, Inicial } from "@/components/zarza/ui";
+import { useConfirmar } from "@/components/zarza/Confirmacion";
+import { SALIDA_ITEM } from "@/components/zarza/ListaAnimada";
 import { agregarSonidista, quitarSonidista, asignarSonido, guardarSemanasPlanificadas } from "@/app/actions/sonido";
 import type { ResultadoAccion } from "@/app/actions/contenido";
 
@@ -39,7 +42,7 @@ export function SemanasPlanificadas({ id_plataforma, semanas }: { id_plataforma:
       </div>
       <div className="flex items-center gap-1 rounded-full border border-line bg-input p-1">
         <button type="button" onClick={() => cambiar(semanas - 1)} disabled={pending || semanas <= 1} aria-label="Una semana menos" className="flex h-9 w-9 items-center justify-center rounded-full text-hi hover:bg-card disabled:opacity-40"><Minus size={16} aria-hidden /></button>
-        <span aria-live="polite" className="w-8 text-center text-base font-bold tabular-nums text-hi">{semanas}</span>
+        <span aria-live="polite" className="w-8 text-center text-base font-bold tabular-nums text-hi"><span key={semanas} className="inline-block animate-rebote">{semanas}</span></span>
         <button type="button" onClick={() => cambiar(semanas + 1)} disabled={pending || semanas >= 12} aria-label="Una semana más" className="flex h-9 w-9 items-center justify-center rounded-full text-hi hover:bg-card disabled:opacity-40"><Plus size={16} aria-hidden /></button>
       </div>
     </div>
@@ -58,7 +61,9 @@ function SelectPersona({
   tono: "vino" | "arcilla";
 }) {
   return (
-    <label className={`flex min-w-0 flex-1 flex-col gap-0.5 rounded-[14px] border px-3 py-2 ${tono === "vino" ? "border-[#efc7b3] dark:border-[#573827]" : "border-mark"}`}>
+    <label className={`relative flex min-w-0 flex-1 flex-col gap-0.5 overflow-hidden rounded-[14px] border px-3 py-2 ${tono === "vino" ? "border-[#efc7b3] dark:border-[#573827]" : "border-mark"}`}>
+      {/* Destello al elegir a alguien */}
+      {valor && <span key={valor.id} aria-hidden className="animate-destello pointer-events-none absolute inset-0 bg-fuego-500/20" />}
       <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#7a2a26] dark:text-[#d69271]">{label}</span>
       <select
         value={valor?.id ?? ""}
@@ -92,6 +97,8 @@ export function GestionSonido({
 }) {
   const { error, pending, correr } = useAccion();
   const [nuevo, setNuevo] = useState("");
+  const confirmar = useConfirmar();
+  const reducir = useReducedMotion();
   const ahora = semanas[0];
   const proximas = semanas.slice(1);
   // Auxiliares: cualquiera de los sonidistas habilitados (y quien ya esté asignado).
@@ -120,7 +127,7 @@ export function GestionSonido({
             const p = ahora?.[rol] ?? null;
             return (
               <div key={rol} className={`flex items-center gap-2.5 rounded-2xl border p-3 ${rol === "principal" ? "border-[rgba(122,42,38,0.3)] bg-[#fbede6] dark:bg-[#1e1513]" : "border-line bg-[#fcf5eb] dark:bg-input"}`}>
-                <Inicial nombre={p?.nombre ?? (rol === "principal" ? "S" : "A")} size={36} tono={rol === "principal" ? "vino" : "arcilla"} />
+                <span key={p?.id ?? "nadie"} className="flex animate-pop"><Inicial nombre={p?.nombre ?? (rol === "principal" ? "S" : "A")} size={36} tono={rol === "principal" ? "vino" : "arcilla"} /></span>
                 <SelectPersona
                   label={rol === "principal" ? "Principal" : "Auxiliar"}
                   valor={p}
@@ -142,15 +149,24 @@ export function GestionSonido({
           <p className="text-[13px] text-lo">Todavía no hay sonidistas. Agregá a las personas que pueden operar el sonido.</p>
         ) : (
           <ul className="flex flex-wrap gap-2">
+            <AnimatePresence initial={false} mode="popLayout">
             {sonidistas.map((s) => (
-              <li key={s.id} className="flex items-center gap-1.5 rounded-full border border-line bg-[#fcf5eb] py-1 pl-1 pr-1.5 dark:bg-input">
+              <motion.li key={s.id} layout={!reducir} {...(reducir ? {} : SALIDA_ITEM)} transition={{ type: "spring", stiffness: 420, damping: 36 }} className="flex items-center gap-1.5 rounded-full border border-line bg-[#fcf5eb] py-1 pl-1 pr-1.5 dark:bg-input">
                 <Inicial nombre={s.nombre} size={26} tono="vino" />
                 <span className="text-[13px] font-semibold text-hi">{s.nombre}</span>
-                <button type="button" onClick={() => correr(quitarSonidista, { id_plataforma, id_usuario: s.id })} disabled={pending} aria-label={`Quitar a ${s.nombre} de sonidistas`} className="flex h-7 w-7 items-center justify-center rounded-full text-gone hover:text-red-600">
+                <button type="button" onClick={async () => {
+                  const ok = await confirmar({
+                    titulo: "¿Quitar de sonidistas?",
+                    mensaje: <><strong className="font-semibold text-hi">{s.nombre}</strong> deja de figurar como sonidista de {plataformaNombre}.</>,
+                    confirmar: "Quitar",
+                  });
+                  if (ok) correr(quitarSonidista, { id_plataforma, id_usuario: s.id });
+                }} disabled={pending} aria-label={`Quitar a ${s.nombre} de sonidistas`} className="flex h-7 w-7 items-center justify-center rounded-full text-gone hover:text-red-600">
                   <X size={14} aria-hidden />
                 </button>
-              </li>
+              </motion.li>
             ))}
+            </AnimatePresence>
           </ul>
         )}
         <div className="flex gap-2">
