@@ -139,7 +139,7 @@ export function SelectorPersona({
             exit={{ opacity: 0 }}
             transition={{ duration: reducir ? 0 : 0.2 }}
           >
-            <button type="button" aria-label="Cerrar" tabIndex={-1} data-sin-presion onClick={cerrar} className="absolute inset-0 cursor-default bg-[rgba(43,14,8,0.42)] dark:bg-[rgba(8,2,1,0.62)]" />
+            <div aria-hidden onClick={cerrar} className="absolute inset-0 bg-[rgba(43,14,8,0.42)] dark:bg-[rgba(8,2,1,0.62)]" />
             <motion.div
               role="dialog"
               aria-modal="true"

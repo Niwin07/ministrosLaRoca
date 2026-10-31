@@ -106,13 +106,10 @@ export function ProveedorConfirmacion({ children }: { children: ReactNode }) {
             transition={{ duration: reducir ? 0 : 0.2 }}
           >
             {/* Velo cálido */}
-            <button
-              type="button"
-              aria-label="Cancelar"
-              tabIndex={-1}
+            <div
+              aria-hidden
               onClick={() => cerrar(false)}
-              className="absolute inset-0 cursor-default bg-[rgba(43,14,8,0.42)] dark:bg-[rgba(8,2,1,0.62)]"
-              data-sin-presion
+              className="absolute inset-0 bg-[rgba(43,14,8,0.42)] dark:bg-[rgba(8,2,1,0.62)]"
             />
             <motion.div
               role="alertdialog"
