@@ -42,22 +42,6 @@ const config: Config = {
         violet: FUEGO,
         fuego:  FUEGO,
 
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-
-        // ── Legacy glass tokens (kept for any unfixed files) ──────────
-        glass: {
-          subtle:    "rgba(255,255,255,0.04)",
-          base:      "rgba(255,255,255,0.06)",
-          elevated:  "rgba(255,255,255,0.10)",
-          highlight: "rgba(255,255,255,0.20)",
-        },
-        content: {
-          primary:   "rgba(255,255,255,0.90)",
-          secondary: "rgba(255,255,255,0.60)",
-          muted:     "rgba(255,255,255,0.40)",
-        },
-
         // ── Semantic theme tokens (light + dark via CSS vars) ─────────
         // bg-base   = page background
         // bg-card   = card / panel surface

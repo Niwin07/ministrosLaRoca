@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, ChevronDown, ShieldCheck, Check } from "lucide-react";
+import { ArrowLeft, ChevronDown, Check } from "lucide-react";
 import { db } from "@/db";
 import { canciones } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -8,7 +8,8 @@ import { auth } from "@/auth";
 import { resolverSugerencia } from "@/app/actions/canciones";
 import { CargarCancion } from "@/components/CargarCancion";
 import { ErrorBanner } from "@/components/ErrorBanner";
-import { Button } from "@/components/Button";
+import { cls } from "@/components/zarza/ui";
+import { IconoMarca } from "@/components/zarza/IconoMarca";
 import { X } from "lucide-react";
 
 export default async function AdminCancionesPage(props: {
@@ -38,30 +39,30 @@ export default async function AdminCancionesPage(props: {
     .orderBy(canciones.nombre);
 
   return (
-    <main className="flex flex-col gap-6 px-4 pt-8 pb-6 lg:mx-auto lg:w-full lg:max-w-3xl">
+    <main className="flex w-full max-w-3xl flex-col gap-6 px-4 pb-8 pt-7 md:px-0 md:pt-2">
 
       <div className="flex items-center justify-between">
         <Link
           href="/canciones"
-          className="inline-flex items-center gap-1.5 text-xs text-lo transition-colors hover:text-hi"
+          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-hi transition-opacity hover:opacity-75"
         >
           <ArrowLeft size={13} />
           Repertorio
         </Link>
         <Link
           href="/admin/estadisticas"
-          className="inline-flex items-center gap-1.5 text-xs text-violet-600/70 transition-colors hover:text-violet-600"
+          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-fuego-600 hover:underline dark:text-[#ef7a4c]"
         >
           Estadísticas →
         </Link>
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/10">
-          <ShieldCheck size={16} className="text-violet-600" />
+        <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center">
+          <IconoMarca nombre="escudo" size={40} />
         </span>
         <div>
-          <h1 className="font-display text-xl font-bold text-hi">Moderación</h1>
+          <h1 className="font-display text-[26px] font-bold leading-tight tracking-[-0.02em] text-hi">Moderación</h1>
           <p className="mt-0.5 text-xs text-lo">
             {pendientes.length}{" "}
             {pendientes.length === 1 ? "canción pendiente" : "canciones pendientes"}
@@ -78,13 +79,13 @@ export default async function AdminCancionesPage(props: {
       )}
 
       {pendientes.length === 0 ? (
-        <p className="rounded-2xl border border-line bg-card px-5 py-10 text-center text-sm text-lo">
+        <p className="rounded-[22px] border border-dashed border-mark bg-card/60 px-5 py-10 text-center text-sm text-lo">
           Sin canciones pendientes de revisión.
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
           {pendientes.map((c) => (
-            <li key={c.id_cancion} className="overflow-hidden rounded-2xl border border-line border-l-2 border-l-amber-500/60 bg-card">
+            <li key={c.id_cancion} className="overflow-hidden rounded-2xl border border-line border-l-2 border-l-[rgba(217,134,74,0.6)] bg-card">
               <details className="group">
 
                 <summary className="flex cursor-pointer select-none list-none items-center gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
@@ -94,13 +95,13 @@ export default async function AdminCancionesPage(props: {
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     {c.metrica && (
-                      <span className="rounded-md bg-input px-1.5 py-0.5 text-[10px] font-medium text-mid">{c.metrica}</span>
+                      <span className="rounded-full bg-input px-2 py-0.5 text-[10px] font-medium text-mid">{c.metrica}</span>
                     )}
                     {c.bpm && (
-                      <span className="rounded-md bg-input px-1.5 py-0.5 text-[10px] font-medium text-mid">{c.bpm} BPM</span>
+                      <span className="rounded-full bg-input px-2 py-0.5 text-[10px] font-medium text-mid">{c.bpm} BPM</span>
                     )}
                     {(c.letra || c.charts) && (
-                      <span className="rounded-md border border-violet-500/30 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-600">
+                      <span className="rounded-full border border-fuego-600/30 bg-fuego-600/10 px-2 py-0.5 text-[10px] font-medium text-fuego-600 dark:text-[#df8067]">
                         con datos
                       </span>
                     )}
@@ -123,17 +124,17 @@ export default async function AdminCancionesPage(props: {
                       defaultCharts={c.charts ?? ""}
                     />
 
-                    <Button type="submit" variant="success" icon={<Check size={14} />}>
-                      Aprobar
-                    </Button>
+                    <button type="submit" className={cls.btnLlama}>
+                      <Check size={15} aria-hidden /> Aprobar
+                    </button>
                   </form>
 
                   <form action={resolverSugerencia}>
                     <input type="hidden" name="id_cancion" value={c.id_cancion} />
                     <input type="hidden" name="decision"   value="RECHAZADA" />
-                    <Button type="submit" variant="secondary" icon={<X size={14} />} className="border-red-500/30 text-red-600 hover:border-red-500/50 hover:bg-red-500/10 dark:text-red-400">
-                      Rechazar
-                    </Button>
+                    <button type="submit" className={`${cls.btnSec} text-mid`}>
+                      <X size={15} aria-hidden /> Rechazar
+                    </button>
                   </form>
 
                 </div>

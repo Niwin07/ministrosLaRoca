@@ -33,18 +33,18 @@ export default async function EditarCancionPage(props: {
   if (!c) notFound();
 
   return (
-    <main className="flex flex-col gap-5 px-4 pt-8 pb-10 lg:mx-auto lg:w-full lg:max-w-2xl">
+    <main className="flex w-full max-w-2xl flex-col gap-5 px-4 pb-10 pt-7 md:px-0 md:pt-2">
 
       <Link
         href="/canciones"
-        className="inline-flex items-center gap-1.5 text-xs text-lo transition-colors hover:text-hi"
+        className="inline-flex w-fit items-center gap-1.5 text-[13px] font-semibold text-hi transition-opacity hover:opacity-75"
       >
         <ArrowLeft size={13} />
         Repertorio
       </Link>
 
       <div>
-        <h1 className="font-display text-xl font-bold text-hi">Editar canción</h1>
+        <h1 className="font-display text-[26px] font-bold leading-tight tracking-[-0.02em] text-hi">Editar canción</h1>
         <p className="mt-0.5 text-xs text-lo">Corregí la letra, los acordes o los datos.</p>
       </div>
 

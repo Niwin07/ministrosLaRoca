@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { IconoMarca } from "@/components/zarza/IconoMarca";
 import { redirect } from "next/navigation";
-import { ArrowLeft, BarChart3, Music2, Flame, Clock, UserCircle2 } from "lucide-react";
+import { ArrowLeft, Music2, Flame, Clock, UserCircle2 } from "lucide-react";
 import { db } from "@/db";
 import { canciones, lista_canciones, playlists, usuarios } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
@@ -92,11 +93,11 @@ export default async function EstadisticasPage(props: {
   ];
 
   return (
-    <main className="flex flex-col gap-6 px-4 pt-8 pb-24 lg:mx-auto lg:w-full lg:max-w-4xl">
+    <main className="flex w-full max-w-4xl flex-col gap-6 px-4 pb-8 pt-7 md:px-0 md:pt-2">
 
       <Link
         href="/admin/canciones"
-        className="inline-flex items-center gap-1.5 text-xs text-lo transition-colors hover:text-hi"
+        className="inline-flex w-fit items-center gap-1.5 text-[13px] font-semibold text-hi transition-opacity hover:opacity-75"
       >
         <ArrowLeft size={13} />
         Moderación
@@ -104,30 +105,30 @@ export default async function EstadisticasPage(props: {
 
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-violet-500/10">
-          <BarChart3 size={18} className="text-violet-600" />
+        <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center">
+          <IconoMarca nombre="estadisticas" size={36} />
         </span>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-violet-600">Admin</p>
-          <h1 className="font-display text-xl font-bold text-hi">Estadísticas del repertorio</h1>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-fuego-600 dark:text-[#df8067]">Admin</p>
+          <h1 className="font-display text-[26px] font-bold leading-tight tracking-[-0.02em] text-hi">Estadísticas del repertorio</h1>
         </div>
       </div>
 
       {/* ── Cards resumen ───────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3 lg:max-w-lg">
         <div className="flex flex-col gap-1 rounded-2xl border border-line bg-card p-4 shadow-card dark:shadow-none">
-          <Music2 size={16} className="text-violet-500" />
-          <p className="text-2xl font-black text-hi">{total}</p>
+          <Music2 size={16} className="text-[#c7613a]" />
+          <p className="font-display text-[26px] font-bold tracking-[-0.02em] text-hi">{total}</p>
           <p className="text-[11px] text-lo leading-tight">Canciones aprobadas</p>
         </div>
         <div className="flex flex-col gap-1 rounded-2xl border border-line bg-card p-4 shadow-card dark:shadow-none">
           <Flame size={16} className="text-orange-500" />
-          <p className="text-2xl font-black text-hi">{usadas}</p>
+          <p className="font-display text-[26px] font-bold tracking-[-0.02em] text-hi">{usadas}</p>
           <p className="text-[11px] text-lo leading-tight">Usadas en listas</p>
         </div>
         <div className="flex flex-col gap-1 rounded-2xl border border-line bg-card p-4 shadow-card dark:shadow-none">
           <Clock size={16} className="text-gone" />
-          <p className="text-2xl font-black text-hi">{sinUsar}</p>
+          <p className="font-display text-[26px] font-bold tracking-[-0.02em] text-hi">{sinUsar}</p>
           <p className="text-[11px] text-lo leading-tight">Sin usar aún</p>
         </div>
       </div>

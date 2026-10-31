@@ -3,6 +3,7 @@ import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/ui/Input";
+import { IntroBienvenida } from "@/components/zarza/IntroBienvenida";
 
 export default async function LoginPage(props: {
   searchParams: Promise<{ error?: string | string[] }>;
@@ -28,6 +29,7 @@ export default async function LoginPage(props: {
 
   return (
     <main className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-10">
+      <IntroBienvenida />
 
       {/* Halo de fuego detrás del logo (diseño "Login" · Zarza) */}
       <div

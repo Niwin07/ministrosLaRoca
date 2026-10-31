@@ -32,7 +32,7 @@ export function Textarea({
         id={textareaId}
         name={name}
         className={[
-          FIELD_CLS,
+          FIELD_CLS.replace("rounded-full", "rounded-2xl").replace("min-h-[46px] ", ""),
           error ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/30" : "",
           className,
         ]

@@ -54,19 +54,19 @@ export default async function EditarUsuarioPage(props: {
   const successMsg = sp.success ? (SUCCESS_MSG[sp.success] ?? null) : null;
 
   return (
-    <main className="px-4 pt-8 pb-6 space-y-6">
+    <main className="flex flex-col gap-6 px-4 pb-8 pt-7 md:px-0 md:pt-2">
 
       {/* ── Cabecera ─────────────────────────────────────────────────── */}
       <Link
         href="/admin/usuarios"
-        className="inline-flex items-center gap-1.5 text-sm text-lo transition-colors hover:text-hi"
+        className="inline-flex w-fit items-center gap-1.5 text-[13px] font-semibold text-hi transition-opacity hover:opacity-75"
       >
         <ArrowLeft size={15} />
         Usuarios
       </Link>
 
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-hi">
+        <h1 className="font-display text-[26px] font-bold leading-tight tracking-[-0.02em] text-hi">
           Editar Usuario
         </h1>
         <p className="mt-1 text-sm text-lo">
@@ -137,7 +137,7 @@ export default async function EditarUsuarioPage(props: {
 
       {/* ── Plataformas ──────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-mid">Plataformas</p>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.1em] text-hi">Plataformas</p>
         <p className="mb-4 text-[11px] text-lo">En cuáles participa este ministro. La principal determina su vista por defecto.</p>
 
         <form action={actualizarPlataformasUsuario} className="flex flex-col gap-4">
@@ -188,8 +188,8 @@ export default async function EditarUsuarioPage(props: {
       {/* ── Enviar mención ───────────────────────────────────────────── */}
       <div className="rounded-2xl border border-line bg-card p-5 shadow-card dark:shadow-none">
         <div className="mb-4 flex items-center gap-2">
-          <MessageSquare size={14} className="text-violet-500" />
-          <p className="text-xs font-semibold uppercase tracking-wider text-mid">Enviar notificación</p>
+          <MessageSquare size={14} className="text-[#c7613a]" />
+          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-hi">Enviar notificación</p>
         </div>
         <p className="mb-4 text-[11px] text-lo">
           Enviá un mensaje personalizado al dispositivo de {usuario.nombre}.

@@ -101,9 +101,9 @@ function VistaLista({
   }, [seleccionado, cancion?.letra]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-base">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-[#fcf5eb] dark:bg-base">
       {/* Top bar */}
-      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line bg-base px-4 py-3">
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line bg-[rgba(255,250,243,0.96)] px-4 py-3 dark:bg-base">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -120,7 +120,7 @@ function VistaLista({
         <button
           type="button"
           onClick={() => onPresentar(seleccionado)}
-          className={`flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-violet-700 active:scale-[0.97] ${FOCUS_RING}`}
+          className={`flex items-center gap-1.5 rounded-full bg-llama px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:brightness-110 active:scale-[0.97] ${FOCUS_RING}`}
         >
           <svg className="h-3 w-3 fill-current" viewBox="0 0 16 16">
             <path d="M3 2.5l11 5.5-11 5.5V2.5z" />
@@ -187,13 +187,13 @@ function VistaLista({
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     {tieneAmbos && (
-                      <div className="inline-flex rounded-lg border border-line bg-input p-0.5 text-xs font-semibold" role="tablist" aria-label="Tipo de contenido">
+                      <div className="inline-flex rounded-full border border-line bg-input p-0.5 text-xs font-semibold" role="tablist" aria-label="Tipo de contenido">
                         <button
                           type="button"
                           role="tab"
                           aria-selected={modo === "letra"}
                           onClick={() => setModo("letra")}
-                          className={`rounded-md px-3 py-1.5 transition-colors ${FOCUS_RING} ${modo === "letra" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
+                          className={`rounded-full px-3 py-1.5 transition-colors ${FOCUS_RING} ${modo === "letra" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
                         >
                           Letra
                         </button>
@@ -202,7 +202,7 @@ function VistaLista({
                           role="tab"
                           aria-selected={modo === "charts"}
                           onClick={() => setModo("charts")}
-                          className={`rounded-md px-3 py-1.5 transition-colors ${FOCUS_RING} ${modo === "charts" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
+                          className={`rounded-full px-3 py-1.5 transition-colors ${FOCUS_RING} ${modo === "charts" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
                         >
                           Charts
                         </button>
@@ -211,7 +211,7 @@ function VistaLista({
                     <button
                       type="button"
                       onClick={() => onPresentar(seleccionado)}
-                      className={`flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-violet-700 ${FOCUS_RING}`}
+                      className={`flex items-center gap-1.5 rounded-full bg-llama px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:brightness-110 ${FOCUS_RING}`}
                     >
                       <svg className="h-3 w-3 fill-current" viewBox="0 0 16 16">
                         <path d="M3 2.5l11 5.5-11 5.5V2.5z" />
@@ -310,13 +310,13 @@ function PresentadorMode({
           </p>
           <div className="flex items-center gap-2">
             {tieneAmbos && (
-              <div className="inline-flex rounded-lg border border-line bg-input p-0.5 text-xs font-semibold" role="tablist" aria-label="Tipo de contenido">
+              <div className="inline-flex rounded-full border border-line bg-input p-0.5 text-xs font-semibold" role="tablist" aria-label="Tipo de contenido">
                 <button
                   type="button"
                   role="tab"
                   aria-selected={modoContenido === "letra"}
                   onClick={() => setModoContenido("letra")}
-                  className={`rounded-md px-3 py-1.5 transition-colors ${FOCUS_RING} ${modoContenido === "letra" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
+                  className={`rounded-full px-3 py-1.5 transition-colors ${FOCUS_RING} ${modoContenido === "letra" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
                 >
                   Letra
                 </button>
@@ -325,7 +325,7 @@ function PresentadorMode({
                   role="tab"
                   aria-selected={modoContenido === "charts"}
                   onClick={() => setModoContenido("charts")}
-                  className={`rounded-md px-3 py-1.5 transition-colors ${FOCUS_RING} ${modoContenido === "charts" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
+                  className={`rounded-full px-3 py-1.5 transition-colors ${FOCUS_RING} ${modoContenido === "charts" ? "bg-card text-hi shadow-sm" : "text-lo hover:text-mid"}`}
                 >
                   Charts
                 </button>
