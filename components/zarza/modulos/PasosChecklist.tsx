@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cls } from "@/components/zarza/ui";
 import { BotonConfirmado } from "@/components/zarza/Confirmacion";
 import { SALIDA_ITEM } from "@/components/zarza/ListaAnimada";
+import { useEscalonarInicial } from "@/components/zarza/useNuevos";
 import type { ResultadoAccion } from "@/app/actions/contenido";
 import { youtubeUrl } from "@/lib/youtube";
 
@@ -48,6 +49,7 @@ export function PasosChecklist({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const reducir = useReducedMotion();
+  const escalonar = useEscalonarInicial();
 
   useEffect(() => {
     try {
@@ -123,7 +125,7 @@ export function PasosChecklist({
         </div>
       )}
 
-      <ol className="escalonar flex flex-col gap-2.5">
+      <ol className={`${escalonar} flex flex-col gap-2.5`}>
         <AnimatePresence initial={false} mode="popLayout">
         {pasos.map((p, i) => {
           const hecho = !editando && !!hechos[p.id];

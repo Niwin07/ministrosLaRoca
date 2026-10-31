@@ -7,6 +7,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Encabezado, BannerEdicion, Vacio, cls } from "@/components/zarza/ui";
 import { useConfirmar } from "@/components/zarza/Confirmacion";
 import { SALIDA_ITEM } from "@/components/zarza/ListaAnimada";
+import { useEscalonarInicial } from "@/components/zarza/useNuevos";
 import { BotonesEdicion } from "@/components/zarza/modulos/BotonesEdicion";
 import { IconoMarca, type IconoMarcaNombre } from "@/components/zarza/IconoMarca";
 import { guardarCategoria, eliminarCategoria, type ResultadoAccion } from "@/app/actions/contenido";
@@ -32,6 +33,7 @@ export function MejorarVista({ categorias, puedeEditar }: { categorias: Categori
   const [pending, start] = useTransition();
   const confirmar = useConfirmar();
   const reducir = useReducedMotion();
+  const escalonar = useEscalonarInicial();
 
   const editada = typeof form === "number" ? categorias.find((c) => c.id === form) : undefined;
   const [color, setColor] = useState("llama");
@@ -157,7 +159,7 @@ export function MejorarVista({ categorias, puedeEditar }: { categorias: Categori
           {puedeEditar ? "Tocá Editar para crear la primera." : "Cuando se carguen, las vas a ver acá."}
         </Vacio>
       ) : (
-        <div className="escalonar grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-[18px]">
+        <div className={`${escalonar} grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-[18px]`}>
           <AnimatePresence initial={false} mode="popLayout">
           {categorias.map((c) => {
             const col = COLORES_CATEGORIA[c.color] ?? COLORES_CATEGORIA.llama;

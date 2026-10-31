@@ -58,6 +58,15 @@ export function SelectorPersona({
   const boton = useRef<HTMLButtonElement>(null);
   const oculto = useRef<HTMLInputElement>(null);
 
+  // Tras enviar, React reinicia el formulario: el selector vuelve a vacío.
+  useEffect(() => {
+    const form = oculto.current?.form;
+    if (!form || valorProp !== undefined) return;
+    const reiniciar = () => setInterno("");
+    form.addEventListener("reset", reiniciar);
+    return () => form.removeEventListener("reset", reiniciar);
+  }, [valorProp]);
+
   const elegida = opciones.find((o) => String(o.id) === valor) ?? null;
   const conBuscador = opciones.length > 8;
   const visibles = useMemo(() => {

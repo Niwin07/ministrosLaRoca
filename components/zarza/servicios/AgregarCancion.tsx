@@ -30,15 +30,18 @@ export function AgregarCancion({
   const [q, setQ] = useState("");
   const [agregadas, setAgregadas] = useState<number[]>([]);
   const [pending, start] = useTransition();
+  // Las sugeridas se calculan con lo que había al abrir: así, al agregar, la
+  // tarjeta queda en su lugar marcada "Agregada" en vez de desaparecer.
+  const [enListaInicial] = useState(enLista);
   const yaEsta = new Set([...enLista, ...agregadas]);
 
   const resultados = useMemo(() => {
     const t = normalizar(q.trim());
     const base = t
       ? catalogo.filter((c) => normalizar(`${c.nombre} ${c.artista}`).includes(t))
-      : catalogo.filter((c) => !enLista.includes(c.id_cancion));
+      : catalogo.filter((c) => !enListaInicial.includes(c.id_cancion));
     return base.slice(0, t ? 20 : 6);
-  }, [q, catalogo, enLista]);
+  }, [q, catalogo, enListaInicial]);
 
   function agregar(c: Cancion) {
     const fd = new FormData();
@@ -91,7 +94,7 @@ export function AgregarCancion({
                         : "border-fuego-600 bg-transparent text-fuego-600 hover:bg-fuego-600 hover:text-white dark:text-[#df8067]"
                     }`}
                   >
-                    {agregada ? <Check size={14} aria-hidden /> : <Plus size={14} aria-hidden />}
+                    {agregada ? <Check size={14} strokeWidth={2.5} aria-hidden className="animate-pop" /> : <Plus size={14} aria-hidden />}
                     {agregada ? "Agregada" : "Agregar"}
                   </button>
                 </div>

@@ -50,6 +50,17 @@ export function SelectorZarza({
     return () => { document.removeEventListener("mousedown", fuera); document.removeEventListener("keydown", tecla); };
   }, [abierto]);
 
+  // Tras enviar, React reinicia el formulario: vuelve al valor inicial.
+  const oculto = useRef<HTMLInputElement>(null);
+  const inicial = defaultValue || (sinVacio ? opciones[0]?.valor ?? "" : "");
+  useEffect(() => {
+    const form = oculto.current?.form;
+    if (!form) return;
+    const reiniciar = () => setValor(inicial);
+    form.addEventListener("reset", reiniciar);
+    return () => form.removeEventListener("reset", reiniciar);
+  }, [inicial]);
+
   const todas = sinVacio ? opciones : [{ valor: "", texto: vacio }, ...opciones];
   const elegido = opciones.find((o) => o.valor === valor);
 
@@ -57,6 +68,7 @@ export function SelectorZarza({
     <div ref={ref} className={`relative flex flex-col gap-1.5 ${className}`}>
       <span id={`${id}-l`} className={ocultarLabel ? "sr-only" : "text-[13px] font-medium text-mid"}>{label}</span>
       <input
+        ref={oculto}
         tabIndex={-1}
         aria-hidden
         name={name}

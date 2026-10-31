@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { SelectorZarza } from "@/components/zarza/SelectorZarza";
 import { and, eq } from "drizzle-orm";
 import { ArrowLeft, Music2, Copy, ListMusic, Archive, Lock } from "lucide-react";
@@ -178,13 +179,12 @@ export default async function PlaylistDetailPage(props: {
   const nextOrden = items.length > 0 ? Math.max(...items.map((i) => i.orden)) + 1 : 1;
 
   // ── Server Actions ────────────────────────────────────────────────────────
-  // Toda mutación termina en un redirect: a la URL limpia si salió bien, o con
-  // ?error=<mensaje> si falló. Así un throw del action (p. ej. "no sos el
+  // Si salió bien, la página se actualiza en el lugar (revalidatePath): no
+  // vuelve arriba ni parpadea. Si falla, redirect con ?error=<mensaje>. Así un throw del action (p. ej. "no sos el
   // director de turno") se muestra como banner en vez de romper la página.
 
   async function handleAgregar(formData: FormData) {
     "use server";
-    let destino = `/playlists/${id}`;
     try {
       const id_cancion = Number(formData.get("id_cancion"));
       const ordenRaw   = Number(formData.get("orden"));
@@ -192,34 +192,38 @@ export default async function PlaylistDetailPage(props: {
       const nota       = (formData.get("nota") as string).trim() || undefined;
       await agregarCancionALista(id, id_cancion, orden, nota);
     } catch (e) {
-      destino = urlError(id, e instanceof Error ? e.message : "No se pudo agregar la canción.");
+      redirect(urlError(id, e instanceof Error ? e.message : "No se pudo agregar la canción."));
     }
-    redirect(destino);
+    // Sin redirect: se actualiza en el lugar (no sube al principio ni
+    // repite la animación de entrada de la pantalla).
+    revalidatePath(`/playlists/${id}`);
   }
 
   async function handleEliminar(formData: FormData) {
     "use server";
-    let destino = `/playlists/${id}`;
     try {
       const idListaCancion = Number(formData.get("id_lista_cancion"));
       await eliminarCancionDeLista(idListaCancion);
     } catch (e) {
-      destino = urlError(id, e instanceof Error ? e.message : "No se pudo eliminar la canción.");
+      redirect(urlError(id, e instanceof Error ? e.message : "No se pudo eliminar la canción."));
     }
-    redirect(destino);
+    // Sin redirect: se actualiza en el lugar (no sube al principio ni
+    // repite la animación de entrada de la pantalla).
+    revalidatePath(`/playlists/${id}`);
   }
 
   async function handleActualizarNota(formData: FormData) {
     "use server";
-    let destino = `/playlists/${id}`;
     try {
       const idListaCancion = Number(formData.get("id_lista_cancion"));
       const nota           = (formData.get("nota") as string).trim();
       await actualizarNotaCancion(idListaCancion, nota);
     } catch (e) {
-      destino = urlError(id, e instanceof Error ? e.message : "No se pudo actualizar el tono.");
+      redirect(urlError(id, e instanceof Error ? e.message : "No se pudo actualizar el tono."));
     }
-    redirect(destino);
+    // Sin redirect: se actualiza en el lugar (no sube al principio ni
+    // repite la animación de entrada de la pantalla).
+    revalidatePath(`/playlists/${id}`);
   }
 
   async function handleReordenar(formData: FormData) {
@@ -251,28 +255,30 @@ export default async function PlaylistDetailPage(props: {
 
   async function handleAvanzarEstado(formData: FormData) {
     "use server";
-    let destino = `/playlists/${id}`;
     try {
       const nuevoEstado = formData.get("nuevoEstado") as string;
       await avanzarEstadoPlaylist(id, nuevoEstado);
     } catch (e) {
-      destino = urlError(id, e instanceof Error ? e.message : "No se pudo cambiar la etapa.");
+      redirect(urlError(id, e instanceof Error ? e.message : "No se pudo cambiar la etapa."));
     }
-    redirect(destino);
+    // Sin redirect: se actualiza en el lugar (no sube al principio ni
+    // repite la animación de entrada de la pantalla).
+    revalidatePath(`/playlists/${id}`);
   }
 
   // Vía de rescate para listas mal etiquetadas por el bug de inferencia de
   // plataforma al crearlas — reasignarla acá no requiere recrear la lista.
   async function handleCambiarPlataforma(formData: FormData) {
     "use server";
-    let destino = `/playlists/${id}`;
     try {
       const nuevaPlataforma = Number(formData.get("id_plataforma"));
       await cambiarPlataformaPlaylist(id, nuevaPlataforma);
     } catch (e) {
-      destino = urlError(id, e instanceof Error ? e.message : "No se pudo cambiar la plataforma.");
+      redirect(urlError(id, e instanceof Error ? e.message : "No se pudo cambiar la plataforma."));
     }
-    redirect(destino);
+    // Sin redirect: se actualiza en el lugar (no sube al principio ni
+    // repite la animación de entrada de la pantalla).
+    revalidatePath(`/playlists/${id}`);
   }
 
   // ── Render ────────────────────────────────────────────────────────────────

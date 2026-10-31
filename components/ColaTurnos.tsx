@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { AnimatePresence, Reorder, useDragControls, useReducedMotion } from "framer-motion";
 import { useConfirmar } from "@/components/zarza/Confirmacion";
 import { SALIDA_ITEM } from "@/components/zarza/ListaAnimada";
+import { useEscalonarInicial, useNuevos } from "@/components/zarza/useNuevos";
 import { GripVertical, Mic2, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 
@@ -26,6 +27,8 @@ export function ColaTurnos({ turnos, onReordenar, onActivar, onQuitar }: Props) 
   const [guardando, startTransition] = useTransition();
   const inicial = useRef<number[]>([]);
   const confirmar = useConfirmar();
+  const nuevos = useNuevos(turnos.map((t) => t.id_turno));
+  const escalonar = useEscalonarInicial();
 
   const idsKey = turnos.map((t) => t.id_turno).join(",");
   useEffect(() => {
@@ -83,13 +86,14 @@ export function ColaTurnos({ turnos, onReordenar, onActivar, onQuitar }: Props) 
       axis="y"
       values={orden}
       onReorder={setOrden}
-      className={`escalonar flex flex-col gap-2 transition-opacity ${guardando ? "pointer-events-none opacity-70" : ""}`}
+      className={`${escalonar} flex flex-col gap-2 transition-opacity ${guardando ? "pointer-events-none opacity-70" : ""}`}
     >
       <AnimatePresence initial={false}>
       {orden.map((t, idx) => (
         <Fila
           key={t.id_turno}
           turno={t}
+          nuevo={nuevos.has(t.id_turno)}
           pos={idx + 1}
           esPrimero={idx === 0}
           esUltimo={idx === orden.length - 1}
@@ -123,6 +127,7 @@ export function ColaTurnos({ turnos, onReordenar, onActivar, onQuitar }: Props) 
 
 interface FilaProps {
   turno:       TurnoItem;
+  nuevo?:      boolean;
   pos:         number;
   esPrimero:   boolean;
   esUltimo:    boolean;
@@ -133,7 +138,7 @@ interface FilaProps {
   onQuitar:    () => void;
 }
 
-function Fila({ turno, pos, esPrimero, esUltimo, onDragStart, onDragEnd, onMover, onActivar, onQuitar }: FilaProps) {
+function Fila({ turno, nuevo, pos, esPrimero, esUltimo, onDragStart, onDragEnd, onMover, onActivar, onQuitar }: FilaProps) {
   const controls = useDragControls();
   const reducir = useReducedMotion();
   const [arrastrando, setArrastrando] = useState(false);
@@ -148,10 +153,11 @@ function Fila({ turno, pos, esPrimero, esUltimo, onDragStart, onDragEnd, onMover
       whileDrag={{ scale: 1.03, rotate: -0.6 }}
       {...(reducir ? {} : SALIDA_ITEM)}
       transition={{ type: "spring", stiffness: 600, damping: 40 }}
-      className={`flex items-center gap-3 rounded-[14px] border bg-card px-3 py-2.5 ${
-        arrastrando ? "z-10 border-violet-500/50 shadow-xl shadow-black/25 dark:shadow-black/60" : "border-line"
+      className={`relative flex items-center gap-3 overflow-hidden rounded-[14px] border bg-card px-3 py-2.5 transition-[box-shadow,border-color] duration-500 ${
+        arrastrando ? "z-10 border-violet-500/50 shadow-xl shadow-black/25 dark:shadow-black/60" : nuevo ? "border-fuego-500/60 shadow-[0_0_0_3px_rgba(199,97,58,0.18)]" : "border-line"
       }`}
     >
+      {nuevo && <span aria-hidden className="animate-destello pointer-events-none absolute inset-0 bg-fuego-500/15" />}
       <button
         type="button"
         onPointerDown={(e) => { e.preventDefault(); controls.start(e); }}

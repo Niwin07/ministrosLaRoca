@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { AnimatePresence, Reorder, useDragControls, useReducedMotion } from "framer-motion";
 import { BotonConfirmado } from "@/components/zarza/Confirmacion";
 import { SALIDA_ITEM } from "@/components/zarza/ListaAnimada";
+import { useEscalonarInicial, useNuevos } from "@/components/zarza/useNuevos";
 import { GripVertical, ChevronDown, ChevronUp, ChevronsUpDown, Trash2 } from "lucide-react";
 import { NOTAS } from "@/lib/notas";
 import { ChartViewerInteractivo } from "@/components/ChartViewerInteractivo";
@@ -36,6 +37,9 @@ export function SortableSongList({
   onActualizarNota,
 }: SortableSongListProps) {
   const [orden, setOrden] = useState<SongItem[]>(items);
+  // Canciones recién agregadas: se resaltan un momento al aparecer.
+  const nuevos = useNuevos(items.map((i) => i.id_lista_cancion));
+  const escalonar = useEscalonarInicial();
   const [guardando, startTransition] = useTransition();
   // Snapshot de ids al iniciar el arrastre, para detectar si hubo cambio al soltar.
   const ordenInicial = useRef<number[]>([]);
@@ -96,13 +100,14 @@ export function SortableSongList({
       axis="y"
       values={orden}
       onReorder={setOrden}
-      className={`escalonar flex flex-col gap-2 transition-opacity ${guardando ? "pointer-events-none opacity-70" : ""}`}
+      className={`${escalonar} flex flex-col gap-2 transition-opacity ${guardando ? "pointer-events-none opacity-70" : ""}`}
     >
       <AnimatePresence initial={false}>
       {orden.map((item, idx) => (
         <SortableRow
           key={item.id_lista_cancion}
           item={item}
+          nuevo={nuevos.has(item.id_lista_cancion)}
           posicion={idx + 1}
           puedeEditar={puedeEditar}
           esPrimero={idx === 0}
@@ -121,6 +126,7 @@ export function SortableSongList({
 
 interface SortableRowProps {
   item: SongItem;
+  nuevo?: boolean;
   posicion: number;
   puedeEditar: boolean;
   esPrimero: boolean;
@@ -221,6 +227,7 @@ function TonoPopover({
 
 function SortableRow({
   item,
+  nuevo,
   posicion,
   puedeEditar,
   esPrimero,
@@ -252,10 +259,11 @@ function SortableRow({
       whileDrag={{ scale: 1.03, rotate: -0.6 }}
       {...(reducir ? {} : SALIDA_ITEM)}
       transition={{ type: "spring", stiffness: 600, damping: 40 }}
-      className={`relative rounded-2xl border bg-card transition-shadow ${
-        arrastrando ? "z-10 border-fuego-500/50 shadow-xl shadow-black/20" : "border-line"
+      className={`relative rounded-2xl border bg-card transition-[box-shadow,border-color] duration-500 ${
+        arrastrando ? "z-10 border-fuego-500/50 shadow-xl shadow-black/20" : nuevo ? "border-fuego-500/60 shadow-[0_0_0_3px_rgba(199,97,58,0.18)]" : "border-line"
       }`}
     >
+      {nuevo && <span aria-hidden className="animate-destello pointer-events-none absolute inset-0 rounded-2xl bg-fuego-500/15" />}
       <div className="flex items-center gap-2.5 py-3 pl-2 pr-2.5">
         {puedeEditar && (
           <div className="flex shrink-0 items-center">

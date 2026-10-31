@@ -65,8 +65,9 @@ export async function crearUsuario(formData: FormData) {
     );
   }
 
+  // En el lugar: la persona nueva aparece en la lista y el formulario se
+  // vacía solo (React reinicia el form tras la acción), sin volver arriba.
   revalidatePath("/admin/usuarios");
-  redirect("/admin/usuarios?success=creado");
 }
 
 export async function actualizarUsuario(formData: FormData) {

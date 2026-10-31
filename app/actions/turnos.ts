@@ -84,7 +84,8 @@ export async function agregarACola(formData: FormData) {
   } catch (e) {
     errorCola(e, "No se pudo agregar a la cola.");
   }
-  redirect("/admin/turnos?success=agregado");
+  // En el lugar: la cola se actualiza animada, sin volver arriba.
+  revalidar();
 }
 
 export async function marcarActivo(formData: FormData) {
@@ -146,7 +147,8 @@ export async function marcarActivo(formData: FormData) {
   } catch (e) {
     errorCola(e, "No se pudo marcar al ministro como activo.");
   }
-  redirect("/admin/turnos?success=activo");
+  // En el lugar: la cola se actualiza animada, sin volver arriba.
+  revalidar();
 }
 
 /** Saca al director activo y lo devuelve al frente de la cola (para corregir).
@@ -185,7 +187,8 @@ export async function desactivarActivo(formData: FormData) {
   } catch (e) {
     errorCola(e, "No se pudo desactivar al director.");
   }
-  redirect("/admin/turnos?success=desactivado");
+  // En el lugar: la cola se actualiza animada, sin volver arriba.
+  revalidar();
 }
 
 /** Elimina un turno de la cola (o el activo). */
@@ -201,7 +204,8 @@ export async function quitarTurno(formData: FormData) {
   } catch (e) {
     errorCola(e, "No se pudo quitar el turno.");
   }
-  redirect("/admin/turnos?success=quitado");
+  // En el lugar: la cola se actualiza animada, sin volver arriba.
+  revalidar();
 }
 
 /** Reordena la cola (drag). Recibe [{ id_turno, orden }]. */

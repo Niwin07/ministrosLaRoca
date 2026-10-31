@@ -2,6 +2,7 @@
 
 import { Children, isValidElement, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEscalonarInicial } from "@/components/zarza/useNuevos";
 
 /**
  * Lista cuyos elementos salen con animación cuando desaparecen (al borrar),
@@ -10,8 +11,11 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
  */
 export function ListaAnimada({ children, className = "" }: { children: ReactNode; className?: string }) {
   const reducir = useReducedMotion();
+  // La cascada sólo en la primera aparición; lo que llega después entra solo.
+  const escalonar = useEscalonarInicial();
+  const clases = className.replace(/\bescalonar\b/, escalonar).trim();
   return (
-    <div className={className}>
+    <div className={clases}>
       <AnimatePresence initial={false} mode="popLayout">
         {Children.toArray(children).map((hijo) =>
           isValidElement(hijo) ? (

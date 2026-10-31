@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { ChevronRight, ListMusic, Archive } from "lucide-react";
@@ -172,31 +173,29 @@ export default async function PlaylistsPage(props: {
 
   async function handleRenombrarPlantilla(formData: FormData) {
     "use server";
-    let destino = "/playlists";
     try {
       const id     = Number(formData.get("id_playlist"));
       const nombre = (formData.get("nombre") as string | null) ?? "";
       await renombrarPlaylist(id, nombre);
     } catch (e) {
-      destino = `/playlists?error=${encodeURIComponent(
+      redirect(`/playlists?error=${encodeURIComponent(
         e instanceof Error ? e.message : "No se pudo renombrar la plantilla."
-      )}`;
+      )}`);
     }
-    redirect(destino);
+    revalidatePath("/playlists");
   }
 
   async function handleEliminarLista(formData: FormData) {
     "use server";
-    let destino = "/playlists";
     try {
       const id = Number(formData.get("id_playlist"));
       await eliminarPlaylist(id);
     } catch (e) {
-      destino = `/playlists?error=${encodeURIComponent(
+      redirect(`/playlists?error=${encodeURIComponent(
         e instanceof Error ? e.message : "No se pudo borrar la lista."
-      )}`;
+      )}`);
     }
-    redirect(destino);
+    revalidatePath("/playlists");
   }
 
   // Clona una lista archivada. Si es propia → nuevo EVENTO en preparación;

@@ -7,6 +7,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cls } from "@/components/zarza/ui";
 import { BotonConfirmado } from "@/components/zarza/Confirmacion";
 import { SALIDA_ITEM } from "@/components/zarza/ListaAnimada";
+import { useEscalonarInicial } from "@/components/zarza/useNuevos";
 import type { ResultadoAccion } from "@/app/actions/contenido";
 import { youtubeMiniatura, youtubeUrl } from "@/lib/youtube";
 
@@ -45,6 +46,7 @@ export function VideosGrilla({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const reducir = useReducedMotion();
+  const escalonar = useEscalonarInicial();
 
   function enviar(accion: Accion, fd: FormData, alTerminar?: () => void) {
     setError(null);
@@ -122,7 +124,7 @@ export function VideosGrilla({
       )}
 
       {variante === "cuadro" ? (
-        <div className="escalonar grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-[18px]">
+        <div className={`${escalonar} grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5 lg:gap-[18px]`}>
           <AnimatePresence initial={false} mode="popLayout">
           {videos.map((v, i) => (
             <motion.div key={v.id} layout={!reducir} {...(reducir ? {} : SALIDA_ITEM)} transition={{ type: "spring", stiffness: 420, damping: 36 }} className="min-w-0">
@@ -156,7 +158,7 @@ export function VideosGrilla({
           )}
         </div>
       ) : (
-        <div className="escalonar grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
+        <div className={`${escalonar} grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3`}>
           <AnimatePresence initial={false} mode="popLayout">
           {videos.map((v, i) => (
             <motion.div key={v.id} layout={!reducir} {...(reducir ? {} : SALIDA_ITEM)} transition={{ type: "spring", stiffness: 420, damping: 36 }} className="min-w-0">

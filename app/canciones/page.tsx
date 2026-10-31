@@ -6,15 +6,13 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { CheckCircle2, Sparkles } from "lucide-react";
 import { CatalogoCanciones } from "@/components/CatalogoCanciones";
-import { CargarCancion } from "@/components/CargarCancion";
 import { ErrorBanner } from "@/components/ErrorBanner";
-import { cls } from "@/components/zarza/ui";
 import { agregarCancionALista, eliminarCancionDeLista } from "@/app/actions/listas";
 import { sugerirCancion as crearSugerencia } from "@/app/actions/canciones";
-import { ESTILOS, TONOS_CANCION, estilosDeParam } from "@/lib/estilos";
+import { estilosDeParam } from "@/lib/estilos";
 import { esColumnaFaltante } from "@/lib/modulos";
 import { AvisoMigracion } from "@/components/zarza/ui";
-import { SelectorZarza } from "@/components/zarza/SelectorZarza";
+import { FormSugerir, type EstadoSugerir } from "@/components/zarza/FormSugerir";
 
 const POR_PAGINA = 15;
 
@@ -96,15 +94,15 @@ export default async function CancionesPage(props: {
   const totalAprobadas = Number(totalAprobadasRows[0]?.count ?? 0);
   const totalPaginas   = Math.max(1, Math.ceil(total / POR_PAGINA));
 
-  const sugeridaOk = searchParams.sugerida === "1";
   const editadaOk  = searchParams.editada === "1";
 
-  async function handleSugerir(formData: FormData) {
+  async function handleSugerir(prev: EstadoSugerir, formData: FormData): Promise<EstadoSugerir> {
     "use server";
+    const vez = (prev?.vez ?? 0) + 1;
     try {
       const nombre  = (formData.get("nombre")  as string)?.trim();
       const artista = (formData.get("artista") as string)?.trim();
-      if (!nombre || !artista) return;
+      if (!nombre || !artista) return { ok: false, error: "Completá el nombre y el artista.", vez };
 
       const clean = (raw: FormDataEntryValue | null) =>
         typeof raw === "string" && raw.trim()
@@ -123,16 +121,11 @@ export default async function CancionesPage(props: {
         letra:   clean(formData.get("letra")),
         charts:  clean(formData.get("charts")),
       });
-
-      revalidatePath("/canciones");
+      // Sin redirect: el formulario muestra "¡Sugerencia enviada!" en el lugar.
+      return { ok: true, nombre, vez };
     } catch (e) {
-      redirect(
-        `/canciones?error=${encodeURIComponent(
-          e instanceof Error ? e.message : "No se pudo enviar la sugerencia."
-        )}`
-      );
+      return { ok: false, error: e instanceof Error ? e.message : "No se pudo enviar la sugerencia.", vez };
     }
-    redirect("/canciones?sugerida=1");
   }
 
   // Listas propias editables para "Agregar a…" (servicios en preparación /
@@ -224,36 +217,7 @@ export default async function CancionesPage(props: {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 px-5 pb-5 pt-4">
-          {sugeridaOk && (
-            <div role="status" className="flex items-center gap-2 rounded-xl border border-green-600/30 bg-green-600/10 px-4 py-3 text-sm text-green-800 dark:text-green-400">
-              <CheckCircle2 size={15} className="shrink-0" aria-hidden /> ¡Gracias! Tu sugerencia quedó pendiente de aprobación.
-            </div>
-          )}
-          <form action={handleSugerir} className="flex flex-col gap-3">
-            <label className={cls.etiqueta}>
-              Nombre de la canción
-              <input name="nombre" required className={cls.campo} />
-            </label>
-            <label className={cls.etiqueta}>
-              Artista
-              <input name="artista" required className={cls.campo} />
-            </label>
-            {!faltaMigracion && <SelectorZarza name="estilo" label="Estilo" opciones={ESTILOS} />}
-            <div className="flex items-end gap-2">
-              {!faltaMigracion && <SelectorZarza name="tono" label="Tono" opciones={TONOS_CANCION} className="flex-1" />}
-              <label className={`${cls.etiqueta} ${faltaMigracion ? "w-full" : "w-24"}`}>
-                BPM
-                <input name="bpm" type="number" min={1} max={300} inputMode="numeric" className={`${cls.campo} px-2 text-center`} />
-              </label>
-            </div>
-            <CargarCancion />
-            <p className="text-[11px] text-lo">Queda pendiente hasta que un líder la apruebe.</p>
-            <button type="submit" className={`${cls.btnLlama} self-start`}>
-              Enviar sugerencia
-            </button>
-          </form>
-        </div>
+        <FormSugerir accion={handleSugerir} conEstilos={!faltaMigracion} />
       </section>
     </main>
   );
