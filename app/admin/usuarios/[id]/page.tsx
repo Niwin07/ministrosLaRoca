@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Avatar } from "@/components/Avatar";
+import { fotoUrl } from "@/lib/foto";
 import { SelectorZarza } from "@/components/zarza/SelectorZarza";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -35,7 +37,7 @@ export default async function EditarUsuarioPage(props: {
 
   const [[usuario], plataformasUsuario] = await Promise.all([
     db
-      .select({ id_usuario: usuarios.id_usuario, nombre: usuarios.nombre, email: usuarios.email, rol: usuarios.rol })
+      .select({ id_usuario: usuarios.id_usuario, nombre: usuarios.nombre, email: usuarios.email, rol: usuarios.rol, foto: fotoUrl() })
       .from(usuarios)
       .where(eq(usuarios.id_usuario, id))
       .limit(1),
@@ -65,7 +67,9 @@ export default async function EditarUsuarioPage(props: {
         Usuarios
       </Link>
 
-      <div>
+      <div className="flex items-center gap-3.5">
+        <Avatar foto={usuario.foto} nombre={usuario.nombre} size={52} />
+        <div className="min-w-0">
         <h1 className="font-display text-[26px] font-bold leading-tight tracking-[-0.02em] text-hi">
           Editar Usuario
         </h1>
@@ -73,6 +77,7 @@ export default async function EditarUsuarioPage(props: {
           Modificá los datos de{" "}
           <span className="text-hi">{usuario.nombre}</span>.
         </p>
+        </div>
       </div>
 
       <ErrorBanner message={errorMsg} />

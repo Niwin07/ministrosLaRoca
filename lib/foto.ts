@@ -1,5 +1,8 @@
-import { sql } from "drizzle-orm";
+import { sql, type AnyColumn } from "drizzle-orm";
 import { usuarios } from "@/db/schema";
+
+/** La tabla usuarios o un alias suyo (p. ej. principal/auxiliar de sonido). */
+type TablaUsuarios = { foto: AnyColumn; id_usuario: AnyColumn };
 
 /**
  * En vez de mandar la foto (data URL en base64, decenas de KB por persona)
@@ -8,5 +11,5 @@ import { usuarios } from "@/db/schema";
  * base, así que el navegador la guarda una vez y sólo la vuelve a pedir
  * cuando la persona cambia su foto.
  */
-export const fotoUrl = () =>
-  sql<string | null>`CASE WHEN ${usuarios.foto} IS NULL OR ${usuarios.foto} = '' THEN NULL ELSE CONCAT('/api/foto/', ${usuarios.id_usuario}, '?v=', CRC32(${usuarios.foto})) END`;
+export const fotoUrl = (t: TablaUsuarios = usuarios) =>
+  sql<string | null>`CASE WHEN ${t.foto} IS NULL OR ${t.foto} = '' THEN NULL ELSE CONCAT('/api/foto/', ${t.id_usuario}, '?v=', CRC32(${t.foto})) END`;

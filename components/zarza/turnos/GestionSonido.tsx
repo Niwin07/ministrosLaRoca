@@ -10,7 +10,7 @@ import { SALIDA_ITEM } from "@/components/zarza/ListaAnimada";
 import { agregarSonidista, quitarSonidista, asignarSonido, guardarSemanasPlanificadas } from "@/app/actions/sonido";
 import type { ResultadoAccion } from "@/app/actions/contenido";
 
-interface Persona { id: number; nombre: string }
+interface Persona { id: number; nombre: string; foto?: string | null }
 interface Semana { semana: string; principal: Persona | null; auxiliar: Persona | null }
 
 function useAccion() {
@@ -66,7 +66,7 @@ function SelectPersona({
       etiqueta={label}
       titulo={`Elegir ${label.toLowerCase()}`}
       valor={valor ? String(valor.id) : ""}
-      opciones={opciones.map((o) => ({ id: o.id, nombre: o.nombre, nota: o.id === sugeridoId ? "Sigue en la rotación" : undefined }))}
+      opciones={opciones.map((o) => ({ id: o.id, nombre: o.nombre, foto: o.foto, nota: o.id === sugeridoId ? "Sigue en la rotación" : undefined }))}
       onChange={onChange}
       disabled={disabled}
       tono={tono}
@@ -121,7 +121,7 @@ export function GestionSonido({
             const p = ahora?.[rol] ?? null;
             return (
               <div key={rol} className={`flex items-center gap-2.5 rounded-2xl border p-3 ${rol === "principal" ? "border-[rgba(122,42,38,0.3)] bg-[#fbede6] dark:bg-[#1e1513]" : "border-line bg-[#fcf5eb] dark:bg-input"}`}>
-                <span key={p?.id ?? "nadie"} className="flex animate-pop"><Inicial nombre={p?.nombre ?? (rol === "principal" ? "S" : "A")} size={36} tono={rol === "principal" ? "vino" : "arcilla"} /></span>
+                <span key={p?.id ?? "nadie"} className="flex animate-pop"><Inicial nombre={p?.nombre ?? (rol === "principal" ? "S" : "A")} foto={p?.foto} size={36} tono={rol === "principal" ? "vino" : "arcilla"} /></span>
                 <SelectPersona
                   label={rol === "principal" ? "Principal" : "Auxiliar"}
                   valor={p}
@@ -146,7 +146,7 @@ export function GestionSonido({
             <AnimatePresence initial={false} mode="popLayout">
             {sonidistas.map((s) => (
               <motion.li key={s.id} layout={!reducir} {...(reducir ? {} : SALIDA_ITEM)} transition={{ type: "spring", stiffness: 420, damping: 36 }} className="flex items-center gap-1.5 rounded-full border border-line bg-[#fcf5eb] py-1 pl-1 pr-1.5 dark:bg-input">
-                <Inicial nombre={s.nombre} size={26} tono="vino" />
+                <Inicial nombre={s.nombre} foto={s.foto} size={26} tono="vino" />
                 <span className="text-[13px] font-semibold text-hi">{s.nombre}</span>
                 <button type="button" onClick={async () => {
                   const ok = await confirmar({

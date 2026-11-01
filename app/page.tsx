@@ -295,9 +295,14 @@ export default async function InicioPage() {
             className="flex items-center gap-3.5 rounded-[22px] px-5 py-[18px] text-[#fff7ec] shadow-[0_14px_30px_-12px_rgba(94,31,24,0.55)] tarjeta-viva hover:brightness-110"
             style={{ background: "radial-gradient(80% 140% at 100% 0%, rgba(217,134,74,0.6) 0%, rgba(217,134,74,0) 60%), linear-gradient(120deg, #5a1a12 0%, #7a2a26 45%, #a8492c 100%)" }}
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-[rgba(255,247,236,0.6)] bg-[rgba(255,247,236,0.12)] text-[15px] font-bold">
-              {proximo.nombre.charAt(0).toUpperCase()}
-            </span>
+            {proximo.foto ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={proximo.foto} alt="" className="h-11 w-11 shrink-0 rounded-full border-2 border-[rgba(255,247,236,0.6)] object-cover" />
+            ) : (
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-[rgba(255,247,236,0.6)] bg-[rgba(255,247,236,0.12)] text-[15px] font-bold">
+                {proximo.nombre.charAt(0).toUpperCase()}
+              </span>
+            )}
             <span className="min-w-0 flex-1">
               <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-[#f8c9a8]">La semana que viene dirige</span>
               <span className="mt-0.5 block truncate text-base font-bold">{proximo.nombre}</span>

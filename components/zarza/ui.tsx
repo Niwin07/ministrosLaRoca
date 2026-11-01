@@ -116,7 +116,13 @@ export function Vacio({ titulo, children }: { titulo: string; children?: ReactNo
 }
 
 /** Avatar de iniciales con el gradiente "Llama" (sin foto). */
-export function Inicial({ nombre, size = 40, tono = "llama" }: { nombre: string; size?: number; tono?: "llama" | "vino" | "arcilla" }) {
+export function Inicial({ nombre, size = 40, tono = "llama", foto }: { nombre: string; size?: number; tono?: "llama" | "vino" | "arcilla"; foto?: string | null }) {
+  if (foto) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={foto} alt="" aria-hidden="true" width={size} height={size} loading="lazy" className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />
+    );
+  }
   const fondo =
     tono === "vino" ? "bg-[#7a2a26]" : tono === "arcilla" ? "bg-[#c27c5a]" : "bg-llama";
   return (

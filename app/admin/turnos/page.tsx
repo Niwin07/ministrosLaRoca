@@ -50,7 +50,7 @@ export default async function AdminTurnosPage(props: {
   // Todo en paralelo: antes eran 6 idas y vueltas a la base, una tras otra.
   const [listaUsuarios, turnosActivosPorPla, colaSelItems, semanasPlan, filasSonido, sonidistasPla] = await Promise.all([
     db
-      .select({ id_usuario: usuarios.id_usuario, nombre: usuarios.nombre })
+      .select({ id_usuario: usuarios.id_usuario, nombre: usuarios.nombre, foto: fotoUrl() })
       .from(usuarios)
       .orderBy(asc(usuarios.nombre)),
     // Admin ve TODOS los activos — puede haber uno por plataforma simultáneamente.
@@ -130,7 +130,7 @@ export default async function AdminTurnosPage(props: {
                     titulo="Elegir ministro"
                     vacio="Seleccionar ministro…"
                     permitirVacio={false}
-                    opciones={listaUsuarios.map((u) => ({ id: u.id_usuario, nombre: u.nombre }))}
+                    opciones={listaUsuarios.map((u) => ({ id: u.id_usuario, nombre: u.nombre, foto: u.foto }))}
                     tono="arcilla"
                     className="flex-1"
                   />
@@ -196,8 +196,8 @@ export default async function AdminTurnosPage(props: {
               id_plataforma={plaSel.id}
               plataformaNombre={plaNombre}
               semanas={sonido.semanas}
-              sonidistas={sonidistasPla.map((s) => ({ id: s.id, nombre: s.nombre }))}
-              usuarios={listaUsuarios.map((u) => ({ id: u.id_usuario, nombre: u.nombre }))}
+              sonidistas={sonidistasPla.map((s) => ({ id: s.id, nombre: s.nombre, foto: s.foto }))}
+              usuarios={listaUsuarios.map((u) => ({ id: u.id_usuario, nombre: u.nombre, foto: u.foto }))}
             />
           )}
 
@@ -215,7 +215,7 @@ export default async function AdminTurnosPage(props: {
                 titulo="Probar notificaciones a…"
                 vacio="Elegir persona…"
                 permitirVacio={false}
-                opciones={listaUsuarios.map((u) => ({ id: u.id_usuario, nombre: u.nombre }))}
+                opciones={listaUsuarios.map((u) => ({ id: u.id_usuario, nombre: u.nombre, foto: u.foto }))}
                 tono="arcilla"
                 className="flex-1"
               />

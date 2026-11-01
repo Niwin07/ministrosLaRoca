@@ -97,14 +97,14 @@ export default async function TurnosPage() {
 
           <div className="escalonar grid grid-cols-2 gap-2.5">
             <div className="flex items-center gap-2.5 rounded-2xl border border-[rgba(122,42,38,0.3)] bg-[#fbede6] p-3.5 dark:bg-[#1e1513]">
-              <Inicial nombre={ahoraSonido?.principal?.nombre ?? "S"} size={36} tono="vino" />
+              <Inicial nombre={ahoraSonido?.principal?.nombre ?? "S"} foto={ahoraSonido?.principal?.foto} size={36} tono="vino" />
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#7a2a26] dark:text-[#d69271]">Sonidista</p>
                 <p className="mt-0.5 truncate text-sm font-bold text-hi">{ahoraSonido?.principal?.nombre ?? "Sin asignar"}</p>
               </div>
             </div>
             <div className="flex items-center gap-2.5 rounded-2xl border border-line bg-card p-3.5">
-              <Inicial nombre={ahoraSonido?.auxiliar?.nombre ?? "A"} size={36} tono="arcilla" />
+              <Inicial nombre={ahoraSonido?.auxiliar?.nombre ?? "A"} foto={ahoraSonido?.auxiliar?.foto} size={36} tono="arcilla" />
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#7a2a26] dark:text-[#d69271]">Auxiliar</p>
                 <p className="mt-0.5 truncate text-sm font-bold text-hi">{ahoraSonido?.auxiliar?.nombre ?? "Sin asignar"}</p>

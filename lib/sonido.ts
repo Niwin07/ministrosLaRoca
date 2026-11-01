@@ -7,8 +7,8 @@ import { consultaModulo, lunesDe, sumarSemanas } from "@/lib/modulos";
 
 export interface SemanaSonido {
   semana:    string;               // lunes YYYY-MM-DD
-  principal: { id: number; nombre: string } | null;
-  auxiliar:  { id: number; nombre: string } | null;
+  principal: { id: number; nombre: string; foto?: string | null } | null;
+  auxiliar:  { id: number; nombre: string; foto?: string | null } | null;
 }
 
 /** Semanas planificadas de la plataforma (default 6). */
@@ -35,12 +35,14 @@ export async function getFilasSonido(id_plataforma: number) {
           id_auxiliar:   turnos_sonido.id_auxiliar,
           nom_principal: principalU.nombre,
           nom_auxiliar:  auxiliarU.nombre,
+          foto_principal: fotoUrl(principalU),
+          foto_auxiliar:  fotoUrl(auxiliarU),
         })
         .from(turnos_sonido)
         .leftJoin(principalU, eq(principalU.id_usuario, turnos_sonido.id_principal))
         .leftJoin(auxiliarU, eq(auxiliarU.id_usuario, turnos_sonido.id_auxiliar))
         .where(and(eq(turnos_sonido.id_plataforma, id_plataforma), gte(turnos_sonido.semana, hoy))),
-    [] as { semana: unknown; id_principal: number | null; id_auxiliar: number | null; nom_principal: string | null; nom_auxiliar: string | null }[],
+    [] as { semana: unknown; id_principal: number | null; id_auxiliar: number | null; nom_principal: string | null; nom_auxiliar: string | null; foto_principal: string | null; foto_auxiliar: string | null }[],
   );
   return { filas: datos, faltaMigracion };
 }
@@ -53,8 +55,8 @@ export function armarSemanas(filas: Awaited<ReturnType<typeof getFilasSonido>>["
     const f = filas.find((x) => String(x.semana instanceof Date ? x.semana.toISOString() : x.semana).slice(0, 10) === semana);
     return {
       semana,
-      principal: f?.id_principal && f.nom_principal ? { id: f.id_principal, nombre: f.nom_principal } : null,
-      auxiliar:  f?.id_auxiliar && f.nom_auxiliar ? { id: f.id_auxiliar, nombre: f.nom_auxiliar } : null,
+      principal: f?.id_principal && f.nom_principal ? { id: f.id_principal, nombre: f.nom_principal, foto: f.foto_principal } : null,
+      auxiliar:  f?.id_auxiliar && f.nom_auxiliar ? { id: f.id_auxiliar, nombre: f.nom_auxiliar, foto: f.foto_auxiliar } : null,
     };
   });
 }

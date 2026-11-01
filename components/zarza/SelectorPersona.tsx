@@ -9,6 +9,7 @@ import { Inicial } from "@/components/zarza/ui";
 export interface OpcionPersona {
   id: number | string;
   nombre: string;
+  foto?: string | null;
   /** Texto chico al lado (p. ej. "sigue en la rotación"). */
   nota?: string;
 }
@@ -131,6 +132,10 @@ export function SelectorPersona({
       >
         {/* Destello al elegir a alguien */}
         {elegida && <span key={String(elegida.id)} aria-hidden className="animate-destello pointer-events-none absolute inset-0 bg-fuego-500/20" />}
+        {elegida?.foto && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={elegida.foto} alt="" aria-hidden className="relative h-7 w-7 shrink-0 rounded-full object-cover" />
+        )}
         <span className="relative flex min-w-0 flex-1 flex-col gap-0.5">
           {etiqueta && <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#7a2a26] dark:text-[#d69271]">{etiqueta}</span>}
           <span className={`truncate text-sm font-semibold ${elegida ? "text-hi" : "text-lo"}`}>{elegida?.nombre ?? vacio}</span>
@@ -190,7 +195,7 @@ export function SelectorPersona({
                   <Opcion on={!valor} onClick={() => elegir("")} nombre={vacio} vacia />
                 )}
                 {visibles.map((o) => (
-                  <Opcion key={o.id} on={String(o.id) === valor} onClick={() => elegir(String(o.id))} nombre={o.nombre} nota={o.nota} tono={tono} />
+                  <Opcion key={o.id} on={String(o.id) === valor} onClick={() => elegir(String(o.id))} nombre={o.nombre} foto={o.foto} nota={o.nota} tono={tono} />
                 ))}
                 {visibles.length === 0 && (
                   <li className="px-3 py-6 text-center text-sm text-lo">Nadie coincide con “{busqueda}”.</li>
@@ -207,8 +212,8 @@ export function SelectorPersona({
 }
 
 function Opcion({
-  on, onClick, nombre, nota, vacia, tono = "vino",
-}: { on: boolean; onClick: () => void; nombre: string; nota?: string; vacia?: boolean; tono?: "vino" | "arcilla" }) {
+  on, onClick, nombre, foto, nota, vacia, tono = "vino",
+}: { on: boolean; onClick: () => void; nombre: string; foto?: string | null; nota?: string; vacia?: boolean; tono?: "vino" | "arcilla" }) {
   return (
     <li role="option" aria-selected={on}>
       <button
@@ -223,7 +228,7 @@ function Opcion({
             <X size={14} />
           </span>
         ) : (
-          <Inicial nombre={nombre} size={36} tono={tono} />
+          <Inicial nombre={nombre} foto={foto} size={36} tono={tono} />
         )}
         <span className="min-w-0 flex-1">
           <span className={`block truncate text-[15px] ${on ? "font-semibold text-fuego-600 dark:text-[#df8067]" : vacia ? "text-lo" : "font-medium text-hi"}`}>{nombre}</span>
